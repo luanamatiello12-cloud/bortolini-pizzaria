@@ -1,0 +1,998 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bortolini Pizzaria e delivery | Gestão para Restaurantes</title>
+    <meta name="description" content="Sistema de gestão para a Bortolini Pizzaria — pedidos, cardápio, estoque e entregas." />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="login-screen" id="login-screen">
+      <div class="login-card">
+        <div class="brand login-brand">
+          <img class="brand-logo" src="assets/bortolini-logo.svg" alt="Logo Bortolini Pizzaria e delivery" />
+          <div>
+            <strong>Bortolini</strong>
+            <small>Acesso da equipe</small>
+          </div>
+        </div>
+        <h2>Entrar no sistema</h2>
+        <p>Informe o CPF e o PIN da equipe. No primeiro acesso, use os 4 primeiros números do CPF.</p>
+
+        <div class="profile-grid" id="demo-users"></div>
+
+        <form id="login-form" class="login-form">
+          <label>
+            CPF
+            <input id="login-email" type="text" inputmode="numeric" autocomplete="username" placeholder="Somente números" required />
+          </label>
+          <label>
+            PIN
+            <input id="login-pin" type="password" inputmode="numeric" autocomplete="current-password" required />
+          </label>
+          <button class="primary" type="submit">Entrar</button>
+          <button class="ghost" id="recover-admin-btn" type="button">Recuperar acesso adm</button>
+          <p class="form-error" id="login-error"></p>
+        </form>
+      </div>
+    </section>
+
+
+
+    <div class="app-shell hidden" id="app-shell">
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+      <aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <img class="brand-logo" src="assets/bortolini-logo.svg" alt="Logo Bortolini Pizzaria e delivery" />
+          <div>
+            <strong>Bortolini</strong>
+            <small>Pizzaria e delivery</small>
+          </div>
+        </div>
+
+        <section class="user-card">
+          <small>Usuário ativo</small>
+          <strong id="current-user-name">Equipe</strong>
+          <p id="current-user-role">Perfil</p>
+          <button class="ghost-light" id="logout-btn">Sair</button>
+        </section>
+
+        <nav class="nav-list" role="tablist" aria-label="Seções do sistema">
+          <button class="nav-item active" data-view="dashboard" data-permission="dashboard" role="tab" aria-selected="true" aria-controls="dashboard">Visão geral</button>
+          <button class="nav-item" data-view="orders" data-permission="orders" role="tab" aria-selected="false" aria-controls="orders">Pedidos</button>
+          <button class="nav-item" data-view="customer" data-permission="customer" role="tab" aria-selected="false" aria-controls="customer">Cliente QR</button>
+          <button class="nav-item" data-view="menu" data-permission="menu" role="tab" aria-selected="false" aria-controls="menu">Cardápio</button>
+          <button class="nav-item" data-view="inventory" data-permission="inventory" role="tab" aria-selected="false" aria-controls="inventory">Estoque</button>
+          <button class="nav-item" data-view="inbox" data-permission="inbox" role="tab" aria-selected="false" aria-controls="inbox">Atendimento IA</button>
+          <button class="nav-item" data-view="delivery" data-permission="delivery" role="tab" aria-selected="false" aria-controls="delivery">Entregas</button>
+          <button class="nav-item" data-view="payments" data-permission="payments" role="tab" aria-selected="false" aria-controls="payments">Pagamentos</button>
+          <button class="nav-item" data-view="customers" data-permission="customers" role="tab" aria-selected="false" aria-controls="customers">Clientes</button>
+          <button class="nav-item" data-view="reports" data-permission="reports" role="tab" aria-selected="false" aria-controls="reports">Relatórios</button>
+          <button class="nav-item" data-view="settings" data-permission="settings" role="tab" aria-selected="false" aria-controls="settings">Configurações</button>
+          <button class="nav-item" data-view="integrations" data-permission="integrations" role="tab" aria-selected="false" aria-controls="integrations">Integrações</button>
+        </nav>
+
+        <section class="trial-box">
+          <small>Implantação</small>
+          <strong>10 a 20 dias úteis</strong>
+          <p>Configuração, integrações, pagamentos e treinamento da equipe.</p>
+        </section>
+      </aside>
+
+      <main class="main">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="connection-status-text">Restaurante conectado</p>
+            <h1 id="view-title">Visão geral</h1>
+          </div>
+          <div class="top-actions">
+            <label class="search" for="global-search">
+              <span aria-hidden="true">🔍</span>
+              <input id="global-search" type="search" aria-label="Busca global" placeholder="Buscar pedidos, clientes ou pratos" />
+            </label>
+            <span class="connection-badge" id="connection-badge" title="Status de conexão ao servidor"></span>
+            <button class="primary" id="new-order-btn">+ Novo pedido</button>
+          </div>
+        </header>
+
+        <section id="dashboard" class="view active-view">
+          <div class="metrics-grid" id="metrics"></div>
+
+          <div class="split-layout">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Pedidos em tempo real</h2>
+                <button class="ghost" data-view-jump="orders">Ver todos</button>
+              </div>
+              <div id="live-orders" class="order-list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Canais automatizados</h2>
+                <span class="status-pill success">IA ativa</span>
+              </div>
+              <div class="channel-list" id="channels"></div>
+            </section>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Fila da cozinha</h2>
+              <button class="ghost" id="print-kitchen">Imprimir mapa</button>
+            </div>
+            <div class="kitchen-board" id="kitchen-board"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Alertas da operação</h2>
+              <span class="status-pill">Agora</span>
+            </div>
+            <div id="owner-alerts" class="best-list"></div>
+          </section>
+        </section>
+        <section id="orders" class="view">
+          <div class="metrics-grid compact-metrics" id="order-insights"></div>
+          <div class="tool-row">
+            <div class="segmented" id="order-filter">
+              <button class="active" data-filter="Todos">Todos</button>
+              <button data-filter="Novo">Novos</button>
+              <button data-filter="Cozinha">Cozinha</button>
+              <button data-filter="Entrega">Entrega</button>
+              <button data-filter="Finalizado">Finalizados</button>
+              <button data-filter="Cancelado">Cancelados</button>
+            </div>
+            <button class="secondary" id="export-orders">Exportar CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pedido</th>
+                  <th>Cliente</th>
+                  <th>Canal</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Pagamento</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="customer" class="view">
+          <div class="customer-store">
+            <section class="store-hero">
+              <img src="assets/bortolini-logo.svg" alt="Bortolini Pizzaria e delivery" />
+              <div>
+                <p class="eyebrow">Cardápio QR</p>
+                <h2>Bortolini Pizzaria e delivery</h2>
+                <p id="store-hours">Aberto hoje</p>
+                <div class="store-hero-actions">
+                  <button class="primary" id="go-to-menu" type="button">Ver cardápio</button>
+                  <button class="secondary light-button" id="call-pizzeria" type="button">Chamar no WhatsApp</button>
+                </div>
+              </div>
+            </section>
+            <div class="store-layout">
+              <section class="panel" id="digital-menu-panel">
+                <div class="panel-head">
+                  <h2>Escolha seu pedido</h2>
+                  <span class="status-pill success">Promoções ativas</span>
+                </div>
+                <div id="store-products" class="menu-grid"></div>
+              </section>
+              <aside class="panel cart-panel">
+                <h2>Carrinho</h2>
+                <div id="cart-items" class="cart-list"></div>
+                <strong id="cart-total">Total: R$ 0,00</strong>
+                <label>
+                  Nome
+                  <input id="checkout-name" placeholder="Seu nome" />
+                </label>
+                <label>
+                  Telefone
+                  <input id="checkout-phone" placeholder="WhatsApp" />
+                </label>
+                <label>
+                  Entrega ou retirada
+                  <select id="checkout-type">
+                    <option>Entrega</option>
+                    <option>Retirada</option>
+                  </select>
+                </label>
+                <label>
+                  Endereço
+                  <input id="checkout-address" placeholder="Rua, número, bairro" />
+                </label>
+                <label>
+                  Pagamento
+                  <select id="checkout-payment">
+                    <option>PIX</option>
+                    <option>Cartão</option>
+                    <option>Dinheiro</option>
+                  </select>
+                </label>
+                <label>
+                  Adicional
+                  <select id="checkout-addon">
+                    <option value="">Sem adicional</option>
+                    <option value="Borda recheada">Borda recheada + R$ 8,00</option>
+                    <option value="Extra queijo">Extra queijo + R$ 6,00</option>
+                    <option value="Meio a meio">Meio a meio</option>
+                  </select>
+                </label>
+                <label id="receipt-field" class="hidden">
+                  Comprovante PIX
+                  <input id="checkout-receipt" type="file" accept="image/*,application/pdf" />
+                </label>
+                <div class="photo-preview hidden" id="receipt-preview"></div>
+                <label>
+                  Observações
+                  <textarea id="checkout-notes" placeholder="Ex: sem cebola, borda recheada, troco..."></textarea>
+                </label>
+                <p class="form-error" id="checkout-error"></p>
+                <button class="primary" id="checkout-btn">Finalizar pedido</button>
+
+                <!-- Confirmação pós-pedido PIX -->
+                <div id="pix-confirmation" class="hidden">
+                  <div class="pix-confirmation-box">
+                    <div class="pix-success-icon">✅</div>
+                    <h3>Pedido recebido!</h3>
+                    <p id="pix-order-summary"></p>
+                    <div class="pix-info-box">
+                      <p><strong>Pague via PIX para confirmar seu pedido:</strong></p>
+                      <div class="pix-cnpj-row">
+                        <span class="pix-label">CNPJ</span>
+                        <span class="pix-value" id="pix-cnpj-display">66.686.680/0001-57</span>
+                        <button class="ghost pix-copy-btn" id="pix-copy-btn" onclick="copyPix()">Copiar</button>
+                      </div>
+                      <p class="pix-tip">Abra o app do seu banco → PIX → CNPJ → cole a chave acima</p>
+                    </div>
+                    <div class="pix-upload-section">
+                      <p><strong>Após pagar, envie o comprovante:</strong></p>
+                      <label class="pix-upload-label" for="pix-receipt-input">
+                        📎 Selecionar comprovante
+                        <input id="pix-receipt-input" type="file" accept="image/*,application/pdf" />
+                      </label>
+                      <div id="pix-receipt-preview" class="photo-preview hidden"></div>
+                      <p class="form-error" id="pix-upload-error"></p>
+                      <button class="primary" id="pix-send-btn" onclick="sendPixComprovante()">Enviar comprovante</button>
+                      <p id="pix-sent-msg" class="hidden pix-sent-msg">✅ Comprovante enviado! Aguarde a confirmação da pizzaria.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="order-status-box">
+                  <h3>Acompanhar pedido</h3>
+                  <label>
+                    Número do pedido
+                    <input id="track-order-id" type="number" placeholder="Ex: 12" />
+                  </label>
+                  <button class="secondary" id="track-order-btn">Consultar status</button>
+                  <div id="track-order-result" class="cart-list"></div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section id="order-track" class="view">
+          <div class="customer-layout">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>📦 Acompanhar pedido</h2>
+                <span class="status-pill" id="track-status-pill">Carregando...</span>
+              </div>
+              <div id="track-order-details">
+                <p>Carregando dados do pedido...</p>
+              </div>
+              <div id="track-pix-section" class="hidden">
+                <div class="pix-upload-section">
+                  <p><strong>Pagamento via PIX</strong></p>
+                  <p class="form-hint">Envie o comprovante para confirmar seu pedido.</p>
+                  <label class="pix-upload-label" for="track-pix-receipt-input">
+                    📎 Selecionar comprovante
+                    <input id="track-pix-receipt-input" type="file" accept="image/*,application/pdf" />
+                  </label>
+                  <div id="track-pix-receipt-preview" class="photo-preview hidden"></div>
+                  <p class="form-error" id="track-pix-error"></p>
+                  <button class="primary" id="track-pix-send-btn">Enviar comprovante</button>
+                  <p id="track-pix-sent-msg" class="hidden pix-sent-msg">✅ Comprovante enviado!</p>
+                </div>
+              </div>
+              <div id="track-map-section" class="hidden">
+                <h3>🛵 Localização do entregador</h3>
+                <p id="track-location-info"></p>
+                <a id="track-map-link" class="secondary" target="_blank" href="#">📍 Ver no mapa</a>
+                <div class="delivery-map" style="margin-top:12px;height:220px;">
+                  <div class="map-area" id="track-map-area"></div>
+                </div>
+              </div>
+              <div style="margin-top:18px;">
+                <button class="ghost" id="track-back-btn">← Voltar ao cardápio</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="menu" class="view">
+          <div class="menu-layout">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Cardápio digital</h2>
+                <div class="panel-actions">
+                  <select id="menu-category-filter" class="compact-select">
+                    <option value="Todos">Todas categorias</option>
+                  </select>
+                  <button class="secondary" id="new-product-btn">+ Produto</button>
+                  <button class="primary" id="new-promotion-btn">+ Promoção</button>
+                </div>
+              </div>
+              <div id="menu-items" class="menu-grid"></div>
+            </section>
+            <aside class="panel qr-panel">
+              <div class="qr-card">
+                <img class="qr-brand" src="assets/bortolini-logo.svg" alt="Bortolini Pizzaria e delivery" />
+                <img id="qr-code-image" class="qr-code-image" alt="QR Code do cardápio digital" />
+              </div>
+              <p class="eyebrow">Cardápio digital</p>
+              <h2 id="qr-display-link">pedido.bortolini.com.br</h2>
+              <p id="qr-helper-text">Use o QR nas mesas, embalagens e redes sociais.</p>
+              <div class="qr-actions">
+                <button class="primary" id="download-qr-code" type="button">Baixar QR Code</button>
+                <button class="secondary" id="copy-qr-link" type="button">Copiar link</button>
+              </div>
+            </aside>
+          </div>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Promoções lançadas</h2>
+              <span class="status-pill">Campanhas</span>
+            </div>
+            <div id="promotions-list" class="promo-grid"></div>
+          </section>
+        </section>
+
+        <section id="inventory" class="view">
+          <section class="panel inventory-panel" data-permission="inventory">
+            <div class="panel-head">
+              <h2>Estoque de ingredientes</h2>
+              <div class="panel-actions">
+                <span class="status-pill">Baixa automática</span>
+                <button class="ghost" id="export-stock" type="button">Exportar estoque</button>
+              </div>
+            </div>
+            <div id="stock-alerts" class="ingredient-list"></div>
+            <div class="inventory-form labeled-form">
+              <label>Nome <span class="required">*</span><input id="ingredient-name" placeholder="Ex: Mussarela" required /></label>
+              <label>Código <span class="required">*</span><input id="ingredient-code" placeholder="Ex: MUSS-001" required /></label>
+              <label>Unidade<input id="ingredient-unit" placeholder="kg, un, L" /></label>
+              <label>Quantidade <span class="required">*</span><input id="ingredient-stock" type="number" step="0.01" min="0" placeholder="0" required /></label>
+              <label>Qtde. mínima <span class="required">*</span><input id="ingredient-min" type="number" step="0.01" min="0" placeholder="0" required /></label>
+              <label>Custo unitário<input id="ingredient-cost" type="number" step="0.01" placeholder="0,00" /></label>
+              <label>Fornecedor<input id="ingredient-supplier" placeholder="Nome do fornecedor" /></label>
+              <p class="form-hint">⚠️ Alerta WhatsApp automático ao atingir quantidade mínima.</p>
+              <p class="form-error" id="ingredient-error"></p>
+              <button class="secondary" id="create-ingredient-btn">Adicionar ao estoque</button>
+            </div>
+            <div id="ingredients-list" class="ingredient-list inventory-table"></div>
+          </section>
+
+          <section class="panel inventory-panel" data-permission="inventory">
+            <div class="panel-head">
+              <h2>Ficha técnica e cálculo</h2>
+              <span class="status-pill">Produção</span>
+            </div>
+            <div class="inventory-two-columns">
+              <div class="inventory-box">
+                <h3>Receita do produto</h3>
+                <label>Produto<select id="recipe-item"></select></label>
+                <div id="recipe-ingredients-list" class="recipe-builder"></div>
+                <button class="ghost" id="add-recipe-row" type="button">+ Adicionar ingrediente</button>
+                <button class="secondary" id="save-recipe-btn">Salvar ficha técnica</button>
+              </div>
+              <div class="inventory-box">
+                <h3>Calcular produção</h3>
+                <label>Produto<select id="calc-item"></select></label>
+                <label>Quantidade a produzir<input id="calc-qty" type="number" min="1" value="1" /></label>
+                <div id="calc-result" class="ingredient-list"></div>
+              </div>
+            </div>
+            <div id="recipes-list" class="ingredient-list"></div>
+          </section>
+
+          <section class="panel inventory-panel" data-permission="inventory">
+            <div class="panel-head">
+              <h2>Histórico de estoque</h2>
+              <span class="status-pill">Movimentações</span>
+            </div>
+            <div id="stock-movements-list" class="ingredient-list"></div>
+          </section>
+        </section>
+
+        <section id="inbox" class="view">
+          <div class="inbox-layout" style="grid-template-columns: 1fr; place-items: center; min-height: 70vh;">
+            <aside class="panel qr-panel" id="inbox-qr-panel" style="max-width: 360px; width: 100%;">
+              <div class="panel-head">
+                <h2>Conectar WhatsApp</h2>
+                <span class="status-pill">QR Code</span>
+              </div>
+              <img id="inbox-qr-image" class="qr-code-image" alt="QR Code WhatsApp" />
+              <p class="form-hint" id="inbox-qr-hint">Escaneie para iniciar uma conversa no WhatsApp.</p>
+              <button class="secondary" id="copy-whatsapp-link" type="button">Copiar link</button>
+            </aside>
+          </div>
+        </section>
+
+        <section id="delivery" class="view">
+          <div class="delivery-map">
+            <div class="map-area" id="delivery-map"></div>
+            <div class="delivery-side">
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>Entregas ativas</h2>
+                  <span class="status-pill success">Ao vivo</span>
+                </div>
+                <div id="active-deliveries" class="driver-list"></div>
+              </section>
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>Entregadores</h2>
+                  <span class="status-pill">4 online</span>
+                </div>
+                <div class="driver-form">
+                  <input id="driver-name" placeholder="Nome do entregador" />
+                  <input id="driver-area" placeholder="Área ou bairro" />
+                  <input id="driver-cpf" placeholder="CPF (login)" inputmode="numeric" />
+                  <button class="secondary" id="create-driver-btn">Adicionar</button>
+                </div>
+                <div id="drivers" class="driver-list"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section id="payments" class="view">
+          <div class="tool-row">
+            <div class="segmented" id="finance-filter">
+              <button class="active" data-finance="day">Dia</button>
+              <button data-finance="week">Semana</button>
+              <button data-finance="month">Mês</button>
+            </div>
+            <button class="secondary" id="export-payments">Exportar caixa</button>
+          </div>
+          <div class="metrics-grid" id="payment-metrics"></div>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Resumo do caixa</h2>
+              <span class="status-pill">Fechamento</span>
+            </div>
+            <div id="closeout-summary" class="transaction-list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Transações</h2>
+              <button class="ghost">Configurar gateways</button>
+            </div>
+            <div id="transactions" class="transaction-list"></div>
+          </section>
+        </section>
+
+        <section id="reports" class="view">
+          <div class="tool-row">
+            <button class="secondary" id="export-products">Exportar produtos</button>
+            <button class="secondary" id="export-report">Exportar relatório</button>
+          </div>
+          <div class="report-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Vendas por canal</h2>
+                <span>Hoje</span>
+              </div>
+              <div class="bar-chart" id="sales-chart"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Pratos mais vendidos</h2>
+                <span>Semana</span>
+              </div>
+              <div id="best-sellers" class="best-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Lucro estimado</h2>
+                <span>Ficha técnica</span>
+              </div>
+              <div id="profit-list" class="best-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Formas de pagamento</h2>
+                <span>Pedidos válidos</span>
+              </div>
+              <div id="payment-report-list" class="best-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Resumo operacional</h2>
+                <span>Agora</span>
+              </div>
+              <div id="operation-report-list" class="best-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="customers" class="view">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Clientes</h2>
+              <span class="status-pill">Histórico</span>
+            </div>
+            <div class="customer-filters">
+              <label>
+                Nome
+                <input id="customer-filter-name" placeholder="Buscar por nome" />
+              </label>
+              <label>
+                Telefone
+                <input id="customer-filter-phone" placeholder="Buscar por telefone" />
+              </label>
+              <label>
+                Endereço
+                <input id="customer-filter-address" placeholder="Buscar por endereço" />
+              </label>
+              <label>
+                Promoção com pedidos
+                <input id="customer-filter-min-orders" type="number" min="0" value="5" />
+              </label>
+            </div>
+            <div id="customers-list" class="customer-list"></div>
+            <div id="customer-history" class="customer-history"></div>
+          </section>
+        </section>
+
+        <section id="driverApp" class="view">
+          <div class="driver-app">
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Minhas entregas</h2>
+                <span class="status-pill success">Localização ativa</span>
+              </div>
+              <div id="driver-orders" class="driver-list"></div>
+              <button class="primary" id="share-location-btn">Compartilhar localização</button>
+            </section>
+          </div>
+        </section>
+
+        <section id="settings" class="view">
+          <section class="panel settings-panel">
+            <div class="panel-head">
+              <h2>Configurações da pizzaria</h2>
+              <span class="status-pill">Operação</span>
+            </div>
+            <div class="form-grid">
+              <label>Nome<input id="setting-name" /></label>
+              <label>Horário<input id="setting-hours" /></label>
+              <label>Taxa de entrega<input id="setting-fee" type="number" step="0.01" /></label>
+              <label>Tempo médio<input id="setting-prep" /></label>
+            </div>
+            <label>Bairros atendidos<input id="setting-areas" /></label>
+            <div class="panel-head">
+              <h2>Taxas por bairro</h2>
+              <span class="status-pill">Entrega</span>
+            </div>
+            <div class="form-grid inventory-form">
+              <input id="zone-neighborhood" placeholder="Bairro" />
+              <input id="zone-fee" type="number" min="0" step="0.01" placeholder="Taxa" />
+              <input id="zone-eta" placeholder="Tempo médio" />
+              <button class="secondary" id="create-zone-btn" type="button">Adicionar bairro</button>
+            </div>
+            <div id="delivery-zones-list" class="ingredient-list"></div>
+            <div class="panel-head">
+              <h2>Acessos da equipe</h2>
+              <span class="status-pill">CPF + PIN</span>
+            </div>
+            <p>O primeiro acesso usa os 4 primeiros números do CPF. Se alguém esquecer, o adm pode resetar o PIN.</p>
+            <div id="team-users-list" class="ingredient-list"></div>
+            <div class="panel-head" style="margin-top:18px;">
+              <h2>🔗 Links públicos</h2>
+              <span class="status-pill">Cliente / Entregador</span>
+            </div>
+            <div class="form-grid">
+              <label>Link do cardápio (cliente)
+                <input id="settings-menu-link" readonly onclick="this.select()" />
+              </label>
+              <label>Link do app entregador
+                <input id="settings-driver-link" readonly onclick="this.select()" />
+              </label>
+            </div>
+            <p class="form-hint">O entregador acessa o link acima com o ID dele no final (ex: /entregador/123).</p>
+            <button class="primary" id="save-settings-btn">Salvar configurações</button>
+            <p class="form-error" id="settings-message"></p>
+          </section>
+        </section>
+
+        <section id="integrations" class="view">
+          <div class="report-grid">
+            <section class="panel settings-panel">
+              <div class="panel-head">
+                <h2>Pagamento online</h2>
+                <span class="status-pill">PIX / gateway</span>
+              </div>
+              <label>Gateway preferido
+                <select id="integration-payment-provider">
+                  <option>Mercado Pago</option>
+                  <option>Pagar.me</option>
+                  <option>Stripe</option>
+                  <option>PIX manual</option>
+                </select>
+              </label>
+              <label>Chave PIX<input id="integration-pix-key" placeholder="chave@pix.com" /></label>
+              <label>Token do gateway<input id="integration-payment-token" type="password" autocomplete="off" placeholder="cole o token quando tiver" /></label>
+            </section>
+
+            <section class="panel settings-panel">
+              <div class="panel-head">
+                <h2>WhatsApp</h2>
+                <span class="status-pill">Mensagens</span>
+              </div>
+              <label>Número oficial<input id="integration-whatsapp-number" placeholder="5511999990000" /></label>
+              <label>WhatsApp para alertas de estoque<input id="integration-stock-whatsapp" placeholder="5511999990000" /></label>
+              <label>Token/API WhatsApp<input id="integration-whatsapp-token" type="password" autocomplete="off" placeholder="Token da API Meta" /></label>
+              <label>Phone Number ID (Meta API)<input id="integration-phone-number-id" placeholder="ID do número na Meta API" /></label>
+              <p class="form-hint">Obtenha o Token e Phone Number ID em developers.facebook.com após aprovação do WhatsApp Business.</p>
+              <p>Os botões de WhatsApp usam esse número ou o telefone do cliente para abrir a mensagem pronta.</p>
+              <div class="template-actions">
+                <button class="ghost" type="button" data-template="confirm">Copiar confirmação</button>
+                <button class="ghost" type="button" data-template="delivery">Copiar saiu para entrega</button>
+                <button class="ghost" type="button" data-template="promo">Copiar promoção</button>
+                <button class="ghost" type="button" data-template="stock">Copiar alerta estoque</button>
+              </div>
+            </section>
+
+            <section class="panel settings-panel">
+              <div class="panel-head">
+                <h2>GPS do entregador</h2>
+                <span class="status-pill success">Pronto para celular</span>
+              </div>
+              <p>O botão "Compartilhar localização" usa a permissão de localização do navegador/celular e grava a posição no pedido em rota.</p>
+              <label>Intervalo de atualização<input id="integration-gps-interval" placeholder="30 segundos" /></label>
+            </section>
+
+            <section class="panel settings-panel">
+              <div class="panel-head">
+                <h2>Deploy online</h2>
+                <span class="status-pill">Publicação</span>
+              </div>
+              <label>Domínio desejado<input id="integration-domain" placeholder="pedido.bortolini.com.br" /></label>
+              <div class="deploy-checklist">
+                <label><input type="checkbox" id="deploy-db" /> Banco persistente configurado</label>
+                <label><input type="checkbox" id="deploy-env" /> Variáveis de ambiente separadas</label>
+                <label><input type="checkbox" id="deploy-https" /> HTTPS/domínio pronto</label>
+              </div>
+            </section>
+          </div>
+          <button class="primary" id="save-integrations-btn">Salvar integrações</button>
+          <p class="form-error" id="integrations-message"></p>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast hidden" id="toast"></div>
+
+    <dialog id="order-dialog" class="order-dialog" aria-labelledby="order-dialog-title">
+      <form method="dialog" class="dialog-card compact-order-form">
+        <div class="panel-head">
+          <h2 id="order-dialog-title">Novo pedido</h2>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <section class="order-section">
+          <strong>Cliente</strong>
+          <div class="order-grid">
+            <label>
+              Nome
+              <input id="customer-name" required placeholder="Nome do cliente" />
+            </label>
+            <label>
+              Telefone
+              <input id="customer-phone" placeholder="WhatsApp" />
+            </label>
+          </div>
+          <label>
+            Tipo
+            <select id="order-delivery-type">
+              <option>Entrega</option>
+              <option>Retirada</option>
+            </select>
+          </label>
+          <label>
+            Endereço
+            <input id="order-address" placeholder="Rua, número, bairro ou deixe vazio para retirada" />
+          </label>
+        </section>
+
+        <section class="order-section">
+          <div class="order-section-head">
+            <strong>Itens</strong>
+            <label class="inline-label">
+              Canal
+              <select id="order-channel">
+                <option>WhatsApp</option>
+                <option>Instagram</option>
+                <option>Facebook</option>
+                <option>Balcão</option>
+              </select>
+            </label>
+          </div>
+          <div class="order-grid">
+            <label>
+              Categoria
+              <select id="order-category"></select>
+            </label>
+            <label>
+              Produto
+              <select id="order-item"></select>
+            </label>
+          </div>
+          <div class="order-grid">
+            <label>
+              Quantidade
+              <input id="order-qty" type="number" min="1" value="1" />
+            </label>
+            <label>
+              Adicional
+              <select id="order-addon">
+                <option value="">Sem adicional</option>
+                <option value="Borda recheada">Borda recheada + R$ 8,00</option>
+                <option value="Extra queijo">Extra queijo + R$ 6,00</option>
+                <option value="Meio a meio">Meio a meio</option>
+              </select>
+            </label>
+          </div>
+          <button class="secondary" id="add-order-item" type="button">Adicionar item</button>
+          <div id="order-items-preview" class="cart-list compact-cart"></div>
+        </section>
+
+        <section class="order-section">
+          <div class="order-grid">
+            <label>
+              Pagamento
+              <select id="order-payment">
+                <option>PIX</option>
+                <option>Cartão</option>
+                <option>Dinheiro</option>
+              </select>
+            </label>
+            <label>
+              Taxa
+              <input id="order-delivery-fee" type="number" min="0" step="0.01" placeholder="0,00" />
+            </label>
+          </div>
+          <label>
+            Desconto, se houver
+            <input id="order-discount" type="number" min="0" step="0.01" placeholder="0,00" />
+          </label>
+        </section>
+        <label>
+          Observações
+          <textarea id="order-notes" placeholder="Ex: sem cebola, troco, ponto da massa..."></textarea>
+        </label>
+        <button class="primary" id="create-order" type="button">Criar pedido</button>
+      </form>
+    </dialog>
+
+    <dialog id="product-dialog" aria-labelledby="product-dialog-title">
+      <form method="dialog" class="dialog-card">
+        <div class="panel-head">
+          <h2 id="product-dialog-title">Novo produto</h2>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <label>
+          Nome
+          <input id="product-name" placeholder="Ex: Coxinha de frango" />
+        </label>
+        <label>
+          Categoria
+          <select id="product-category">
+            <option value="">Selecione a categoria</option>
+            <option value="Pizzas">Pizzas</option>
+            <option value="Bebidas">Bebidas</option>
+            <option value="Combos">Combos</option>
+            <option value="Sobremesas">Sobremesas</option>
+            <option value="Salgados">Salgados</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </label>
+        <label>
+          Descrição curta
+          <textarea id="product-description" placeholder="Ex: massa artesanal, molho da casa, serve 2 pessoas"></textarea>
+        </label>
+        <div class="form-grid">
+          <label>
+            Tamanho/porção
+            <input id="product-size" placeholder="Ex: Grande, 8 fatias" />
+          </label>
+          <label>
+            Tempo de preparo
+            <input id="product-prep" placeholder="Ex: 35 min" />
+          </label>
+        </div>
+        <label>
+          Adicionais sugeridos
+          <input id="product-addons" placeholder="Ex: Borda recheada, extra queijo" />
+        </label>
+        <label>
+          Preço
+          <input id="product-price" type="number" min="0.01" step="0.01" placeholder="0,00" />
+        </label>
+        <label>
+          Foto
+          <input id="product-photo" type="file" accept="image/*" />
+        </label>
+        <div class="photo-preview hidden" id="product-photo-preview"></div>
+        <p class="form-error" id="product-error"></p>
+        <button class="primary" id="create-product" type="button">Criar produto</button>
+      </form>
+    </dialog>
+
+    <dialog id="pin-dialog" aria-labelledby="pin-dialog-title">
+      <form method="dialog" class="dialog-card">
+        <div class="panel-head">
+          <h2 id="pin-dialog-title">Criar novo PIN</h2>
+        </div>
+        <p>Por segurança, troque o PIN inicial antes de continuar.</p>
+        <label>
+          PIN atual
+          <input id="current-pin" type="password" inputmode="numeric" autocomplete="current-password" />
+        </label>
+        <label>
+          Novo PIN
+          <input id="new-pin" type="password" inputmode="numeric" autocomplete="new-password" placeholder="4 a 6 números" />
+        </label>
+        <label>
+          Confirmar novo PIN
+          <input id="confirm-new-pin" type="password" inputmode="numeric" autocomplete="new-password" />
+        </label>
+        <button class="primary" id="save-pin-btn" type="button">Salvar PIN</button>
+        <p class="form-error" id="pin-message"></p>
+      </form>
+    </dialog>
+
+    <dialog id="recover-admin-dialog" aria-labelledby="recover-admin-title">
+      <form method="dialog" class="dialog-card">
+        <div class="panel-head">
+          <h2 id="recover-admin-title">Recuperar adm</h2>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <label>
+          CPF do adm
+          <input id="recover-admin-cpf" type="text" inputmode="numeric" placeholder="Somente números" />
+        </label>
+        <label>
+          Chave mestra
+          <input id="recover-master-key" type="password" />
+        </label>
+        <label>
+          Novo PIN
+          <input id="recover-new-pin" type="password" inputmode="numeric" placeholder="4 a 6 números" />
+        </label>
+        <button class="primary" id="recover-admin-save" type="button">Redefinir PIN do adm</button>
+        <p class="form-error" id="recover-admin-message"></p>
+      </form>
+    </dialog>
+
+    <dialog id="promotion-dialog" aria-labelledby="promotion-dialog-title">
+      <form method="dialog" class="dialog-card">
+        <div class="panel-head">
+          <h2 id="promotion-dialog-title">Nova promoção</h2>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <label>
+          Título
+          <input id="promotion-title" placeholder="Ex: Happy hour do burger" />
+        </label>
+        <label>
+          Produto
+          <select id="promotion-item"></select>
+        </label>
+        <label>
+          Tipo
+          <select id="promotion-type">
+            <option value="percent">Porcentagem</option>
+            <option value="fixed">Valor fixo</option>
+            <option value="special">Preço promocional</option>
+          </select>
+        </label>
+        <label>
+          Valor
+          <input id="promotion-value" type="number" min="0.01" step="0.01" placeholder="10" />
+        </label>
+        <div class="form-grid">
+          <label>
+            Início
+            <input id="promotion-start" type="datetime-local" />
+          </label>
+          <label>
+            Fim
+            <input id="promotion-end" type="datetime-local" />
+          </label>
+        </div>
+        <fieldset class="channel-checks">
+          <legend>Canais</legend>
+          <label><input type="checkbox" name="promo-channel" value="Cardápio QR" checked /> Cardápio QR</label>
+          <label><input type="checkbox" name="promo-channel" value="WhatsApp" checked /> WhatsApp</label>
+          <label><input type="checkbox" name="promo-channel" value="Instagram" /> Instagram</label>
+          <label><input type="checkbox" name="promo-channel" value="Facebook" /> Facebook</label>
+        </fieldset>
+        <p class="form-error" id="promotion-error"></p>
+        <button class="primary" id="create-promotion" type="button">Lançar promoção</button>
+      </form>
+    </dialog>
+
+    <dialog id="cancel-dialog" aria-labelledby="cancel-dialog-title">
+      <form method="dialog" class="dialog-card">
+        <div class="panel-head">
+          <h2 id="cancel-dialog-title">Cancelar pedido</h2>
+          <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
+        </div>
+        <label>
+          Motivo do cancelamento
+          <textarea id="cancel-reason" placeholder="Ex: cliente desistiu, endereco fora da area, pagamento recusado..."></textarea>
+        </label>
+        <p class="form-error" id="cancel-error"></p>
+        <button class="primary danger-button" id="confirm-cancel" type="button">Confirmar cancelamento</button>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  <!-- Página pública do entregador -->
+  <div id="driver-public-page" class="hidden driver-public-page">
+    <div class="driver-public-card">
+      <div class="driver-public-header">
+        <h2>🛵 App do Entregador</h2>
+        <p id="driver-public-name"></p>
+      </div>
+      <div id="driver-public-orders" class="driver-orders-list"></div>
+      <div class="driver-location-box">
+        <p id="driver-location-status">📍 Localização não compartilhada</p>
+        <button class="primary" id="driver-share-location-btn" onclick="driverShareLocation()">Compartilhar localização</button>
+        <button class="secondary hidden" id="driver-stop-location-btn" onclick="driverStopLocation()">Parar compartilhamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de cadastro de entregador -->
+  <dialog id="driver-register-dialog">
+    <div class="dialog-card">
+      <div class="panel-head">
+        <h2>Cadastro de Entregador</h2>
+        <button class="icon-button" onclick="byId('driver-register-dialog').close()">×</button>
+      </div>
+      <label>Nome completo <span class="required">*</span>
+        <input id="driver-reg-name" placeholder="Seu nome" />
+      </label>
+      <label>CPF <span class="required">*</span>
+        <input id="driver-reg-cpf" placeholder="Somente números" inputmode="numeric" />
+      </label>
+      <label>Telefone (WhatsApp)
+        <input id="driver-reg-phone" placeholder="55119..." />
+      </label>
+      <p class="form-hint">Seu PIN inicial será os 4 primeiros dígitos do CPF. Você deverá trocá-lo no primeiro acesso.</p>
+      <p class="form-error" id="driver-reg-error"></p>
+      <button class="primary" onclick="registerDriver()">Cadastrar e entrar</button>
+    </div>
+  </dialog>
+  </body>
+</html>
