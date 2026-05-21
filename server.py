@@ -99,7 +99,7 @@ PIX_CNPJ = "66.686.680/0001-57"
 WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta aprovada
 
 
-# Seeds removidos — sistema inicia limpo para cadastro manual
+# Seeds sempre aplicados para garantir usuarios padrao no primeiro boot
 
 USER_SEED = [
     ("admin@bortolini.com", "00000000000", "3725", "Administrador", "admin"),
@@ -2835,8 +2835,37 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return dict(row)
 
 
+def ensure_seed_users():
+    import hashlib
+    def hp(pin):
+        import secrets as s
+        salt = s.token_hex(16)
+        dk = hashlib.pbkdf2_hmac('sha256', pin.encode(), salt.encode(), 120000)
+        return salt + ':' + dk.hex()
+    with connect() as conn:
+        for email, cpf, pin, name, role in USER_SEED:
+            exists = conn.execute('SELECT id FROM users WHERE cpf = ?', (cpf,)).fetchone()
+            if not exists:
+                conn.execute('INSERT INTO users (email, cpf, pin, pin_hash, name, role) VALUES (?,?,?,?,?,?)',
+                    (email, cpf, pin, hp(pin), name, role))
+
+def ensure_seed_users():
+    import hashlib
+    def hp(pin):
+        import secrets as s
+        salt = s.token_hex(16)
+        dk = hashlib.pbkdf2_hmac('sha256', pin.encode(), salt.encode(), 120000)
+        return salt + ':' + dk.hex()
+    with connect() as conn:
+        for email, cpf, pin, name, role in USER_SEED:
+            exists = conn.execute('SELECT id FROM users WHERE cpf = ?', (cpf,)).fetchone()
+            if not exists:
+                conn.execute('INSERT INTO users (email, cpf, pin, pin_hash, name, role) VALUES (?,?,?,?,?,?)',
+                    (email, cpf, pin, hp(pin), name, role))
+
 def main():
     init_db()
+    ensure_seed_users()
     if not USE_POSTGRES:
     # Iniciar backup automático em 24h (primeira vez)
         t = threading.Timer(86400, auto_backup)
