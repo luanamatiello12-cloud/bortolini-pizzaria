@@ -11,8 +11,14 @@ services:
         value: 0.0.0.0
       - key: PORT
         value: 10000
-      - key: DATABASE_PATH
-        value: /var/data/bortolini.db
+      # REMOVA ou comente DATABASE_PATH quando usar PostgreSQL
+      # - key: DATABASE_PATH
+      #   value: /var/data/bortolini.db
+      # ADICIONE DATABASE_URL apos criar o PostgreSQL no dashboard:
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: bortolini-postgres
+      #     property: connectionString
       - key: UPLOADS_PATH
         value: /var/data/uploads
       - key: APP_SECRET
@@ -21,3 +27,9 @@ services:
       - name: data
         mountPath: /var/data
         sizeGB: 1
+
+# Descomente apos criar o banco PostgreSQL no dashboard do Render:
+# databases:
+#   - name: bortolini-postgres
+#     plan: free
+#     ipAllowList: []

@@ -960,6 +960,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             data = self.receive_evolution_webhook(payload)
             self.send_json(data)
             return
+        if path == "/api/seed":
+            if not self.require_permission("settings"):
+                return
+            data = self.seed_database()
+            if data is not None:
+                self.send_json(data)
+            return
         self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
 
     def do_PATCH(self):
@@ -1576,6 +1583,33 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             "statuses": rows_to_dicts(status_rows),
             "canceled": canceled,
             "generated_at": datetime.now().isoformat(timespec="seconds"),
+        }
+
+    def seed_database(self):
+        """Popula o banco com dados iniciais (usuarios, settings, cardapio)."""
+        init_db()
+        # Importar cardapio se estiver vazio
+        with connect() as conn:
+            menu_count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+        inserted_menu = 0
+        if menu_count == 0:
+            seed_path = ROOT / "seed_menu.json"
+            if seed_path.exists():
+                items = json.loads(seed_path.read_text(encoding="utf-8")).get("items", [])
+                with connect() as conn:
+                    for item in items:
+                        try:
+                            conn.execute(
+                                "INSERT INTO menu_items (name, category, price, description) VALUES (?, ?, 0, ?)",
+                                (item["name"], item["category"], item.get("description", "")),
+                            )
+                            inserted_menu += 1
+                        except DB_INTEGRITY_ERROR:
+                            pass
+        return {
+            "ok": True,
+            "menu_items": inserted_menu,
+            "message": "Banco populado. Recarregue a pagina.",
         }
 
     def get_settings(self):
