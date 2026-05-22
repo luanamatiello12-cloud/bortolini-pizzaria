@@ -1,0 +1,7 @@
+name: Blank
+on: [push]
+jobs:
+  blank:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Trigger webhook"
