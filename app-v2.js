@@ -2748,19 +2748,22 @@ function renderDemoUsers() {
 }
 
 async function login() {
-  console.log("DEBUG login() chamado com PIN:", byId("login-pin").value.trim());
   const pin = byId("login-pin").value.trim();
   byId("login-error").textContent = "";
+  console.log("DEBUG: PIN digitado:", pin, "| apiOnline:", state.apiOnline);
 
   if (!pin) return;
 
   try {
     if (state.apiOnline) {
+      console.log("DEBUG: Chamando API com PIN:", pin);
       state.currentUser = await api("/api/login", {
         method: "POST",
         body: JSON.stringify({ pin }),
       });
+      console.log("DEBUG: API respondeu:", state.currentUser);
     } else {
+      console.log("DEBUG: Modo demo - PIN:", pin);
       const user = demoUsers.find((candidate) => pin === "1234");
       if (!user) throw new Error("Login inválido");
       state.currentUser = { ...user, token: `demo-${user.role}` };
@@ -2768,6 +2771,7 @@ async function login() {
     localStorage.setItem("bortoliniUser", JSON.stringify(state.currentUser));
     showApp();
   } catch (error) {
+    console.log("DEBUG: Erro no login:", error.message);
     byId("login-error").textContent = "PIN inválido.";
   }
 }
@@ -2881,12 +2885,12 @@ document.querySelectorAll("[data-view-jump]").forEach((button) => {
   button.addEventListener("click", () => switchView(button.dataset.viewJump));
 });
 
-byId("global-search").addEventListener("input", (event) => {
+byId("global-search")?.addEventListener("input", (event) => {
   state.search = event.target.value;
   renderOrders();
 });
 
-byId("order-filter").addEventListener("click", (event) => {
+byId("order-filter")?.addEventListener("click", (event) => {
   if (!event.target.dataset.filter) return;
   state.filter = event.target.dataset.filter;
   document.querySelectorAll("#order-filter button").forEach((button) => button.classList.remove("active"));
@@ -2894,14 +2898,14 @@ byId("order-filter").addEventListener("click", (event) => {
   renderOrders();
 });
 
-byId("new-order-btn").addEventListener("click", () => {
+byId("new-order-btn")?.addEventListener("click", () => {
   internalOrderItems = [];
   renderOrderProductOptions();
   renderInternalOrderItems();
   updateOrderDeliveryMode();
   byId("order-dialog").showModal();
 });
-byId("new-product-btn").addEventListener("click", () => {
+byId("new-product-btn")?.addEventListener("click", () => {
   editingProductId = null;
   productPhotoData = "";
   byId("product-name").value = "";
@@ -2916,7 +2920,7 @@ byId("new-product-btn").addEventListener("click", () => {
   byId("create-product").textContent = "Criar produto";
   byId("product-dialog").showModal();
 });
-byId("new-promotion-btn").addEventListener("click", () => {
+byId("new-promotion-btn")?.addEventListener("click", () => {
   editingPromotionId = null;
   byId("promotion-title").value = "";
   byId("promotion-value").value = "";
@@ -2926,56 +2930,56 @@ byId("new-promotion-btn").addEventListener("click", () => {
   });
   byId("promotion-dialog").showModal();
 });
-byId("menu-category-filter").addEventListener("change", (event) => {
+byId("menu-category-filter")?.addEventListener("change", (event) => {
   state.menuCategory = event.target.value;
   renderMenu();
 });
-byId("create-order").addEventListener("click", createOrder);
-byId("add-order-item").addEventListener("click", addInternalOrderItem);
-byId("order-category").addEventListener("change", (event) => {
+byId("create-order")?.addEventListener("click", createOrder);
+byId("add-order-item")?.addEventListener("click", addInternalOrderItem);
+byId("order-category")?.addEventListener("change", (event) => {
   state.orderCategory = event.target.value;
   renderOrderProductOptions();
 });
-byId("order-delivery-type").addEventListener("change", updateOrderDeliveryMode);
-byId("create-product").addEventListener("click", createProduct);
-byId("create-promotion").addEventListener("click", createPromotion);
-byId("checkout-btn").addEventListener("click", checkoutCart);
-byId("track-order-btn").addEventListener("click", trackOrderV2);
-byId("export-orders").addEventListener("click", exportOrders);
-byId("export-stock").addEventListener("click", exportStock);
-byId("export-payments").addEventListener("click", exportPayments);
-byId("export-products").addEventListener("click", exportProducts);
-byId("export-report").addEventListener("click", exportReport);
-byId("copy-qr-link").addEventListener("click", copyQrLink);
-byId("download-qr-code").addEventListener("click", downloadQrCode);
+byId("order-delivery-type")?.addEventListener("change", updateOrderDeliveryMode);
+byId("create-product")?.addEventListener("click", createProduct);
+byId("create-promotion")?.addEventListener("click", createPromotion);
+byId("checkout-btn")?.addEventListener("click", checkoutCart);
+byId("track-order-btn")?.addEventListener("click", trackOrderV2);
+byId("export-orders")?.addEventListener("click", exportOrders);
+byId("export-stock")?.addEventListener("click", exportStock);
+byId("export-payments")?.addEventListener("click", exportPayments);
+byId("export-products")?.addEventListener("click", exportProducts);
+byId("export-report")?.addEventListener("click", exportReport);
+byId("copy-qr-link")?.addEventListener("click", copyQrLink);
+byId("download-qr-code")?.addEventListener("click", downloadQrCode);
 byId("copy-whatsapp-link")?.addEventListener("click", copyWhatsAppLink);
-byId("go-to-menu").addEventListener("click", goToDigitalMenu);
-byId("call-pizzeria").addEventListener("click", callPizzeriaWhatsApp);
-byId("print-kitchen").addEventListener("click", printKitchenTickets);
-byId("logout-btn").addEventListener("click", logout);
-byId("save-settings-btn").addEventListener("click", saveSettings);
-byId("save-integrations-btn").addEventListener("click", saveIntegrations);
-byId("save-pin-btn").addEventListener("click", saveNewPin);
-byId("recover-admin-btn").addEventListener("click", () => byId("recover-admin-dialog").showModal());
-byId("recover-admin-save").addEventListener("click", recoverAdminAccess);
-byId("create-zone-btn").addEventListener("click", createDeliveryZone);
-byId("create-driver-btn").addEventListener("click", createDriver);
-byId("confirm-cancel").addEventListener("click", confirmCancelOrder);
-byId("create-ingredient-btn").addEventListener("click", createIngredient);
-byId("add-recipe-row").addEventListener("click", addRecipeRow);
-byId("recipe-item").addEventListener("change", () => renderRecipeRows(true));
-byId("save-recipe-btn").addEventListener("click", saveRecipeIngredient);
-byId("share-location-btn").addEventListener("click", () => {
+byId("go-to-menu")?.addEventListener("click", goToDigitalMenu);
+byId("call-pizzeria")?.addEventListener("click", callPizzeriaWhatsApp);
+byId("print-kitchen")?.addEventListener("click", printKitchenTickets);
+byId("logout-btn")?.addEventListener("click", logout);
+byId("save-settings-btn")?.addEventListener("click", saveSettings);
+byId("save-integrations-btn")?.addEventListener("click", saveIntegrations);
+byId("save-pin-btn")?.addEventListener("click", saveNewPin);
+byId("recover-admin-btn")?.addEventListener("click", () => byId("recover-admin-dialog").showModal());
+byId("recover-admin-save")?.addEventListener("click", recoverAdminAccess);
+byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);
+byId("create-driver-btn")?.addEventListener("click", createDriver);
+byId("confirm-cancel")?.addEventListener("click", confirmCancelOrder);
+byId("create-ingredient-btn")?.addEventListener("click", createIngredient);
+byId("add-recipe-row")?.addEventListener("click", addRecipeRow);
+byId("recipe-item")?.addEventListener("change", () => renderRecipeRows(true));
+byId("save-recipe-btn")?.addEventListener("click", saveRecipeIngredient);
+byId("share-location-btn")?.addEventListener("click", () => {
   shareRealLocation();
 });
-byId("checkout-type").addEventListener("change", renderCart);
-byId("checkout-address").addEventListener("input", renderCart);
-byId("checkout-addon").addEventListener("change", renderCart);
-byId("checkout-payment").addEventListener("change", () => {
+byId("checkout-type")?.addEventListener("change", renderCart);
+byId("checkout-address")?.addEventListener("input", renderCart);
+byId("checkout-addon")?.addEventListener("change", renderCart);
+byId("checkout-payment")?.addEventListener("change", () => {
   byId("receipt-field").classList.toggle("hidden", byId("checkout-payment").value !== "PIX");
 });
-byId("calc-item").addEventListener("change", renderIngredientCalculator);
-byId("calc-qty").addEventListener("input", renderIngredientCalculator);
+byId("calc-item")?.addEventListener("change", renderIngredientCalculator);
+byId("calc-qty")?.addEventListener("input", renderIngredientCalculator);
 
 document.querySelectorAll("[data-template]").forEach((button) => {
   button.addEventListener("click", () => copyWhatsAppTemplate(button.dataset.template));
@@ -3001,7 +3005,7 @@ document.querySelectorAll("[data-inbox-mode]").forEach((button) => {
   });
 });
 
-byId("finance-filter").addEventListener("click", (event) => {
+byId("finance-filter")?.addEventListener("click", (event) => {
   if (!event.target.dataset.finance) return;
   state.financeFilter = event.target.dataset.finance;
   document.querySelectorAll("#finance-filter button").forEach((button) => button.classList.remove("active"));
@@ -3009,32 +3013,32 @@ byId("finance-filter").addEventListener("click", (event) => {
   renderPayments();
 });
 
-byId("customer-filter-name").addEventListener("input", (event) => {
+byId("customer-filter-name")?.addEventListener("input", (event) => {
   state.customerNameFilter = event.target.value;
   renderCustomers();
 });
 
-byId("customer-filter-phone").addEventListener("input", (event) => {
+byId("customer-filter-phone")?.addEventListener("input", (event) => {
   state.customerPhoneFilter = event.target.value;
   renderCustomers();
 });
 
-byId("customer-filter-address").addEventListener("input", (event) => {
+byId("customer-filter-address")?.addEventListener("input", (event) => {
   state.customerAddressFilter = event.target.value;
   renderCustomers();
 });
 
-byId("customer-filter-min-orders").addEventListener("input", (event) => {
+byId("customer-filter-min-orders")?.addEventListener("input", (event) => {
   state.customerMinOrders = Number(event.target.value || 0);
   renderCustomers();
 });
 
-byId("login-form").addEventListener("submit", (event) => {
+byId("login-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
   login();
 });
 
-byId("product-photo").addEventListener("change", (event) => {
+byId("product-photo")?.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   productPhotoData = "";
   byId("product-photo-preview").classList.add("hidden");
@@ -3050,7 +3054,7 @@ byId("product-photo").addEventListener("change", (event) => {
   reader.readAsDataURL(file);
 });
 
-byId("checkout-receipt").addEventListener("change", (event) => {
+byId("checkout-receipt")?.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   pixReceiptData = "";
   byId("receipt-preview").classList.add("hidden");
@@ -3071,7 +3075,7 @@ byId("checkout-receipt").addEventListener("change", (event) => {
   reader.readAsDataURL(file);
 });
 
-byId("send-reply").addEventListener("click", async () => {
+if (byId("send-reply")) byId("send-reply")?.addEventListener("click", async () => {
   const input = byId("reply-input");
   const text = input.value.trim();
   if (!text) return;
@@ -3113,7 +3117,7 @@ loadData().then(() => {
   setInterval(simulateDriverMovement, 7000);
 });
 
-byId("pix-receipt-input").addEventListener("change", (event) => {
+byId("pix-receipt-input")?.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   window._pixReceiptData = "";
   byId("pix-receipt-preview").classList.add("hidden");
