@@ -1852,17 +1852,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.TOO_MANY_REQUESTS, "Muitas tentativas. Aguarde 5 minutos e tente novamente")
             return
 
-        identifier = payload.get("cpf", payload.get("email", "")).strip()
-        cpf = only_digits(identifier)
-        email = identifier.lower()
         pin = payload.get("pin", "").strip()
         driver_user_id = payload.get("driver_user_id")
+
+        if not pin:
+            self.send_error(HTTPStatus.BAD_REQUEST, "Informe o PIN para entrar")
+            return
 
         with connect() as conn:
             valid_roles = ("admin", "financeiro", "entregador")
             row = None
             if driver_user_id is not None:
-                # Atalho: entregador faz login pelo ID do link público + PIN
                 try:
                     driver_user_id = int(driver_user_id)
                     row = conn.execute(
@@ -1871,19 +1871,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     ).fetchone()
                 except (TypeError, ValueError):
                     row = None
-            elif cpf:
-                row = conn.execute(
-                    f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE cpf = ? AND role IN {valid_roles}",
-                    (cpf,),
-                ).fetchone()
             else:
-                row = conn.execute(
-                    f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE lower(email) = ? AND role IN {valid_roles}",
-                    (email,),
-                ).fetchone()
+                all_users = conn.execute(
+                    f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE role IN {valid_roles}"
+                ).fetchall()
+                for candidate in all_users:
+                    if verify_pin(pin, candidate["pin_hash"]) or (candidate["pin"] and hmac.compare_digest(pin, candidate["pin"])):
+                        row = candidate
+                        break
 
         if row is None or not (verify_pin(pin, row["pin_hash"]) or (row["pin"] and hmac.compare_digest(pin, row["pin"]))):
-            self.send_error(HTTPStatus.UNAUTHORIZED, "CPF ou PIN inválido")
+            self.send_error(HTTPStatus.UNAUTHORIZED, "PIN inválido")
             return
 
         # Login bem-sucedido: limpar rate limit e criar sessão segura

@@ -2791,7 +2791,7 @@ function renderDemoUsers() {
 
   document.querySelectorAll("[data-demo-login]").forEach((button) => {
     button.addEventListener("click", () => {
-      byId("login-email").value = button.dataset.demoLogin;
+      
       byId("login-pin").value = button.dataset.demoPin;
       login();
     });
