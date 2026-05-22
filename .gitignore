@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local secrets
+.env
+.env.*
+
+# Runtime logs
+*.log
+
+# Local database with customer/order data
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded product/customer media generated at runtime
+uploads/*
+!uploads/.gitkeep
+
+# Arquivo gerado pelo migrate_db.py (contém dados de clientes)
+migration_data.sql
+
+# Backups automáticos do banco local
+bortolini.backup-*.db
+bortolini-before-*.db
