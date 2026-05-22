@@ -2224,7 +2224,15 @@ async function createDriver() {
     byId("driver-area").value = "";
     renderDelivery();
     renderDeliveryManager();
-    if (created.default_pin) {
+    renderTeamUsers();
+    if (created.default_pin && created.driver_link) {
+      const baseUrl = `${window.location.origin}${window.location.pathname}`;
+      const fullLink = baseUrl.replace(/\/$/, "") + created.driver_link;
+      byId("driver-created-name").textContent = created.name || payload.name;
+      byId("driver-created-link").value = fullLink;
+      byId("driver-created-pin").value = created.default_pin;
+      byId("driver-created-dialog").showModal();
+    } else if (created.default_pin) {
       showToast(`Entregador criado! PIN inicial: ${created.default_pin}`);
     }
   } catch (error) {
@@ -2955,6 +2963,11 @@ byId("logout-btn")?.addEventListener("click", logout);
 byId("save-settings-btn")?.addEventListener("click", saveSettings);
 byId("save-integrations-btn")?.addEventListener("click", saveIntegrations);
 byId("save-pin-btn")?.addEventListener("click", saveNewPin);
+byId("copy-driver-created-link")?.addEventListener("click", () => {
+  const link = byId("driver-created-link").value;
+  navigator.clipboard?.writeText(link);
+  showToast("Link do entregador copiado.");
+});
 byId("recover-admin-btn")?.addEventListener("click", () => byId("recover-admin-dialog").showModal());
 byId("recover-admin-save")?.addEventListener("click", recoverAdminAccess);
 byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);

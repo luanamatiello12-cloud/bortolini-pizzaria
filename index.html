@@ -1031,5 +1031,27 @@
       <button class="primary" onclick="registerDriver()">Cadastrar e entrar</button>
     </div>
   </dialog>
+
+  <!-- Modal de link do entregador criado (admin) -->
+  <dialog id="driver-created-dialog">
+    <div class="dialog-card">
+      <div class="panel-head">
+        <h2>✅ Entregador criado</h2>
+        <button class="icon-button" onclick="byId('driver-created-dialog').close()">×</button>
+      </div>
+      <p><strong id="driver-created-name"></strong></p>
+      <label>Link do app entregador
+        <input id="driver-created-link" readonly onclick="this.select()" />
+      </label>
+      <label>PIN inicial
+        <input id="driver-created-pin" readonly onclick="this.select()" />
+      </label>
+      <p class="form-hint">Envie o link e o PIN para o entregador. Ele deverá trocar o PIN no primeiro acesso.</p>
+      <div class="dialog-actions" style="display:flex;gap:8px;margin-top:12px;">
+        <button class="primary" id="copy-driver-created-link" type="button">📋 Copiar link</button>
+        <button class="secondary" onclick="byId('driver-created-dialog').close()" type="button">Fechar</button>
+      </div>
+    </div>
+  </dialog>
   </body>
 </html>
