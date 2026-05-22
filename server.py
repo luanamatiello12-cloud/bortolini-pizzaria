@@ -315,12 +315,11 @@ class PgConnection:
         returning_id = None
         if self.should_return_id(adapted):
             adapted += " RETURNING id"
-        with self.conn.cursor() as cur:
-            cur.execute(adapted, tuple(params or ()))
-            if " RETURNING id" in adapted:
-                row = cur.fetchone()
-                returning_id = row[0] if row else None
-            return PgCursor(cur, returning_id)
+        cursor = self.conn.execute(adapted, tuple(params or ()))
+        if " RETURNING id" in adapted:
+            row = cursor.fetchone()
+            returning_id = row[0] if row else None
+        return PgCursor(cursor, returning_id)
 
     def executemany(self, sql, seq_of_params):
         adapted = self.adapt_sql(sql)
@@ -2294,12 +2293,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 cursor = conn.execute(
                     """
                     INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
-                    VALUES (?, ?, ?, 0, 1, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         payload["name"].strip(),
                         payload["category"].strip(),
                         price,
+                        0,
+                        1,
                         payload.get("description", "").strip(),
                         payload.get("size", "").strip(),
                         payload.get("prep_time", "").strip(),
