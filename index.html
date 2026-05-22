@@ -23,18 +23,14 @@
           </div>
         </div>
         <h2>Entrar no sistema</h2>
-        <p>Informe o email e o PIN da equipe. No primeiro acesso, use o PIN informado pelo administrador.</p>
+        <p>Digite seu PIN para acessar.</p>
 
         <div class="profile-grid" id="demo-users"></div>
 
         <form id="login-form" class="login-form">
           <label>
-            Email
-            <input id="login-email" type="email" autocomplete="username" placeholder="ex: admin@bortolini.com" required />
-          </label>
-          <label>
             PIN
-            <input id="login-pin" type="password" inputmode="numeric" autocomplete="current-password" required />
+            <input id="login-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite seu PIN" required />
           </label>
           <button class="primary" type="submit">Entrar</button>
           <button class="ghost" id="recover-admin-btn" type="button">Recuperar acesso adm</button>
@@ -873,10 +869,6 @@
           <h2 id="recover-admin-title">Recuperar adm</h2>
           <button class="icon-button" value="cancel" aria-label="Fechar">×</button>
         </div>
-        <label>
-          Email do adm
-          <input id="recover-admin-email" type="email" placeholder="ex: admin@bortolini.com" />
-        </label>
         <label>
           Chave mestra
           <input id="recover-master-key" type="password" />

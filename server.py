@@ -1695,25 +1695,29 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.TOO_MANY_REQUESTS, "Muitas tentativas. Aguarde 5 minutos e tente novamente")
             return
 
-        email = payload.get("email", "").strip().lower()
         pin = payload.get("pin", "").strip()
 
         with connect() as conn:
             valid_roles = ("admin", "financeiro", "entregador")
-            row = conn.execute(
-                f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE lower(email) = ? AND role IN {valid_roles}",
-                (email,),
-            ).fetchone()
+            rows = conn.execute(
+                f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE role IN {valid_roles}"
+            ).fetchall()
 
-        if row is None or not (verify_pin(pin, row["pin_hash"]) or (row["pin"] and hmac.compare_digest(pin, row["pin"]))):
-            self.send_error(HTTPStatus.UNAUTHORIZED, "Email ou PIN inválido")
+        row = None
+        for r in rows:
+            if verify_pin(pin, r["pin_hash"]) or (r["pin"] and hmac.compare_digest(pin, r["pin"])):
+                row = r
+                break
+
+        if row is None:
+            self.send_error(HTTPStatus.UNAUTHORIZED, "PIN inválido")
             return
 
         # Login bem-sucedido: limpar rate limit e criar sessão segura
         clear_rate_limit(ip)
         user = {key: row[key] for key in ["id", "email", "name", "role", "must_change_pin"]}
         user["token"] = create_session(user["id"], user["role"], user["name"])
-        self._write_audit_log(user["id"], "login", "users", user["id"], f"Login via email do perfil {user['role']}")
+        self._write_audit_log(user["id"], "login", "users", user["id"], f"Login via PIN do perfil {user['role']}")
         return user
 
     def _write_audit_log(self, user_id, action, entity, entity_id, details=""):
@@ -1768,7 +1772,6 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return result
 
     def recover_admin(self, payload):
-        email = payload.get("email", "").strip().lower()
         master_key = payload.get("master_key", "")
         new_pin = payload.get("new_pin", "").strip()
         if not hmac.compare_digest(master_key, ADMIN_MASTER_KEY):
@@ -1778,7 +1781,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.BAD_REQUEST, "O novo PIN deve ter 4 a 6 números")
             return
         with connect() as conn:
-            row = conn.execute("SELECT id FROM users WHERE lower(email) = ? AND role = 'admin'", (email,)).fetchone()
+            row = conn.execute("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").fetchone()
             if row is None:
                 self.send_error(HTTPStatus.NOT_FOUND, "Adm não encontrado")
                 return

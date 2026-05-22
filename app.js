@@ -2462,21 +2462,19 @@ async function saveNewPin() {
 }
 
 async function recoverAdminAccess() {
-  const email = byId("recover-admin-email").value.trim();
   const masterKey = byId("recover-master-key").value;
   const newPin = byId("recover-new-pin").value.trim();
   byId("recover-admin-message").textContent = "";
-  if (!email || !masterKey || !/^\d{4,6}$/.test(newPin)) {
-    byId("recover-admin-message").textContent = "Preencha email, chave mestra e novo PIN com 4 a 6 números.";
+  if (!masterKey || !/^\d{4,6}$/.test(newPin)) {
+    byId("recover-admin-message").textContent = "Preencha chave mestra e novo PIN com 4 a 6 números.";
     return;
   }
   try {
     await api("/api/admin/recover", {
       method: "POST",
-      body: JSON.stringify({ email, master_key: masterKey, new_pin: newPin }),
+      body: JSON.stringify({ master_key: masterKey, new_pin: newPin }),
     });
     byId("recover-admin-dialog").close();
-    byId("login-email").value = email;
     byId("login-pin").value = newPin;
     byId("recover-master-key").value = "";
     byId("recover-new-pin").value = "";
@@ -2726,24 +2724,23 @@ function renderAccess() {
 
 function renderDemoUsers() {
   const fallbackProfiles = [
-    { email: "admin@bortolini.com", name: "adm", role: "admin" },
-    { email: "financeiro@bortolini.com", name: "Financeiro", role: "financeiro" },
+    { name: "adm", role: "admin", default_pin: "3725" },
+    { name: "Financeiro", role: "financeiro", default_pin: "3702" },
   ];
   const profiles = demoUsers.length ? demoUsers : fallbackProfiles;
   byId("demo-users").innerHTML = profiles
     .map(
       (user) => `
-        <button class="profile-button" data-demo-login="${user.email}" data-demo-pin="${user.default_pin || "1234"}">
+        <button class="profile-button" data-demo-pin="${user.default_pin || "1234"}">
           <strong>${roleLabels[user.role] || user.name}</strong>
-          <small>${user.email}</small>
+          <small>PIN: ${user.default_pin || "1234"}</small>
         </button>
       `,
     )
     .join("");
 
-  document.querySelectorAll("[data-demo-login]").forEach((button) => {
+  document.querySelectorAll("[data-demo-pin]").forEach((button) => {
     button.addEventListener("click", () => {
-      byId("login-email").value = button.dataset.demoLogin;
       byId("login-pin").value = button.dataset.demoPin;
       login();
     });
@@ -2751,34 +2748,33 @@ function renderDemoUsers() {
 }
 
 async function login() {
-  const email = byId("login-email").value.trim();
   const pin = byId("login-pin").value.trim();
   byId("login-error").textContent = "";
 
-  if (!email || !pin) return;
+  if (!pin) return;
 
   try {
     if (state.apiOnline) {
       state.currentUser = await api("/api/login", {
         method: "POST",
-        body: JSON.stringify({ email, pin }),
+        body: JSON.stringify({ pin }),
       });
     } else {
-      const user = demoUsers.find((candidate) => candidate.email === email && pin === "1234");
+      const user = demoUsers.find((candidate) => pin === "1234");
       if (!user) throw new Error("Login inválido");
       state.currentUser = { ...user, token: `demo-${user.role}` };
     }
     localStorage.setItem("bortoliniUser", JSON.stringify(state.currentUser));
     showApp();
   } catch (error) {
-    byId("login-error").textContent = "Email ou PIN inválido.";
+    byId("login-error").textContent = "PIN inválido.";
   }
 }
 
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
-    if (saved?.role && saved?.email) {
+    if (saved?.role && saved?.name) {
       if (!["admin", "financeiro", "entregador"].includes(saved.role)) {
         localStorage.removeItem("bortoliniUser");
         return;
