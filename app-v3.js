@@ -2475,7 +2475,7 @@ async function recoverAdminAccess() {
       body: JSON.stringify({ master_key: masterKey, new_pin: newPin }),
     });
     byId("recover-admin-dialog").close();
-    byId("login-user").value = "admin";
+    byId("login-user").value = "adm";
     byId("login-pin").value = newPin;
     byId("recover-master-key").value = "";
     byId("recover-new-pin").value = "";
@@ -2725,7 +2725,7 @@ function renderAccess() {
 
 function renderDemoUsers() {
   const fallbackProfiles = [
-    { username: "admin", name: "adm", role: "admin", default_pin: "3725" },
+    { username: "adm", name: "adm", role: "admin", default_pin: "3725" },
     { username: "financeiro", name: "Financeiro", role: "financeiro", default_pin: "3702" },
   ];
   const profiles = demoUsers.length ? demoUsers : fallbackProfiles;

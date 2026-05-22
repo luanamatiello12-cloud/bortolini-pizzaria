@@ -85,7 +85,7 @@ WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta ap
 # Seeds removidos — sistema inicia limpo para cadastro manual
 
 USER_SEED = [
-    ("admin", "admin@bortolini.com", "3725", "Administrador", "admin"),
+    ("adm", "admin@bortolini.com", "3725", "Administrador", "admin"),
     ("financeiro", "financeiro@bortolini.com", "3702", "Financeiro", "financeiro"),
 ]
 
