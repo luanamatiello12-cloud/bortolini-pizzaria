@@ -1115,7 +1115,7 @@ function renderCustomerStore() {
       return `
         <article class="menu-card">
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
-          <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
+          <strong>${item.name}${item.size ? ` (${item.size})` : ""}<span>${currency.format(item.price)}</span></strong>
           <p>${item.category}${promo ? ` · ${formatDiscount(promo)}` : ""}</p>
           <button class="primary" data-add-cart="${item.id}">Adicionar</button>
         </article>
