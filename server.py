@@ -79,6 +79,52 @@ ROLE_PERMISSIONS = {
     "financeiro": {"customers", "finance", "orders"},
 }
 
+
+SEED_MENU_ITEMS = [
+    {"name": "Calabresa", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, queijo parmesão, orégano", "size": "Grande"},
+    {"name": "Calabresa com Cebola", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, cebola em rodelas, orégano", "size": "Grande"},
+    {"name": "Calabresa com Farofa de Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, farofa de bacon, orégano", "size": "Grande"},
+    {"name": "Portuguesa", "category": "Pizza", "description": "Molho de tomate, muçarela, presunto, ovo cozido, cebola, ervilha, azeitona, orégano", "size": "Grande"},
+    {"name": "Marguerita", "category": "Pizza", "description": "Molho de tomate, muçarela, tomate em rodelas, orégano. Manjericão fresco adicionado após o forno", "size": "Grande"},
+    {"name": "Mexicana com Doritos", "category": "Pizza", "description": "Molho de tomate, muçarela, carne moída temperada, pimentão, cebola, milho, pimenta calabresa, orégano, Doritos. Doritos adicionados após o forno para manter crocância", "size": "Grande"},
+    {"name": "Brócolis com Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela (base), brócolis, farofa de bacon, muçarela (finalização), orégano", "size": "Grande"},
+    {"name": "Alho e Óleo", "category": "Pizza", "description": "Molho de tomate, pasta de alho e óleo, queijo parmesão, orégano", "size": "Grande"},
+    {"name": "Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela (base), bacon crocante, muçarela (finalização), orégano", "size": "Grande"},
+    {"name": "Milho", "category": "Pizza", "description": "Molho de tomate, muçarela, milho verde, orégano", "size": "Grande"},
+    {"name": "Milho com Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "Grande"},
+    {"name": "Vegetariana", "category": "Pizza", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "Grande"},
+    {"name": "Coração", "category": "Pizza", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "Grande"},
+    {"name": "Filé ao Molho Mostarda", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "size": "Grande"},
+    {"name": "Filé Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "Grande"},
+    {"name": "Frango com Catupiry", "category": "Pizza", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "Grande"},
+    {"name": "Frango Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "Grande"},
+    {"name": "Atum", "category": "Pizza", "description": "Molho de tomate, muçarela, atum sólido em óleo escorrido, orégano", "size": "Grande"},
+    {"name": "Atum Especial", "category": "Pizza", "description": "Molho de tomate, muçarela, atum sólido em óleo, requeijão cremoso em fios, orégano", "size": "Grande"},
+    {"name": "Estrogonofe de Carne", "category": "Pizza", "description": "Molho de tomate, muçarela, estrogonofe de carne, orégano. Batata palha adicionada após o forno", "size": "Grande"},
+    {"name": "Estrogonofe de Frango", "category": "Pizza", "description": "Molho de tomate, muçarela, estrogonofe de frango em cubos, muçarela finalização, orégano. Batata palha adicionada após o forno", "size": "Grande"},
+    {"name": "Costela Barbecue", "category": "Pizza", "description": "Molho de tomate, muçarela, costela desfiada ao molho barbecue, muçarela finalização, orégano. Toque extra de barbecue após o forno", "size": "Grande"},
+    {"name": "Lombo com Abacaxi", "category": "Pizza", "description": "Molho de tomate, muçarela, lombo canadense, orégano. Abacaxi adicionado após o forno com leve queima de maçarico", "size": "Grande"},
+    {"name": "Lombo c/ Farofa de Bacon e Catupiry", "category": "Pizza", "description": "Molho de tomate, muçarela, lombo canadense, farofa de bacon, catupiry em filetes, orégano. Catupiry distribuído em filetes antes de assar", "size": "Grande"},
+    {"name": "Cinco Queijos", "category": "Pizza", "description": "Molho de tomate, muçarela, queijo prato, provolone, cheddar, catupiry, orégano", "size": "Grande"},
+    {"name": "Bortolini Campeira ⭐", "category": "Pizza", "description": "Molho de tomate, muçarela, costela desfiada, creme de alho, queijo coalho. Finalizada com cebola crisps, chimichurri e cheiro verde (após forno)", "size": "Grande"},
+    {"name": "Tomate Seco e Rúcula", "category": "Pizza", "description": "Molho de tomate, muçarela (base), tomate seco, orégano, muçarela (finalização). Rúcula fresca adicionada após o forno", "size": "Grande"},
+    {"name": "Pizza Sushi de Atum Premium ⭐", "category": "Pizza", "description": "Molho de tomate, cream cheese, atum, cheiro verde, muçarela leve, molho teriyaki, gergelim. Cream cheese e teriyaki em riscos alternados", "size": "Grande"},
+    {"name": "Dois Amores", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate branco derretido, chocolate preto derretido. Círculos alternados de chocolate branco e preto", "size": "Grande"},
+    {"name": "Chocolate Branco", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate branco ralado. Finalizada com pedacinhos de Lacta após o forno", "size": "Grande"},
+    {"name": "Chocolate Preto", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate preto. Chamusque com queimador após o forno; finalizar com pedaços de Lacta", "size": "Grande"},
+    {"name": "Prestígio", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate ao leite, raspas/fios de chocolate, pedaços de Prestígio. Pedaços de Prestígio adicionados após o forno", "size": "Grande"},
+    {"name": "Charge", "category": "Pizza Doce", "description": "Massa de pizza, chocolate preto, paçoca de amendoim esfarelada, pedaços de Charge. Paçoca e Charge adicionados após o forno", "size": "Grande"},
+    {"name": "Kinder Bueno", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate preto (chamusquedo), pedaços de Kinder Bueno (Lacta). Chocolate chamusquedo com maçarico; Kinder Bueno após o forno", "size": "Grande"},
+    {"name": "Banana com Canela", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, banana em fatias, mel, açúcar com canela", "size": "Grande"},
+    {"name": "Pizza Bortolini ⭐", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos. Chamusque com maçarico; morangos e amendoim adicionados após o forno", "size": "Grande"},
+    {"name": "Bortolini Campeira Doce", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, Nutella, amendoim triturado, chocolate ralado. Variação doce especial da casa", "size": "Grande"},
+    {"name": "Coca-Cola 2L", "category": "Bebidas", "description": "Refrigerante Coca-Cola garrafa 2 litros", "size": ""},
+    {"name": "Guaraná 2L", "category": "Bebidas", "description": "Refrigerante Guaraná garrafa 2 litros", "size": ""},
+    {"name": "Fanta 2L", "category": "Bebidas", "description": "Refrigerante Fanta garrafa 2 litros", "size": ""},
+    {"name": "Água com gás 500ml", "category": "Bebidas", "description": "Água mineral com gás 500ml", "size": ""},
+    {"name": "Água sem gás 500ml", "category": "Bebidas", "description": "Água mineral sem gás 500ml", "size": ""},
+]
+
 PIX_CNPJ = "66.686.680/0001-57"
 WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta aprovada
 
@@ -1599,19 +1645,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 conn.execute("DELETE FROM menu_items")
             menu_count = 0
         if menu_count == 0:
-            seed_path = ROOT / "seed_menu.json"
-            if seed_path.exists():
-                items = json.loads(seed_path.read_text(encoding="utf-8")).get("items", [])
-                with connect() as conn:
-                    for item in items:
-                        try:
-                            conn.execute(
-                                "INSERT INTO menu_items (name, category, price, description, size) VALUES (?, ?, 0, ?, ?)",
-                                (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
-                            )
-                            inserted_menu += 1
-                        except DB_INTEGRITY_ERROR:
-                            pass
+            items = SEED_MENU_ITEMS
+            with connect() as conn:
+                for item in items:
+                    try:
+                        conn.execute(
+                            "INSERT INTO menu_items (name, category, price, description, size) VALUES (?, ?, 0, ?, ?)",
+                            (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
+                        )
+                        inserted_menu += 1
+                    except DB_INTEGRITY_ERROR:
+                        pass
         return {
             "ok": True,
             "menu_items": inserted_menu,
