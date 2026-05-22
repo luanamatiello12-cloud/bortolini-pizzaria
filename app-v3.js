@@ -1959,6 +1959,10 @@ async function checkoutCart() {
     byId("checkout-error").textContent = "Informe seu nome.";
     return;
   }
+  if (!pixReceiptData) {
+    byId("checkout-error").textContent = "Anexe o comprovante do PIX para finalizar o pedido.";
+    return;
+  }
   const payload = {
     customer,
     customer_phone: byId("checkout-phone").value.trim(),
@@ -1998,31 +2002,15 @@ async function checkoutCart() {
     renderAll();
 
     const trackLink = `${window.location.origin}${window.location.pathname}?pedido=${created.id}`;
-    if (payload.payment === "PIX") {
-      // Mostrar tela de confirmação PIX na mesma página
-      window._pixOrderId = created.id;
-      window._pixOrderTotal = payload.total;
-      byId("pix-order-summary").innerHTML = `Pedido #${created.id} · ${payload.item} · ${currency.format(payload.total)}<br/><a href="${trackLink}" target="_blank">🔗 Acompanhar pedido</a>`;
-      byId("pix-confirmation").classList.remove("hidden");
-      byId("checkout-btn").classList.add("hidden");
-      byId("pix-send-btn").disabled = false;
-      byId("pix-sent-msg").classList.add("hidden");
-      byId("pix-upload-error").textContent = "";
-      byId("pix-receipt-input").value = "";
-      byId("pix-receipt-preview").classList.add("hidden");
-      window._pixReceiptData = "";
-      byId("pix-confirmation").scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      byId("checkout-btn").classList.add("hidden");
-      byId("track-order-result").innerHTML = `
-        <article class="cart-item">
-          <strong>✅ Pedido #${created.id} recebido!</strong>
-          <p>${payload.item} · ${currency.format(payload.total)}</p>
-          <p><a href="${trackLink}" target="_blank">🔗 Acompanhar pedido</a></p>
-        </article>
-      `;
-      byId("track-order-result").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    byId("checkout-btn").classList.add("hidden");
+    byId("track-order-result").innerHTML = `
+      <article class="cart-item">
+        <strong>✅ Pedido #${created.id} recebido!</strong>
+        <p>${payload.item} · ${currency.format(payload.total)}</p>
+        <p><a href="${trackLink}" target="_blank">🔗 Acompanhar pedido</a></p>
+      </article>
+    `;
+    byId("track-order-result").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     byId("checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
   }
@@ -2982,9 +2970,7 @@ byId("share-location-btn")?.addEventListener("click", () => {
 byId("checkout-type")?.addEventListener("change", renderCart);
 byId("checkout-address")?.addEventListener("input", renderCart);
 byId("checkout-addon")?.addEventListener("change", renderCart);
-byId("checkout-payment")?.addEventListener("change", () => {
-  byId("receipt-field").classList.toggle("hidden", byId("checkout-payment").value !== "PIX");
-});
+// Pagamento sempre PIX, campo de comprovante sempre visível
 byId("calc-item")?.addEventListener("change", renderIngredientCalculator);
 byId("calc-qty")?.addEventListener("input", renderIngredientCalculator);
 
@@ -3150,24 +3136,111 @@ byId("pix-receipt-input")?.addEventListener("change", (event) => {
 let _driverLocationInterval = null;
 let _driverUserId = null;
 let _driverCurrentOrderId = null;
+let _driverToken = null;
+
+function showDriverLogin() {
+  byId("driver-login-screen").classList.remove("hidden");
+  byId("driver-recover-screen").classList.add("hidden");
+  byId("driver-orders-screen").classList.add("hidden");
+}
+function showDriverRecover() {
+  byId("driver-login-screen").classList.add("hidden");
+  byId("driver-recover-screen").classList.remove("hidden");
+  byId("driver-orders-screen").classList.add("hidden");
+}
+function showDriverOrders() {
+  byId("driver-login-screen").classList.add("hidden");
+  byId("driver-recover-screen").classList.add("hidden");
+  byId("driver-orders-screen").classList.remove("hidden");
+}
+
+async function driverPublicLogin() {
+  const cpf = byId("driver-login-cpf").value.trim();
+  const pin = byId("driver-login-pin").value.trim();
+  byId("driver-login-error").textContent = "";
+  if (!cpf || !pin) return;
+  try {
+    const data = await fetch("/api/public/driver/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ cpf, pin })
+    }).then(r => { if (!r.ok) throw new Error("login invalido"); return r.json(); });
+    _driverUserId = data.id;
+    _driverToken = data.token;
+    localStorage.setItem("bortoliniDriver", JSON.stringify({ id: data.id, token: data.token, name: data.name }));
+    byId("driver-public-name").textContent = `Ola, ${data.name}! 🛵`;
+    showDriverOrders();
+    loadDriverPublicOrders();
+  } catch(e) {
+    byId("driver-login-error").textContent = "CPF ou PIN invalido.";
+  }
+}
+
+async function driverPublicRecover() {
+  const cpf = byId("driver-recover-cpf").value.trim();
+  const master = byId("driver-recover-master").value;
+  const newPin = byId("driver-recover-newpin").value.trim();
+  byId("driver-recover-error").textContent = "";
+  if (!cpf || !master || !/^\d{4,6}$/.test(newPin)) {
+    byId("driver-recover-error").textContent = "Preencha todos os campos corretamente.";
+    return;
+  }
+  try {
+    await fetch("/api/public/driver/recover", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ cpf, master_key: master, new_pin: newPin })
+    }).then(r => { if (!r.ok) throw new Error("erro"); return r.json(); });
+    byId("driver-recover-screen").classList.add("hidden");
+    byId("driver-login-screen").classList.remove("hidden");
+    byId("driver-login-cpf").value = cpf;
+    byId("driver-login-pin").value = newPin;
+    showToast("PIN redefinido! Faca login com o novo PIN.");
+  } catch(e) {
+    byId("driver-recover-error").textContent = "Erro ao redefinir. Verifique CPF e chave mestra.";
+  }
+}
+
+function driverPublicLogout() {
+  localStorage.removeItem("bortoliniDriver");
+  _driverUserId = null;
+  _driverToken = null;
+  if (_driverLocationInterval !== null) {
+    navigator.geolocation.clearWatch(_driverLocationInterval);
+    _driverLocationInterval = null;
+  }
+  showDriverLogin();
+}
 
 function initDriverPublicPage() {
-  const params = new URLSearchParams(window.location.search);
-  const uid = params.get("driver_id") || window.location.pathname.split("/").pop();
-  if (!uid || isNaN(Number(uid))) return;
-  _driverUserId = Number(uid);
   const page = byId("driver-public-page");
   if (!page) return;
   page.classList.remove("hidden");
   document.querySelector(".app-layout") && document.querySelector(".app-layout").classList.add("hidden");
-  loadDriverPublicOrders();
+  
+  // Verifica se ja tem sessao salva
+  try {
+    const saved = JSON.parse(localStorage.getItem("bortoliniDriver"));
+    if (saved?.id && saved?.token) {
+      _driverUserId = saved.id;
+      _driverToken = saved.token;
+      byId("driver-public-name").textContent = `Ola, ${saved.name || "Entregador"}! 🛵`;
+      showDriverOrders();
+      loadDriverPublicOrders();
+      return;
+    }
+  } catch(e) {}
+  
+  showDriverLogin();
 }
 
 async function loadDriverPublicOrders() {
   if (!_driverUserId) return;
   try {
-    const data = await fetch(`/api/public/driver/${_driverUserId}`).then(r => r.json());
-    byId("driver-public-name").textContent = `Olá, ${data.driver_name}! 🛵`;
+    const data = await fetch(`/api/public/driver/${_driverUserId}`, {
+      headers: _driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {}
+    }).then(r => r.json());
+    byId("driver-public-name").textContent = `Ola, ${data.driver_name || "Entregador"}! 🛵`;
     const list = byId("driver-public-orders");
     if (!data.orders || data.orders.length === 0) {
       list.innerHTML = '<p style="padding:1rem;color:var(--muted)">Nenhuma entrega ativa no momento.</p>';
@@ -3229,7 +3302,7 @@ function driverShareLocation() {
     if (_driverUserId) {
       fetch(`/api/public/drivers/${_driverUserId}/location`, {
         method: "PATCH",
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
         body: JSON.stringify({ lat, lng })
       }).catch(() => {});
     }

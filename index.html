@@ -217,10 +217,8 @@
                 </label>
                 <label>
                   Pagamento
-                  <select id="checkout-payment">
+                  <select id="checkout-payment" disabled>
                     <option>PIX</option>
-                    <option>Cartão</option>
-                    <option>Dinheiro</option>
                   </select>
                 </label>
                 <label>
@@ -232,9 +230,10 @@
                     <option value="Meio a meio">Meio a meio</option>
                   </select>
                 </label>
-                <label id="receipt-field" class="hidden">
-                  Comprovante PIX
-                  <input id="checkout-receipt" type="file" accept="image/*,application/pdf" />
+                <label id="receipt-field">
+                  Comprovante PIX <span class="required">*</span>
+                  <input id="checkout-receipt" type="file" accept="image/*,application/pdf" required />
+                  <small>Anexe o comprovante para finalizar o pedido</small>
                 </label>
                 <div class="photo-preview hidden" id="receipt-preview"></div>
                 <label>
@@ -953,15 +952,63 @@
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <div class="driver-public-card">
-      <div class="driver-public-header">
-        <h2>🛵 App do Entregador</h2>
-        <p id="driver-public-name"></p>
+      <!-- Tela de login -->
+      <div id="driver-login-screen">
+        <div class="driver-public-header">
+          <h2>🛵 App do Entregador</h2>
+          <p>Informe seu CPF e PIN para acessar suas entregas</p>
+        </div>
+        <form id="driver-login-form" class="login-form" onsubmit="event.preventDefault(); driverPublicLogin();">
+          <label>
+            CPF
+            <input id="driver-login-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
+          </label>
+          <label>
+            PIN
+            <input id="driver-login-pin" type="password" inputmode="numeric" placeholder="Seu PIN" required />
+          </label>
+          <button class="primary" type="submit">Entrar</button>
+          <button class="ghost" type="button" onclick="showDriverRecover()">Esqueci meu PIN</button>
+          <p class="form-error" id="driver-login-error"></p>
+        </form>
       </div>
-      <div id="driver-public-orders" class="driver-orders-list"></div>
-      <div class="driver-location-box">
-        <p id="driver-location-status">📍 Localização não compartilhada</p>
-        <button class="primary" id="driver-share-location-btn" onclick="driverShareLocation()">Compartilhar localização</button>
-        <button class="secondary hidden" id="driver-stop-location-btn" onclick="driverStopLocation()">Parar compartilhamento</button>
+      <!-- Tela de recuperação de PIN -->
+      <div id="driver-recover-screen" class="hidden">
+        <div class="driver-public-header">
+          <h2>🔑 Recuperar PIN</h2>
+          <p>Chame o administrador e peca a chave mestra</p>
+        </div>
+        <form id="driver-recover-form" class="login-form" onsubmit="event.preventDefault(); driverPublicRecover();">
+          <label>
+            CPF
+            <input id="driver-recover-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
+          </label>
+          <label>
+            Chave mestra
+            <input id="driver-recover-master" type="password" placeholder="Chave do adm" required />
+          </label>
+          <label>
+            Novo PIN (4 a 6 numeros)
+            <input id="driver-recover-newpin" type="password" inputmode="numeric" placeholder="Novo PIN" required />
+          </label>
+          <button class="primary" type="submit">Redefinir PIN</button>
+          <button class="ghost" type="button" onclick="showDriverLogin()">Voltar ao login</button>
+          <p class="form-error" id="driver-recover-error"></p>
+        </form>
+      </div>
+      <!-- Tela de entregas (após login) -->
+      <div id="driver-orders-screen" class="hidden">
+        <div class="driver-public-header">
+          <h2>🛵 App do Entregador</h2>
+          <p id="driver-public-name"></p>
+        </div>
+        <div id="driver-public-orders" class="driver-orders-list"></div>
+        <div class="driver-location-box">
+          <p id="driver-location-status">📍 Localização não compartilhada</p>
+          <button class="primary" id="driver-share-location-btn" onclick="driverShareLocation()">Compartilhar localização</button>
+          <button class="secondary hidden" id="driver-stop-location-btn" onclick="driverStopLocation()">Parar compartilhamento</button>
+        </div>
+        <button class="ghost" onclick="driverPublicLogout()" style="margin-top:12px;">Sair</button>
       </div>
     </div>
   </div>

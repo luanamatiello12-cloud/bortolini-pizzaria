@@ -1022,6 +1022,18 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data)
             return
+        if path == "/api/public/driver/login":
+            payload = self.read_json()
+            data = self.driver_login_by_cpf(payload)
+            if data is not None:
+                self.send_json(data)
+            return
+        if path == "/api/public/driver/recover":
+            payload = self.read_json()
+            data = self.driver_recover_pin(payload)
+            if data is not None:
+                self.send_json(data)
+            return
         if path.startswith("/api/public/driver/orders/") and path.endswith("/deliver"):
             order_id = int(path.split("/")[-2])
             payload = self.read_json()
@@ -2434,6 +2446,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def create_driver(self, payload):
         name = payload.get("name", "").strip()
         area = payload.get("area", "").strip() or "Sem area"
+        cpf = only_digits(payload.get("cpf", ""))
         if not name:
             self.send_error(HTTPStatus.BAD_REQUEST, "Nome do entregador obrigatorio")
             return
@@ -2462,7 +2475,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 return
             user_cursor = conn.execute(
                 "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
-                (name.lower().replace(" ", "."), email, "", "", hash_pin(pin), name, "entregador"),
+                (name.lower().replace(" ", "."), email, cpf, "", hash_pin(pin), name, "entregador"),
             )
             user_id = user_cursor.lastrowid
             row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driver_id,)).fetchone()
@@ -2655,6 +2668,45 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             )
             row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
         return dict(row)
+
+    def driver_login_by_cpf(self, payload):
+        cpf = only_digits(payload.get("cpf", ""))
+        pin = payload.get("pin", "").strip()
+        if len(cpf) < 4:
+            self.send_error(HTTPStatus.BAD_REQUEST, "CPF com pelo menos 4 digitos obrigatorio")
+            return
+        with connect() as conn:
+            row = conn.execute(
+                "SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE cpf = ? AND role = 'entregador'",
+                (cpf,),
+            ).fetchone()
+        if row is None or not (verify_pin(pin, row["pin_hash"]) or (row["pin"] and hmac.compare_digest(pin, row["pin"]))):
+            self.send_error(HTTPStatus.UNAUTHORIZED, "CPF ou PIN invalido")
+            return
+        user = {key: row[key] for key in ["id", "email", "cpf", "name", "role", "must_change_pin"]}
+        user["token"] = create_session(user["id"], user["role"], user["name"])
+        return user
+
+    def driver_recover_pin(self, payload):
+        cpf = only_digits(payload.get("cpf", ""))
+        master_key = payload.get("master_key", "")
+        new_pin = payload.get("new_pin", "").strip()
+        if not hmac.compare_digest(master_key, ADMIN_MASTER_KEY):
+            self.send_error(HTTPStatus.UNAUTHORIZED, "Chave mestra invalida")
+            return
+        if not re.fullmatch(r"\d{4,6}", new_pin):
+            self.send_error(HTTPStatus.BAD_REQUEST, "O novo PIN deve ter 4 a 6 numeros")
+            return
+        with connect() as conn:
+            row = conn.execute("SELECT id FROM users WHERE cpf = ? AND role = 'entregador'", (cpf,)).fetchone()
+            if row is None:
+                self.send_error(HTTPStatus.NOT_FOUND, "Entregador nao encontrado")
+                return
+            conn.execute(
+                "UPDATE users SET pin_hash = ?, pin = '', must_change_pin = 1 WHERE id = ?",
+                (hash_pin(new_pin), row["id"]),
+            )
+        return {"ok": True, "default_pin": new_pin}
 
     def update_driver_location(self, driver_id, payload):
         try:
