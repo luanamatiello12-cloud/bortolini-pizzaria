@@ -1,4 +1,5 @@
 # Runtime do backend Python.
 # Localmente o sistema continua usando SQLite sem dependencias externas.
 # Em producao com Supabase/Postgres, Railway instala psycopg.
-psycopg[binary]>=3.2,<4
+# Usar versao sem [binary] para evitar segfaults no Render (psycopg issue #300)
+psycopg>=3.2,<4
