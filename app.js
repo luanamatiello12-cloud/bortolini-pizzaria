@@ -2799,34 +2799,36 @@ function renderDemoUsers() {
 }
 
 async function login() {
-  const cpf = byId("login-email").value.trim();
   const pin = byId("login-pin").value.trim();
   byId("login-error").textContent = "";
 
-  if (!cpf || !pin) return;
+  if (!pin) {
+    byId("login-error").textContent = "Informe o PIN.";
+    return;
+  }
 
   try {
     if (state.apiOnline) {
       state.currentUser = await api("/api/login", {
         method: "POST",
-        body: JSON.stringify({ cpf, pin }),
+        body: JSON.stringify({ pin }),
       });
     } else {
-      const user = demoUsers.find((candidate) => (candidate.cpf === cpf || candidate.email === cpf) && pin === String(candidate.cpf || "1234").replace(/\D/g, "").slice(0, 4));
+      const user = demoUsers.find((candidate) => pin === String(candidate.cpf || "1234").replace(/\D/g, "").slice(0, 4));
       if (!user) throw new Error("Login inválido");
       state.currentUser = { ...user, token: `demo-${user.role}` };
     }
     localStorage.setItem("bortoliniUser", JSON.stringify(state.currentUser));
     showApp();
   } catch (error) {
-    byId("login-error").textContent = "CPF ou PIN inválido.";
+    byId("login-error").textContent = "PIN inválido.";
   }
 }
 
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
-    if (saved?.role && saved?.email && saved.email.endsWith("@bortolini.com") && saved.cpf) {
+    if (saved?.role && saved?.token) {
       if (!["admin", "financeiro", "entregador"].includes(saved.role)) {
         localStorage.removeItem("bortoliniUser");
         return;
