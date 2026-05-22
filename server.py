@@ -912,152 +912,157 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self):
-        path = urlparse(self.path).path
-        if path == "/api/orders":
-            payload = self.read_json()
-            data = self.create_order(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/import-menu":
-            if not self.require_permission("menu"):
+        try:
+            path = urlparse(self.path).path
+            if path == "/api/orders":
+                payload = self.read_json()
+                data = self.create_order(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.import_menu_items(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/menu":
-            if not self.require_permission("menu"):
+            if path == "/api/import-menu":
+                if not self.require_permission("menu"):
+                    return
+                payload = self.read_json()
+                data = self.import_menu_items(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.create_menu_item(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/promotions":
-            if not self.require_permission("promotions"):
+            if path == "/api/menu":
+                if not self.require_permission("menu"):
+                    return
+                payload = self.read_json()
+                data = self.create_menu_item(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.create_promotion(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/drivers":
-            if not self.require_permission("drivers"):
+            if path == "/api/promotions":
+                if not self.require_permission("promotions"):
+                    return
+                payload = self.read_json()
+                data = self.create_promotion(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.create_driver(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/ingredients":
-            if not self.require_permission("inventory"):
+            if path == "/api/drivers":
+                if not self.require_permission("drivers"):
+                    return
+                payload = self.read_json()
+                data = self.create_driver(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.create_ingredient(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path.startswith("/api/menu/") and path.endswith("/ingredients"):
-            if not self.require_permission("inventory"):
+            if path == "/api/ingredients":
+                if not self.require_permission("inventory"):
+                    return
+                payload = self.read_json()
+                data = self.create_ingredient(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            item_id = int(path.split("/")[-2])
-            payload = self.read_json()
-            data = self.save_recipe_ingredient(item_id, payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/delivery-zones":
-            if not self.require_permission("settings"):
+            if path.startswith("/api/menu/") and path.endswith("/ingredients"):
+                if not self.require_permission("inventory"):
+                    return
+                item_id = int(path.split("/")[-2])
+                payload = self.read_json()
+                data = self.save_recipe_ingredient(item_id, payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
                 return
-            payload = self.read_json()
-            data = self.create_delivery_zone(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/login":
-            payload = self.read_json()
-            data = self.login(payload)
-            if data is not None:
+            if path == "/api/delivery-zones":
+                if not self.require_permission("settings"):
+                    return
+                payload = self.read_json()
+                data = self.create_delivery_zone(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path == "/api/login":
+                payload = self.read_json()
+                data = self.login(payload)
+                if data is not None:
+                    self.send_json(data)
+                return
+            if path == "/api/logout":
+                token = self.headers.get("X-Session-Token", "")
+                if token:
+                    invalidate_session(token)
+                self.send_json({"ok": True})
+                return
+            if path == "/api/admin/recover":
+                payload = self.read_json()
+                data = self.recover_admin(payload)
+                if data is not None:
+                    self.send_json(data)
+                return
+            if path == "/api/settings":
+                if not self.require_permission("settings"):
+                    return
+                payload = self.read_json()
+                self.send_json(self.save_settings(payload))
+                return
+            if path.startswith("/api/inbox/") and path.endswith("/reply"):
+                if not self.require_permission("orders"):
+                    return
+                conversation_id = int(path.split("/")[-2])
+                payload = self.read_json()
+                data = self.reply_inbox(conversation_id, payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path.startswith("/api/inbox/") and path.endswith("/mode"):
+                if not self.require_permission("orders"):
+                    return
+                conversation_id = int(path.split("/")[-2])
+                payload = self.read_json()
+                data = self.update_inbox_mode(conversation_id, payload)
+                if data is not None:
+                    self.send_json(data)
+                return
+            if path == "/api/inbox":
+                if not self.require_permission("orders"):
+                    return
+                payload = self.read_json()
+                data = self.create_inbox_conversation(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path == "/api/public/drivers/register":
+                payload = self.read_json()
+                data = self.register_driver_user(payload)
+                if data is not None:
+                    self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path.startswith("/api/public/orders/") and path.endswith("/comprovante"):
+                parts = path.split("/")
+                try:
+                    order_id = int(parts[-2])
+                except (ValueError, IndexError):
+                    self.send_error(HTTPStatus.BAD_REQUEST, "ID inválido")
+                    return
+                payload = self.read_json()
+                data = self.upload_public_comprovante(order_id, payload)
+                if data is not None:
+                    self.send_json(data)
+                return
+            if path == "/api/webhook/evolution":
+                payload = self.read_json()
+                data = self.receive_evolution_webhook(payload)
                 self.send_json(data)
-            return
-        if path == "/api/logout":
-            token = self.headers.get("X-Session-Token", "")
-            if token:
-                invalidate_session(token)
-            self.send_json({"ok": True})
-            return
-        if path == "/api/admin/recover":
-            payload = self.read_json()
-            data = self.recover_admin(payload)
-            if data is not None:
-                self.send_json(data)
-            return
-        if path == "/api/settings":
-            if not self.require_permission("settings"):
                 return
-            payload = self.read_json()
-            self.send_json(self.save_settings(payload))
-            return
-        if path.startswith("/api/inbox/") and path.endswith("/reply"):
-            if not self.require_permission("orders"):
+            if path == "/api/seed":
+                if not self.require_permission("settings"):
+                    return
+                payload = self.read_json() or {}
+                data = self.seed_database(force=payload.get("force", False))
+                if data is not None:
+                    self.send_json(data)
                 return
-            conversation_id = int(path.split("/")[-2])
-            payload = self.read_json()
-            data = self.reply_inbox(conversation_id, payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path.startswith("/api/inbox/") and path.endswith("/mode"):
-            if not self.require_permission("orders"):
-                return
-            conversation_id = int(path.split("/")[-2])
-            payload = self.read_json()
-            data = self.update_inbox_mode(conversation_id, payload)
-            if data is not None:
-                self.send_json(data)
-            return
-        if path == "/api/inbox":
-            if not self.require_permission("orders"):
-                return
-            payload = self.read_json()
-            data = self.create_inbox_conversation(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path == "/api/public/drivers/register":
-            payload = self.read_json()
-            data = self.register_driver_user(payload)
-            if data is not None:
-                self.send_json(data, HTTPStatus.CREATED)
-            return
-        if path.startswith("/api/public/orders/") and path.endswith("/comprovante"):
-            parts = path.split("/")
-            try:
-                order_id = int(parts[-2])
-            except (ValueError, IndexError):
-                self.send_error(HTTPStatus.BAD_REQUEST, "ID inválido")
-                return
-            payload = self.read_json()
-            data = self.upload_public_comprovante(order_id, payload)
-            if data is not None:
-                self.send_json(data)
-            return
-        if path == "/api/webhook/evolution":
-            payload = self.read_json()
-            data = self.receive_evolution_webhook(payload)
-            self.send_json(data)
-            return
-        if path == "/api/seed":
-            if not self.require_permission("settings"):
-                return
-            payload = self.read_json() or {}
-            data = self.seed_database(force=payload.get("force", False))
-            if data is not None:
-                self.send_json(data)
-            return
-        self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
+            self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
+        except Exception as error:
+            import traceback
+            traceback.print_exc()
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Erro interno: {error}")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
