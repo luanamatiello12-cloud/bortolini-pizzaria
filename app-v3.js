@@ -412,9 +412,10 @@ function renderMenu() {
         <article class="menu-card">
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
-          <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas na semana</p>
+          <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
           ${item.description ? `<p>${item.description}</p>` : ""}
           <p>${item.prep_time ? `Preparo: ${item.prep_time}` : "Preparo nao informado"}${item.addons ? ` - Adicionais: ${item.addons}` : ""}</p>
+          ${Number(item.cost) > 0 ? `<p style="color:var(--accent);font-weight:600;">Custo: ${currency.format(item.cost)} · Margem: ${item.margin_percent || 0}%</p>` : ""}
           <button class="ghost" data-edit-product="${item.id}">Editar</button>
           <button class="ghost" data-toggle-product="${item.id}">${item.active ? "Pausar" : "Ativar"}</button>
         </article>
@@ -709,13 +710,20 @@ function renderIngredientCalculator() {
   }, 0);
   result.innerHTML = itemRecipes.length
     ? `
-      <article class="ingredient-card stock-summary-card">
-        <div>
-          <small>Custo estimado da producao</small>
-          <strong>${currency.format(totalCost)}</strong>
-          <p>${qty} unidade(s) programadas</p>
-        </div>
-      </article>
+      ${(() => {
+        const item = menuItems.find((i) => Number(i.id) === itemId);
+        const price = Number(item?.price || 0);
+        const profit = price * qty - totalCost;
+        const margin = price > 0 ? ((price - totalCost / qty) / price * 100).toFixed(1) : 0;
+        return `
+        <article class="ingredient-card stock-summary-card">
+          <div>
+            <small>Custo estimado da producao</small>
+            <strong>${currency.format(totalCost)}</strong>
+            <p>${qty} unidade(s) · Venda: ${currency.format(price * qty)} · Lucro: ${currency.format(profit)} · Margem: ${margin}%</p>
+          </div>
+        </article>`;
+      })()}
       ${itemRecipes
         .map((recipe) => {
           const required = Number(recipe.quantity * qty);
@@ -1048,7 +1056,7 @@ function renderReports() {
             (row) => `
               <article class="best-item">
                 <strong>${row.item_name}</strong>
-                <span>${currency.format(row.profit || 0)} lucro - custo ${currency.format(row.cost || 0)} - receita ${currency.format(row.revenue || 0)}</span>
+                <span>${currency.format(row.profit || 0)} lucro · ${row.margin_percent || 0}% margem · custo ${currency.format(row.cost || 0)} · receita ${currency.format(row.revenue || 0)}</span>
               </article>
             `,
           )

@@ -1250,8 +1250,24 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
     def get_menu(self):
         with connect() as conn:
-            rows = conn.execute("SELECT * FROM menu_items ORDER BY id").fetchall()
-        return rows_to_dicts(rows)
+            rows = conn.execute(
+                """
+                SELECT m.*,
+                       COALESCE(SUM(mi.quantity * COALESCE(i.unit_cost, 0)), 0) AS cost
+                FROM menu_items m
+                LEFT JOIN menu_ingredients mi ON mi.menu_item_id = m.id
+                LEFT JOIN ingredients i ON i.id = mi.ingredient_id
+                GROUP BY m.id
+                ORDER BY m.id
+                """
+            ).fetchall()
+        result = rows_to_dicts(rows)
+        for item in result:
+            price = float(item.get("price") or 0)
+            cost = float(item.get("cost") or 0)
+            item["margin_percent"] = round(((price - cost) / price * 100), 1) if price > 0 else 0
+            item["cost"] = round(cost, 2)
+        return result
 
     def get_ingredients(self):
         with connect() as conn:
@@ -1322,7 +1338,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             ).fetchall()
         data = rows_to_dicts(rows)
         for row in data:
-            row["profit"] = float(row.get("revenue") or 0) - float(row.get("cost") or 0)
+            revenue = float(row.get("revenue") or 0)
+            cost = float(row.get("cost") or 0)
+            row["profit"] = revenue - cost
+            row["margin_percent"] = round(((revenue - cost) / revenue * 100), 1) if revenue > 0 else 0
         return data
 
     def get_promotions(self):
