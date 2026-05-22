@@ -57,10 +57,6 @@ SENSITIVE_SETTINGS = {"payment_token", "whatsapp_token", "pix_key", "evolution_a
 BLOCKED_EXTENSIONS = {".db", ".env", ".py", ".bat", ".yaml", ".md", ".txt", ".sh", ".cfg", ".ini"}
 BLOCKED_FILES = {".gitignore", "Procfile", "requirements.txt", "render.yaml"}
 
-# --- Sessões em memória ---
-SESSION_STORE: dict = {}  # token → {user_id, role, name}
-SESSION_LOCK = threading.Lock()
-
 # --- Rate limiting: ip → [timestamps das tentativas recentes] ---
 LOGIN_ATTEMPTS: dict = {}  # ip → [float timestamps]
 LOGIN_LOCK = threading.Lock()
@@ -158,23 +154,37 @@ def verify_pin(pin, stored_hash):
 
 
 def create_session(user_id, role, name):
-    """Cria token de sessão seguro e armazena no SESSION_STORE."""
+    """Cria token de sessão seguro e armazena no banco de dados."""
     token = secrets.token_urlsafe(32)
-    with SESSION_LOCK:
-        SESSION_STORE[token] = {"user_id": user_id, "role": role, "name": name}
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO sessions (token, user_id, role, name, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (token, user_id, role, name),
+        )
     return token
 
 
 def validate_session(token):
-    """Retorna dados da sessão ou None se inválida."""
-    with SESSION_LOCK:
-        return SESSION_STORE.get(token)
+    """Retorna dados da sessão ou None se inválida/expirada."""
+    if not token:
+        return None
+    with connect() as conn:
+        if USE_POSTGRES:
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'"
+        else:
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > datetime('now', '-7 days')"
+        row = conn.execute(sql, (token,)).fetchone()
+    if row:
+        return {"user_id": row["user_id"], "role": row["role"], "name": row["name"]}
+    return None
 
 
 def invalidate_session(token):
     """Remove uma sessão ao fazer logout."""
-    with SESSION_LOCK:
-        SESSION_STORE.pop(token, None)
+    if not token:
+        return
+    with connect() as conn:
+        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
 
 
 def check_rate_limit(ip):
@@ -530,6 +540,18 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token TEXT NOT NULL UNIQUE,
+                user_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         ensure_order_delivery_columns(conn)
         ensure_menu_item_columns(conn)
         ensure_user_columns(conn)
@@ -537,6 +559,7 @@ def init_db():
         ensure_audit_log(conn)
         ensure_ai_conversation_columns(conn)
         ensure_ai_message_system_author(conn)
+        ensure_sessions_table(conn)
 
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             conn.executemany(
@@ -670,6 +693,25 @@ def ensure_ai_message_system_author(conn):
         """
     )
     conn.execute("DROP TABLE ai_messages_old")
+
+
+def ensure_sessions_table(conn):
+    """Garante que a tabela sessions existe (migração para bancos antigos)."""
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token TEXT NOT NULL UNIQUE,
+                user_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+    except Exception:
+        pass
 
 
 def ensure_ingredient_columns(conn):
