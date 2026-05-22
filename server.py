@@ -2976,7 +2976,7 @@ def main():
         t.daemon = True
         t.start()
     server = ThreadingHTTPServer((HOST, PORT), BortoliniHandler)
-    print(f"Bortolini rodando em http://{HOST}:{PORT}")
+    print(f"[DEPLOY-CHECK-20260522] Bortolini rodando em http://{HOST}:{PORT}")
     server.serve_forever()
 
 
