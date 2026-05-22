@@ -271,7 +271,6 @@ class PgConnection:
         "promotions",
         "drivers",
         "ai_conversations",
-        "users",
     }
 
     def __init__(self):
@@ -1059,20 +1058,6 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data)
                 return
-            if path == "/api/debug-insert":
-                try:
-                    with connect() as conn:
-                        cursor = conn.execute(
-                            "INSERT INTO menu_items (name, category, price, sales, active) VALUES (?, ?, ?, 0, 1)",
-                            ("debug-item", "Debug", 0.01),
-                        )
-                        last_id = cursor.lastrowid
-                        conn.execute("DELETE FROM menu_items WHERE id = ?", (last_id,))
-                    self.send_json({"ok": True, "lastrowid": last_id})
-                except Exception as e:
-                    import traceback
-                    self.send_json({"error": str(e), "trace": traceback.format_exc()}, HTTPStatus.INTERNAL_SERVER_ERROR)
-                return
             self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
         except Exception as error:
             import traceback
@@ -1300,12 +1285,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 email = f"{original_email}.{suffix}"
                 suffix += 1
             cursor = conn.execute(
-                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
                 (name.lower().replace(" ", "."), email, "", "", hash_pin(pin), name, "entregador"),
             )
-            user_id = cursor.lastrowid
+            user_row = cursor.fetchone()
+            user_id = user_row["id"]
             conn.execute(
-                "INSERT OR IGNORE INTO drivers (name, area, status, active, lat, lng) VALUES (?, ?, ?, 1, NULL, NULL)",
+                "INSERT INTO drivers (name, area, status, active, lat, lng) VALUES (?, ?, ?, 1, NULL, NULL) ON CONFLICT DO NOTHING",
                 (name, phone or "Sem área", "Disponivel"),
             )
         token = create_session(user_id, "entregador", name)
@@ -1423,10 +1409,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     mode = row["mode"]
                 else:
                     cursor = conn.execute(
-                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'ai', '')",
+                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'ai', '') RETURNING *",
                         (phone, "WhatsApp"),
                     )
-                    conversation_id = cursor.lastrowid
+                    conversation_id = cursor.fetchone()["id"]
                     mode = "ai"
                 conn.execute(
                     "INSERT INTO ai_messages (conversation_id, author, text) VALUES (?, 'client', ?)",
@@ -1790,10 +1776,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 mode = "ai"
             assigned_to = payload.get("assigned_to", "").strip()
             cursor = conn.execute(
-                "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, ?, ?)",
+                "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, ?, ?) RETURNING *",
                 (client, channel, mode, assigned_to),
             )
-            conversation_id = cursor.lastrowid
+            conversation_id = cursor.fetchone()["id"]
             conn.execute(
                 "INSERT INTO ai_messages (conversation_id, author, text) VALUES (?, 'client', ?)",
                 (conversation_id, text),
@@ -2102,6 +2088,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     (customer, customer_phone, address, notes, delivery_type, channel, status, item, total,
                      payment, eta, payment_receipt_url, payment_status, payment_receipt_status, delivery_fee, discount)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING *
                 """,
                 (
                     payload["customer"],
@@ -2122,10 +2109,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     float(payload.get("discount", 0) or 0),
                 ),
             )
+            row = cursor.fetchone()
             self.upsert_customer(conn, payload)
-            self.create_order_items(conn, cursor.lastrowid, payload)
-            self.consume_recipe_stock(conn, cursor.lastrowid)
-            row = conn.execute("SELECT * FROM orders WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            self.create_order_items(conn, row["id"], payload)
+            self.consume_recipe_stock(conn, row["id"])
         return dict(row)
 
     def create_order_items(self, conn, order_id, payload):
@@ -2286,17 +2273,9 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         )
 
     def create_menu_item(self, payload):
-        import traceback
-        from datetime import datetime
-        def _log(msg):
-            log_path = UPLOADS_DIR / "debug.log"
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(f"[{datetime.utcnow().isoformat()}] [create_menu_item] {msg}\n")
-        _log(f"start payload={payload}")
         required = ["name", "category", "price"]
         missing = [field for field in required if not str(payload.get(field, "")).strip()]
         if missing:
-            _log(f"missing fields: {missing}")
             self.send_error(HTTPStatus.BAD_REQUEST, f"Campos obrigatórios: {', '.join(missing)}")
             return
 
@@ -2310,15 +2289,15 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.BAD_REQUEST, "Preço deve ser maior que zero")
             return
 
-        try:
-            with connect() as conn:
-                _log("connected")
-                try:
-                    sql = """
-                        INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """
-                    params = (
+        with connect() as conn:
+            try:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    RETURNING *
+                    """,
+                    (
                         payload["name"].strip(),
                         payload["category"].strip(),
                         price,
@@ -2328,30 +2307,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                         payload.get("size", "").strip(),
                         payload.get("prep_time", "").strip(),
                         payload.get("addons", "").strip(),
-                    )
-                    _log(f"executing sql={sql} params={params}")
-                    cursor = conn.execute(sql, params)
-                    _log(f"cursor.lastrowid={cursor.lastrowid}")
-                except DB_INTEGRITY_ERROR as e:
-                    _log(f"integrity error: {e}")
-                    self.send_error(HTTPStatus.CONFLICT, "Produto já existe")
-                    return
-                except Exception as e:
-                    _log(f"execute error: {e}\n{traceback.format_exc()}")
-                    raise
-                if payload.get("image_url"):
-                    image_url = data_url_to_upload(payload["image_url"], f"produto-{cursor.lastrowid}")
-                    conn.execute(
-                        "UPDATE menu_items SET image_url = ? WHERE id = ?",
-                        (image_url, cursor.lastrowid),
-                    )
-                row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (cursor.lastrowid,)).fetchone()
-                _log(f"row={row}")
-            _log("success")
-            return dict(row)
-        except Exception as e:
-            _log(f"outer error: {e}\n{traceback.format_exc()}")
-            raise
+                    ),
+                )
+            except DB_INTEGRITY_ERROR:
+                self.send_error(HTTPStatus.CONFLICT, "Produto já existe")
+                return
+            row = cursor.fetchone()
+            if payload.get("image_url"):
+                image_url = data_url_to_upload(payload.get("image_url"), f"produto-{row['id']}")
+                conn.execute(
+                    "UPDATE menu_items SET image_url = ? WHERE id = ?",
+                    (image_url, row["id"]),
+                )
+        return dict(row)
+
 
     def import_menu_items(self, payload):
         items = payload.get("items", [])
@@ -2441,13 +2410,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     """
                     INSERT INTO ingredients (name, code, unit, stock_qty, min_qty, supplier, unit_cost)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
+                    RETURNING *
                     """,
                     (name, code, unit, stock_qty, min_qty, payload.get("supplier", ""), unit_cost),
                 )
             except DB_INTEGRITY_ERROR:
                 self.send_error(HTTPStatus.CONFLICT, "Ingrediente já existe")
                 return
-            row = conn.execute("SELECT * FROM ingredients WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            row = cursor.fetchone()
         result = dict(row)
         if min_qty > 0 and stock_qty <= min_qty:
             threading.Thread(target=self.send_whatsapp_low_stock_alert,
@@ -2600,13 +2570,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     """
                     INSERT INTO delivery_zones (neighborhood, fee, eta, active)
                     VALUES (?, ?, ?, ?)
+                    RETURNING *
                     """,
                     (neighborhood, float(payload.get("fee", 0) or 0), payload.get("eta", "35 a 45 minutos"), int(payload.get("active", 1))),
                 )
             except DB_INTEGRITY_ERROR:
                 self.send_error(HTTPStatus.CONFLICT, "Bairro ja existe")
                 return
-            row = conn.execute("SELECT * FROM delivery_zones WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            row = cursor.fetchone()
         return dict(row)
 
     def update_delivery_zone(self, zone_id, payload):
@@ -2664,6 +2635,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 INSERT INTO promotions
                     (title, item_name, discount_type, discount_value, starts_at, ends_at, channels, active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                RETURNING *
                 """,
                 (
                     payload["title"].strip(),
@@ -2675,7 +2647,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     str(channels),
                 ),
             )
-            row = conn.execute("SELECT * FROM promotions WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            row = cursor.fetchone()
         return dict(row)
 
     def update_promotion(self, promotion_id, payload):
@@ -2733,19 +2705,21 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     """
                     INSERT INTO drivers (name, area, status, active, lat, lng)
                     VALUES (?, ?, ?, 1, ?, ?)
+                    RETURNING *
                     """,
                     (name, area, payload.get("status", "Disponivel"), payload.get("lat"), payload.get("lng")),
                 )
-                driver_id = cursor.lastrowid
             except DB_INTEGRITY_ERROR:
                 self.send_error(HTTPStatus.CONFLICT, "Entregador ja existe")
                 return
+            row = cursor.fetchone()
+            driver_id = row["id"]
             user_cursor = conn.execute(
-                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
                 (name.lower().replace(" ", "."), email, cpf, "", hash_pin(pin), name, "entregador"),
             )
-            user_id = user_cursor.lastrowid
-            row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driver_id,)).fetchone()
+            user_row = user_cursor.fetchone()
+            user_id = user_row["id"]
         result = dict(row)
         result["user_id"] = user_id
         result["default_pin"] = pin
