@@ -271,6 +271,7 @@ class PgConnection:
         "promotions",
         "drivers",
         "ai_conversations",
+        "users",
     }
 
     def __init__(self):
