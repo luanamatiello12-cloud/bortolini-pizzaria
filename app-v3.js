@@ -2787,6 +2787,18 @@ async function login() {
   }
 }
 
+function isPublicPage() {
+  const hash = window.location.hash;
+  const path = window.location.pathname;
+  const search = window.location.search;
+  if (hash === "#customer") return true;
+  if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
+  const urlParams = new URLSearchParams(search);
+  const trackId = urlParams.get("pedido") || urlParams.get("order_id");
+  if (trackId && !isNaN(Number(trackId))) return true;
+  return false;
+}
+
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
@@ -2802,6 +2814,7 @@ function restoreSession() {
   } catch (error) {
     localStorage.removeItem("bortoliniUser");
   }
+  if (isPublicPage()) return;
   byId("login-screen").classList.remove("hidden");
   byId("app-shell").classList.add("hidden");
 }
