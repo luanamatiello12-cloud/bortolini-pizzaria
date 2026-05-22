@@ -826,6 +826,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data, HTTPStatus.CREATED)
             return
+        if path == "/api/import-menu":
+            if not self.require_permission("menu"):
+                return
+            payload = self.read_json()
+            data = self.import_menu_items(payload)
+            if data is not None:
+                self.send_json(data, HTTPStatus.CREATED)
+            return
         if path == "/api/menu":
             if not self.require_permission("menu"):
                 return
@@ -2039,6 +2047,45 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 )
             row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (cursor.lastrowid,)).fetchone()
         return dict(row)
+
+    def import_menu_items(self, payload):
+        items = payload.get("items", [])
+        if not items:
+            self.send_error(HTTPStatus.BAD_REQUEST, "Nenhum item enviado")
+            return
+        inserted = 0
+        skipped = 0
+        with connect() as conn:
+            for item in items:
+                name = item.get("name", "").strip()
+                category = item.get("category", "").strip()
+                if not name or not category:
+                    skipped += 1
+                    continue
+                try:
+                    price = float(item.get("price", 0))
+                except (TypeError, ValueError):
+                    price = 0
+                try:
+                    conn.execute(
+                        """
+                        INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
+                        VALUES (?, ?, ?, 0, 1, ?, ?, ?, ?)
+                        """,
+                        (
+                            name,
+                            category,
+                            price,
+                            item.get("description", "").strip(),
+                            item.get("size", "").strip(),
+                            item.get("prep_time", "").strip(),
+                            item.get("addons", "").strip(),
+                        ),
+                    )
+                    inserted += 1
+                except DB_INTEGRITY_ERROR:
+                    skipped += 1
+        return {"inserted": inserted, "skipped": skipped, "total": len(items)}
 
     def update_menu_item(self, item_id, payload):
         fields = []
