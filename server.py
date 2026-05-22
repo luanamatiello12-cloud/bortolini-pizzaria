@@ -792,6 +792,11 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
 
+        # Endpoint de versionamento para verificar deploy
+        if path == "/api/version":
+            self.send_json({"version": "ad9edb7", "date": "2026-05-22"})
+            return
+
         # Bloquear acesso direto a arquivos sensíveis
         suffix = Path(path).suffix.lower()
         basename = Path(path).name
