@@ -1067,7 +1067,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         except Exception as error:
             import traceback
             traceback.print_exc()
-            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Erro interno: {error}")
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Erro interno no servidor")
 
     def do_PATCH(self):
         path = urlparse(self.path).path
