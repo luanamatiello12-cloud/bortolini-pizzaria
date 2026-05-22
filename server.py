@@ -266,7 +266,8 @@ class PgConnection:
 
     def executemany(self, sql, seq_of_params):
         adapted = self.adapt_sql(sql)
-        self.conn.executemany(adapted, seq_of_params)
+        with self.conn.cursor() as cur:
+            cur.executemany(adapted, list(seq_of_params))
 
 
 def connect():
