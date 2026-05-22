@@ -48,6 +48,11 @@ itens = [
   {"name":"Banana com Canela","category":"Pizza Doce","description":"Massa de pizza, creme de leite, banana em fatias, mel, açúcar com canela"},
   {"name":"Pizza Bortolini ⭐","category":"Pizza Doce","description":"Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos. Chamusque com maçarico; morangos e amendoim adicionados após o forno"},
   {"name":"Bortolini Campeira Doce","category":"Pizza Doce","description":"Massa de pizza, creme de leite, Nutella, amendoim triturado, chocolate ralado. Variação doce especial da casa"},
+  {"name":"Coca-Cola 2L","category":"Bebidas","description":"Refrigerante Coca-Cola garrafa 2 litros"},
+  {"name":"Guaraná 2L","category":"Bebidas","description":"Refrigerante Guaraná garrafa 2 litros"},
+  {"name":"Fanta 2L","category":"Bebidas","description":"Refrigerante Fanta garrafa 2 litros"},
+  {"name":"Água com gás 500ml","category":"Bebidas","description":"Água mineral com gás 500ml"},
+  {"name":"Água sem gás 500ml","category":"Bebidas","description":"Água mineral sem gás 500ml"},
 ]
 
 r = requests.post(f"{BASE}/api/import-menu", json={"items": itens}, headers={"X-Session-Token": token})
