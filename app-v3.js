@@ -1259,7 +1259,7 @@ function renderCustomers() {
 function customerOrderUrl() {
   const configuredDomain = String(settings.domain || "").trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
   const base = configuredDomain ? `https://${configuredDomain}` : window.location.origin;
-  return `${base}${window.location.pathname}#customer`;
+  return `${base}${window.location.pathname}#pedir`;
 }
 
 function renderInboxQrPanel() {
@@ -1406,7 +1406,7 @@ function renderSettings() {
   byId("setting-prep").value = settings.prep_time || "";
   byId("setting-areas").value = settings.delivery_areas || "";
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  byId("settings-menu-link").value = baseUrl + "#customer";
+  byId("settings-menu-link").value = baseUrl + "#pedir";
   byId("settings-driver-link").value = baseUrl + "entregador/";
   renderDeliveryZones();
   renderTeamUsers();
@@ -2791,7 +2791,7 @@ function isPublicPage() {
   const hash = window.location.hash;
   const path = window.location.pathname;
   const search = window.location.search;
-  if (hash === "#customer") return true;
+  if (hash === "#pedir") return true;
   if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
   const urlParams = new URLSearchParams(search);
   const trackId = urlParams.get("pedido") || urlParams.get("order_id");
@@ -3485,9 +3485,9 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
   });
 }
 
-// Modo público do cardápio (cliente acessa via link #customer)
+// Modo público do cardápio (cliente acessa via link #pedir)
 function initCustomerPublicMode() {
-  if (window.location.hash === "#customer") {
+  if (window.location.hash === "#pedir") {
     document.body.classList.add("public-customer-mode");
     byId("login-screen").classList.add("hidden");
     byId("app-shell").classList.remove("hidden");
