@@ -2272,9 +2272,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         )
 
     def create_menu_item(self, payload):
+        import traceback
+        from datetime import datetime
+        def _log(msg):
+            log_path = UPLOADS_DIR / "debug.log"
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"[{datetime.utcnow().isoformat()}] [create_menu_item] {msg}\n")
+        _log(f"start payload={payload}")
         required = ["name", "category", "price"]
         missing = [field for field in required if not str(payload.get(field, "")).strip()]
         if missing:
+            _log(f"missing fields: {missing}")
             self.send_error(HTTPStatus.BAD_REQUEST, f"Campos obrigatórios: {', '.join(missing)}")
             return
 
@@ -2288,14 +2296,15 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.BAD_REQUEST, "Preço deve ser maior que zero")
             return
 
-        with connect() as conn:
-            try:
-                cursor = conn.execute(
-                    """
-                    INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
+        try:
+            with connect() as conn:
+                _log("connected")
+                try:
+                    sql = """
+                        INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """
+                    params = (
                         payload["name"].strip(),
                         payload["category"].strip(),
                         price,
@@ -2305,19 +2314,30 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                         payload.get("size", "").strip(),
                         payload.get("prep_time", "").strip(),
                         payload.get("addons", "").strip(),
-                    ),
-                )
-            except DB_INTEGRITY_ERROR:
-                self.send_error(HTTPStatus.CONFLICT, "Produto já existe")
-                return
-            if payload.get("image_url"):
-                image_url = data_url_to_upload(payload["image_url"], f"produto-{cursor.lastrowid}")
-                conn.execute(
-                    "UPDATE menu_items SET image_url = ? WHERE id = ?",
-                    (image_url, cursor.lastrowid),
-                )
-            row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (cursor.lastrowid,)).fetchone()
-        return dict(row)
+                    )
+                    _log(f"executing sql={sql} params={params}")
+                    cursor = conn.execute(sql, params)
+                    _log(f"cursor.lastrowid={cursor.lastrowid}")
+                except DB_INTEGRITY_ERROR as e:
+                    _log(f"integrity error: {e}")
+                    self.send_error(HTTPStatus.CONFLICT, "Produto já existe")
+                    return
+                except Exception as e:
+                    _log(f"execute error: {e}\n{traceback.format_exc()}")
+                    raise
+                if payload.get("image_url"):
+                    image_url = data_url_to_upload(payload["image_url"], f"produto-{cursor.lastrowid}")
+                    conn.execute(
+                        "UPDATE menu_items SET image_url = ? WHERE id = ?",
+                        (image_url, cursor.lastrowid),
+                    )
+                row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (cursor.lastrowid,)).fetchone()
+                _log(f"row={row}")
+            _log("success")
+            return dict(row)
+        except Exception as e:
+            _log(f"outer error: {e}\n{traceback.format_exc()}")
+            raise
 
     def import_menu_items(self, payload):
         items = payload.get("items", [])
