@@ -1481,6 +1481,12 @@ function renderIntegrations() {
   byId("deploy-db").checked = settings.deploy_db === "true";
   byId("deploy-env").checked = settings.deploy_env === "true";
   byId("deploy-https").checked = settings.deploy_https === "true";
+  byId("integration-evolution-url").value = settings.evolution_url || "";
+  byId("integration-evolution-instance").value = settings.evolution_instance || "";
+  byId("integration-evolution-apikey").value = settings.evolution_apikey || "";
+  const baseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
+  const webhookEl = byId("evolution-webhook-url");
+  if (webhookEl) webhookEl.textContent = `${baseUrl}/api/webhook/evolution`;
 }
 
 async function advanceOrder(id) {
@@ -2406,6 +2412,9 @@ async function saveIntegrations() {
     deploy_db: String(byId("deploy-db").checked),
     deploy_env: String(byId("deploy-env").checked),
     deploy_https: String(byId("deploy-https").checked),
+    evolution_url: byId("integration-evolution-url").value.trim(),
+    evolution_instance: byId("integration-evolution-instance").value.trim(),
+    evolution_apikey: byId("integration-evolution-apikey").value.trim(),
   };
   try {
     settings = state.apiOnline

@@ -53,7 +53,7 @@ USE_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 DB_INTEGRITY_ERROR = (sqlite3.IntegrityError,)
 if psycopg is not None:
     DB_INTEGRITY_ERROR = (sqlite3.IntegrityError, psycopg.IntegrityError)
-SENSITIVE_SETTINGS = {"payment_token", "whatsapp_token", "pix_key"}
+SENSITIVE_SETTINGS = {"payment_token", "whatsapp_token", "pix_key", "evolution_apikey"}
 BLOCKED_EXTENSIONS = {".db", ".env", ".py", ".bat", ".yaml", ".md", ".txt", ".sh", ".cfg", ".ini"}
 BLOCKED_FILES = {".gitignore", "Procfile", "requirements.txt", "render.yaml"}
 
@@ -70,6 +70,7 @@ SENSITIVE_ENV_KEYS = {
     "payment_token": "PAYMENT_TOKEN",
     "whatsapp_token": "WHATSAPP_TOKEN",
     "pix_key": "PIX_KEY",
+    "evolution_apikey": "EVOLUTION_APIKEY",
 }
 
 ROLE_PERMISSIONS = {
@@ -512,6 +513,9 @@ def init_db():
             "whatsapp_token": "",
             "pix_key": "66.686.680/0001-57",
             "payment_provider": "PIX manual",
+            "evolution_url": "",
+            "evolution_instance": "",
+            "evolution_apikey": "",
         }
         for key, value in seed_settings.items():
             conn.execute(
@@ -951,6 +955,11 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data)
             return
+        if path == "/api/webhook/evolution":
+            payload = self.read_json()
+            data = self.receive_evolution_webhook(payload)
+            self.send_json(data)
+            return
         self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
 
     def do_PATCH(self):
@@ -1238,6 +1247,92 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             # Fallback: wa.me link registrado no log
             wa_link = f"https://wa.me/{whatsapp_number}?text={urllib.parse.quote(msg)}"
             print(f"[ESTOQUE MINIMO] {ingredient_name}: {wa_link}")
+
+    def send_evolution_message(self, phone_number, text):
+        """Envia mensagem WhatsApp via Evolution API v2."""
+        with connect() as conn:
+            settings = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM settings").fetchall()}
+        evo_url = settings.get("evolution_url", "").strip().rstrip("/")
+        evo_instance = settings.get("evolution_instance", "").strip()
+        evo_key = settings.get("evolution_apikey", "").strip()
+        if not evo_url or not evo_instance or not evo_key:
+            return False
+        try:
+            import urllib.request
+            body = json.dumps({
+                "number": re.sub(r"\D", "", phone_number),
+                "text": text,
+            }).encode()
+            req = urllib.request.Request(
+                f"{evo_url}/message/sendText/{evo_instance}",
+                data=body,
+                headers={"apikey": evo_key, "Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=10)
+            return True
+        except Exception as e:
+            print(f"[EVOLUTION ERROR] {e}")
+            return False
+
+    def receive_evolution_webhook(self, payload):
+        """Processa webhook recebido da Evolution API e cria/atualiza conversa no inbox."""
+        try:
+            data = payload.get("data", {})
+            key = data.get("key", {})
+            message_data = data.get("message", {})
+            # Ignorar mensagens enviadas por mim (fromMe)
+            if key.get("fromMe"):
+                return {"ok": True, "ignored": True}
+            remote_jid = key.get("remoteJid", "")
+            # Extrair número do JID (5581999990000@s.whatsapp.net)
+            phone = remote_jid.split("@")[0].split(":")[-1]
+            # Extrair texto da mensagem
+            text = ""
+            if "conversation" in message_data:
+                text = message_data["conversation"]
+            elif "extendedTextMessage" in message_data:
+                text = message_data["extendedTextMessage"].get("text", "")
+            if not text or not phone:
+                return {"ok": False, "reason": "no_text_or_phone"}
+            with connect() as conn:
+                # Buscar ou criar conversa
+                row = conn.execute(
+                    "SELECT id, mode FROM ai_conversations WHERE client = ? AND channel = ? ORDER BY id DESC LIMIT 1",
+                    (phone, "WhatsApp"),
+                ).fetchone()
+                if row:
+                    conversation_id = row["id"]
+                    mode = row["mode"]
+                else:
+                    cursor = conn.execute(
+                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'ai', '')",
+                        (phone, "WhatsApp"),
+                    )
+                    conversation_id = cursor.lastrowid
+                    mode = "ai"
+                conn.execute(
+                    "INSERT INTO ai_messages (conversation_id, author, text) VALUES (?, 'client', ?)",
+                    (conversation_id, text),
+                )
+                ai_text = None
+                if mode != "human":
+                    ai_text = self.build_ai_response(conn, text, phone, assisted=(mode == "assisted"))
+                    conn.execute(
+                        "INSERT INTO ai_messages (conversation_id, author, text) VALUES (?, 'ai', ?)",
+                        (conversation_id, ai_text),
+                    )
+                conn.execute(
+                    "UPDATE ai_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (conversation_id,),
+                )
+            # Enviar resposta da IA via Evolution se houver
+            if ai_text:
+                self.send_evolution_message(phone, ai_text)
+            return {"ok": True, "conversation_id": conversation_id}
+        except Exception as e:
+            print(f"[EVOLUTION WEBHOOK ERROR] {e}")
+            return {"ok": False, "error": str(e)}
 
     def upload_public_comprovante(self, order_id, payload):
         with connect() as conn:
@@ -1599,6 +1694,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 "UPDATE ai_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (conversation_id,),
             )
+        # Se atendente respondeu, enviar via Evolution API
+        if author == "agent":
+            client_phone = conversation["client"]
+            self.send_evolution_message(client_phone, text)
         return next((item for item in self.get_inbox() if item["id"] == conversation_id), None)
 
     def update_inbox_mode(self, conversation_id, payload):

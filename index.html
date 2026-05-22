@@ -660,6 +660,19 @@
 
             <section class="panel settings-panel">
               <div class="panel-head">
+                <h2>Evolution API</h2>
+                <span class="status-pill">WhatsApp</span>
+              </div>
+              <label>URL do servidor Evolution<input id="integration-evolution-url" placeholder="https://evolution.seuservidor.com" /></label>
+              <label>Nome da instância<input id="integration-evolution-instance" placeholder="bortolini" /></label>
+              <label>API Key<input id="integration-evolution-apikey" type="password" autocomplete="off" placeholder="apikey da Evolution" /></label>
+              <p class="form-hint">Configure o webhook na Evolution apontando para:</p>
+              <code id="evolution-webhook-url" style="display:block;background:#f3f4f6;padding:8px;border-radius:6px;font-size:12px;word-break:break-all;"></code>
+              <p class="form-hint">Com a Evolution ativa, o inbox recebe mensagens reais e envia respostas automaticamente.</p>
+            </section>
+
+            <section class="panel settings-panel">
+              <div class="panel-head">
                 <h2>GPS do entregador</h2>
                 <span class="status-pill success">Pronto para celular</span>
               </div>
