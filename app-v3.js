@@ -103,7 +103,7 @@ async function api(path, options = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(state.currentUser?.token ? { "Authorization": `Bearer ${state.currentUser.token}` } : {}),
+      ...(state.currentUser?.token ? { "X-Session-Token": state.currentUser.token } : {}),
       ...(options.headers || {}),
     },
   });
