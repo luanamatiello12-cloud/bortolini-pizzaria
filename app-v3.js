@@ -2992,6 +2992,12 @@ byId("copy-driver-created-link")?.addEventListener("click", () => {
 });
 byId("recover-admin-btn")?.addEventListener("click", () => byId("recover-admin-dialog").showModal());
 byId("recover-admin-save")?.addEventListener("click", recoverAdminAccess);
+byId("close-product-dialog")?.addEventListener("click", () => byId("order-dialog")?.close());
+byId("close-product-dialog-2")?.addEventListener("click", () => byId("product-dialog")?.close());
+byId("close-pin-dialog")?.addEventListener("click", () => byId("pin-dialog")?.close());
+byId("close-recover-admin-dialog")?.addEventListener("click", () => byId("recover-admin-dialog")?.close());
+byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-dialog")?.close());
+byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
 byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);
 byId("create-driver-btn")?.addEventListener("click", createDriver);
 byId("confirm-cancel")?.addEventListener("click", confirmCancelOrder);
