@@ -3189,10 +3189,10 @@ async function loadDriverPublicOrders() {
 
 async function driverMarkDelivered(orderId) {
   try {
-    await fetch(`/api/orders/${orderId}`, {
+    await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
       method: "PATCH",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ status: "Finalizado" })
+      body: JSON.stringify({ status: "Entregue" })
     });
     showToast("Pedido marcado como entregue!");
     loadDriverPublicOrders();

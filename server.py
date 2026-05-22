@@ -1022,6 +1022,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data)
             return
+        if path.startswith("/api/public/driver/orders/") and path.endswith("/deliver"):
+            order_id = int(path.split("/")[-2])
+            payload = self.read_json()
+            data = self.driver_mark_delivered(order_id, payload)
+            if data is not None:
+                self.send_json(data)
+            return
         if path.startswith("/api/menu/"):
             if not self.require_permission("menu"):
                 return
@@ -2615,6 +2622,19 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if row is None:
             self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
             return
+        return dict(row)
+
+    def driver_mark_delivered(self, order_id, payload):
+        with connect() as conn:
+            row = conn.execute("SELECT id, status FROM orders WHERE id = ?", (order_id,)).fetchone()
+            if row is None:
+                self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
+                return
+            conn.execute(
+                "UPDATE orders SET status = 'Entregue', delivered_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (order_id,),
+            )
+            row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
         return dict(row)
 
     def update_driver_location(self, driver_id, payload):

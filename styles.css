@@ -190,7 +190,7 @@ button:disabled {
   top: 0;
   height: 100vh;
   padding: 24px;
-  background: #dc2626;
+  background: #0a0a0a;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -232,7 +232,7 @@ button:disabled {
 .brand small,
 .trial-box small,
 .eyebrow {
-  color: #86efac;
+  color: #a3a3a3;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0;
@@ -247,7 +247,7 @@ button:disabled {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #bbf7d0;
+  color: #d4d4d4;
   padding: 12px 14px;
   text-align: left;
   display: flex;
@@ -262,7 +262,7 @@ button:disabled {
 
 .nav-item:hover,
 .nav-item.active {
-  background: rgba(22, 163, 74, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
 }
 
@@ -289,7 +289,7 @@ button:disabled {
 
 .user-card p {
   margin: 4px 0 12px;
-  color: #bbf7d0;
+  color: #d4d4d4;
 }
 
 .ghost-light {
@@ -304,7 +304,7 @@ button:disabled {
 
 .trial-box p {
   margin: 10px 0 0;
-  color: #bbf7d0;
+  color: #d4d4d4;
   line-height: 1.45;
 }
 
