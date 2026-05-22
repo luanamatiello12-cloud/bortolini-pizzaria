@@ -85,8 +85,8 @@ WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta ap
 # Seeds removidos — sistema inicia limpo para cadastro manual
 
 USER_SEED = [
-    ("admin@bortolini.com", "3725", "Administrador", "admin"),
-    ("financeiro@bortolini.com", "3702", "Financeiro", "financeiro"),
+    ("admin", "admin@bortolini.com", "3725", "Administrador", "admin"),
+    ("financeiro", "financeiro@bortolini.com", "3702", "Financeiro", "financeiro"),
 ]
 
 
@@ -334,6 +334,7 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
                 email TEXT NOT NULL UNIQUE,
                 pin TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -492,10 +493,10 @@ def init_db():
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             conn.executemany(
                 """
-                INSERT INTO users (email, cpf, pin, pin_hash, name, role, must_change_pin)
-                VALUES (?, ?, ?, ?, ?, ?, 1)
+                INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
                 """,
-                [(email, "", "", hash_pin(pin), name, role) for email, pin, name, role in USER_SEED],
+                [(username, email, "", "", hash_pin(pin), name, role) for username, email, pin, name, role in USER_SEED],
             )
         else:
             migrate_user_hashes(conn)
@@ -559,6 +560,8 @@ def ensure_menu_item_columns(conn):
 
 def ensure_user_columns(conn):
     columns = table_columns(conn, "users")
+    if "username" not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN username TEXT")
     if "pin_hash" not in columns:
         conn.execute("ALTER TABLE users ADD COLUMN pin_hash TEXT")
     if "cpf" not in columns:
@@ -644,17 +647,17 @@ def migrate_user_hashes(conn):
             conn.execute("UPDATE users SET pin_hash = ?, pin = '' WHERE id = ?", (hash_pin(row["pin"]), row["id"]))
 
     # Inserir ou atualizar perfis do seed
-    for email, pin, name, role in USER_SEED:
+    for username, email, pin, name, role in USER_SEED:
         existing = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         if existing:
             conn.execute(
-                "UPDATE users SET name = ?, role = ?, pin_hash = ?, pin = '', must_change_pin = 0 WHERE email = ?",
-                (name, role, hash_pin(pin), email),
+                "UPDATE users SET username = ?, name = ?, role = ?, pin_hash = ?, pin = '', must_change_pin = 0 WHERE email = ?",
+                (username, name, role, hash_pin(pin), email),
             )
         else:
             conn.execute(
-                "INSERT INTO users (email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, 0)",
-                (email, "", "", hash_pin(pin), name, role),
+                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
+                (username, email, "", "", hash_pin(pin), name, role),
             )
 
 
@@ -1144,8 +1147,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 email = f"{original_email}.{suffix}"
                 suffix += 1
             cursor = conn.execute(
-                "INSERT INTO users (email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                (email, "", "", hash_pin(pin), name, "entregador"),
+                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+                (name.lower().replace(" ", "."), email, "", "", hash_pin(pin), name, "entregador"),
             )
             user_id = cursor.lastrowid
             conn.execute(
@@ -1330,7 +1333,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def get_demo_users(self):
         with connect() as conn:
             rows = conn.execute(
-                "SELECT id, email, name, role, must_change_pin FROM users WHERE role IN ('admin', 'financeiro', 'entregador') ORDER BY id"
+                "SELECT id, username, email, name, role, must_change_pin FROM users WHERE role IN ('admin', 'financeiro', 'entregador') ORDER BY id"
             ).fetchall()
         return rows_to_dicts(rows)
 
@@ -1695,29 +1698,25 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.TOO_MANY_REQUESTS, "Muitas tentativas. Aguarde 5 minutos e tente novamente")
             return
 
+        username = payload.get("usuario", payload.get("username", "")).strip().lower()
         pin = payload.get("pin", "").strip()
 
         with connect() as conn:
             valid_roles = ("admin", "financeiro", "entregador")
-            rows = conn.execute(
-                f"SELECT id, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE role IN {valid_roles}"
-            ).fetchall()
+            row = conn.execute(
+                f"SELECT id, username, email, cpf, pin, pin_hash, name, role, must_change_pin FROM users WHERE lower(username) = ? AND role IN {valid_roles}",
+                (username,),
+            ).fetchone()
 
-        row = None
-        for r in rows:
-            if verify_pin(pin, r["pin_hash"]) or (r["pin"] and hmac.compare_digest(pin, r["pin"])):
-                row = r
-                break
-
-        if row is None:
-            self.send_error(HTTPStatus.UNAUTHORIZED, "PIN inválido")
+        if row is None or not (verify_pin(pin, row["pin_hash"]) or (row["pin"] and hmac.compare_digest(pin, row["pin"]))):
+            self.send_error(HTTPStatus.UNAUTHORIZED, "Usuário ou PIN inválido")
             return
 
         # Login bem-sucedido: limpar rate limit e criar sessão segura
         clear_rate_limit(ip)
-        user = {key: row[key] for key in ["id", "email", "name", "role", "must_change_pin"]}
+        user = {key: row[key] for key in ["id", "username", "email", "name", "role", "must_change_pin"]}
         user["token"] = create_session(user["id"], user["role"], user["name"])
-        self._write_audit_log(user["id"], "login", "users", user["id"], f"Login via PIN do perfil {user['role']}")
+        self._write_audit_log(user["id"], "login", "users", user["id"], f"Login via usuario {user['username']} do perfil {user['role']}")
         return user
 
     def _write_audit_log(self, user_id, action, entity, entity_id, details=""):
@@ -2389,8 +2388,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_error(HTTPStatus.CONFLICT, "Entregador ja existe")
                 return
             user_cursor = conn.execute(
-                "INSERT INTO users (email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                (email, "", "", hash_pin(pin), name, "entregador"),
+                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1)",
+                (name.lower().replace(" ", "."), email, "", "", hash_pin(pin), name, "entregador"),
             )
             user_id = user_cursor.lastrowid
             row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driver_id,)).fetchone()

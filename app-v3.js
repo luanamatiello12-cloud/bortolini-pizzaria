@@ -181,9 +181,9 @@ async function loadData() {
     };
     deliveries = [];
     demoUsers = [
-      { email: "admin@bortolini.com", name: "adm", role: "admin", must_change_pin: 1 },
-      { email: "entregador@bortolini.com", name: "Entregador", role: "entregador", must_change_pin: 1 },
-      { email: "financeiro@bortolini.com", name: "Financeiro", role: "financeiro", must_change_pin: 1 },
+      { username: "admin", email: "admin@bortolini.com", name: "adm", role: "admin", must_change_pin: 1 },
+      { username: "entregador", email: "entregador@bortolini.com", name: "Entregador", role: "entregador", must_change_pin: 1 },
+      { username: "financeiro", email: "financeiro@bortolini.com", name: "Financeiro", role: "financeiro", must_change_pin: 1 },
     ];
     state.apiOnline = false;
   }
@@ -2475,6 +2475,7 @@ async function recoverAdminAccess() {
       body: JSON.stringify({ master_key: masterKey, new_pin: newPin }),
     });
     byId("recover-admin-dialog").close();
+    byId("login-user").value = "admin";
     byId("login-pin").value = newPin;
     byId("recover-master-key").value = "";
     byId("recover-new-pin").value = "";
@@ -2724,16 +2725,16 @@ function renderAccess() {
 
 function renderDemoUsers() {
   const fallbackProfiles = [
-    { name: "adm", role: "admin", default_pin: "3725" },
-    { name: "Financeiro", role: "financeiro", default_pin: "3702" },
+    { username: "admin", name: "adm", role: "admin", default_pin: "3725" },
+    { username: "financeiro", name: "Financeiro", role: "financeiro", default_pin: "3702" },
   ];
   const profiles = demoUsers.length ? demoUsers : fallbackProfiles;
   byId("demo-users").innerHTML = profiles
     .map(
       (user) => `
-        <button class="profile-button" data-demo-pin="${user.default_pin || "1234"}">
+        <button class="profile-button" data-demo-user="${user.username}" data-demo-pin="${user.default_pin || "1234"}">
           <strong>${roleLabels[user.role] || user.name}</strong>
-          <small>PIN: ${user.default_pin || "1234"}</small>
+          <small>${user.username} · PIN: ${user.default_pin || "1234"}</small>
         </button>
       `,
     )
@@ -2741,6 +2742,7 @@ function renderDemoUsers() {
 
   document.querySelectorAll("[data-demo-pin]").forEach((button) => {
     button.addEventListener("click", () => {
+      byId("login-user").value = button.dataset.demoUser;
       byId("login-pin").value = button.dataset.demoPin;
       login();
     });
@@ -2748,38 +2750,34 @@ function renderDemoUsers() {
 }
 
 async function login() {
+  const username = byId("login-user").value.trim().toLowerCase();
   const pin = byId("login-pin").value.trim();
   byId("login-error").textContent = "";
-  console.log("DEBUG: PIN digitado:", pin, "| apiOnline:", state.apiOnline);
 
-  if (!pin) return;
+  if (!username || !pin) return;
 
   try {
     if (state.apiOnline) {
-      console.log("DEBUG: Chamando API com PIN:", pin);
       state.currentUser = await api("/api/login", {
         method: "POST",
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ usuario: username, pin }),
       });
-      console.log("DEBUG: API respondeu:", state.currentUser);
     } else {
-      console.log("DEBUG: Modo demo - PIN:", pin);
-      const user = demoUsers.find((candidate) => pin === "1234");
+      const user = demoUsers.find((candidate) => candidate.username === username && pin === "1234");
       if (!user) throw new Error("Login inválido");
       state.currentUser = { ...user, token: `demo-${user.role}` };
     }
     localStorage.setItem("bortoliniUser", JSON.stringify(state.currentUser));
     showApp();
   } catch (error) {
-    console.log("DEBUG: Erro no login:", error.message);
-    byId("login-error").textContent = "PIN inválido.";
+    byId("login-error").textContent = "Usuário ou PIN inválido.";
   }
 }
 
 function restoreSession() {
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
-    if (saved?.role && saved?.name) {
+    if (saved?.role && saved?.username) {
       if (!["admin", "financeiro", "entregador"].includes(saved.role)) {
         localStorage.removeItem("bortoliniUser");
         return;
@@ -2820,6 +2818,7 @@ function logout() {
   state.currentUser = null;
   byId("login-screen").classList.remove("hidden");
   byId("app-shell").classList.add("hidden");
+  byId("login-user").value = "";
   byId("login-pin").value = "";
 }
 
