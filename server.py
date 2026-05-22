@@ -315,11 +315,12 @@ class PgConnection:
         returning_id = None
         if self.should_return_id(adapted):
             adapted += " RETURNING id"
-        cursor = self.conn.execute(adapted, tuple(params or ()))
-        if " RETURNING id" in adapted:
-            row = cursor.fetchone()
-            returning_id = row[0] if row else None
-        return PgCursor(cursor, returning_id)
+        with self.conn.cursor() as cur:
+            cur.execute(adapted, tuple(params or ()))
+            if " RETURNING id" in adapted:
+                row = cur.fetchone()
+                returning_id = row[0] if row else None
+            return PgCursor(cur, returning_id)
 
     def executemany(self, sql, seq_of_params):
         adapted = self.adapt_sql(sql)
