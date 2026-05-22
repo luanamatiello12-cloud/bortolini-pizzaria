@@ -964,7 +964,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if path == "/api/seed":
             if not self.require_permission("settings"):
                 return
-            data = self.seed_database()
+            payload = self.read_json() or {}
+            data = self.seed_database(force=payload.get("force", False))
             if data is not None:
                 self.send_json(data)
             return
@@ -1586,13 +1587,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             "generated_at": datetime.now().isoformat(timespec="seconds"),
         }
 
-    def seed_database(self):
+    def seed_database(self, force=False):
         """Popula o banco com dados iniciais (usuarios, settings, cardapio)."""
         init_db()
-        # Importar cardapio se estiver vazio
+        # Importar cardapio se estiver vazio ou force=True
         with connect() as conn:
             menu_count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
         inserted_menu = 0
+        if force and menu_count > 0:
+            with connect() as conn:
+                conn.execute("DELETE FROM menu_items")
+            menu_count = 0
         if menu_count == 0:
             seed_path = ROOT / "seed_menu.json"
             if seed_path.exists():
@@ -1601,8 +1606,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     for item in items:
                         try:
                             conn.execute(
-                                "INSERT INTO menu_items (name, category, price, description) VALUES (?, ?, 0, ?)",
-                                (item["name"], item["category"], item.get("description", "")),
+                                "INSERT INTO menu_items (name, category, price, description, size) VALUES (?, ?, 0, ?, ?)",
+                                (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
                             )
                             inserted_menu += 1
                         except DB_INTEGRITY_ERROR:
