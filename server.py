@@ -1059,6 +1059,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data)
                 return
+            if path == "/api/debug-insert":
+                try:
+                    with connect() as conn:
+                        cursor = conn.execute(
+                            "INSERT INTO menu_items (name, category, price, sales, active) VALUES (?, ?, ?, 0, 1)",
+                            ("debug-item", "Debug", 0.01),
+                        )
+                        last_id = cursor.lastrowid
+                        conn.execute("DELETE FROM menu_items WHERE id = ?", (last_id,))
+                    self.send_json({"ok": True, "lastrowid": last_id})
+                except Exception as e:
+                    import traceback
+                    self.send_json({"error": str(e), "trace": traceback.format_exc()}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
             self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
         except Exception as error:
             import traceback
