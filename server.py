@@ -869,6 +869,22 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"error": str(e), "type": type(e).__name__}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
+        if path == "/api/debug-sync":
+            import traceback
+            try:
+                with connect() as conn:
+                    conn.execute(
+                        "UPDATE menu_items SET category = ? WHERE name = ?",
+                        ("Pizzas", "Calabresa"),
+                    )
+                self.send_json({"ok": True, "message": "Update funcionou!"})
+            except Exception as e:
+                self.send_json({
+                    "error": str(e),
+                    "type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                })
+            return
         if path == "/api/promotions":
             self.send_json(self.get_promotions())
             return
