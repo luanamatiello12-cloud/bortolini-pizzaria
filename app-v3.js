@@ -1125,19 +1125,9 @@ function renderCustomerStore() {
   byId("store-hours").textContent = `${settings.opening_hours || "18:00 às 23:30"} · entrega ${currency.format(Number(settings.delivery_fee || 0))} · preparo ${settings.prep_time || "35 a 45 minutos"}`;
   renderQrPanel();
 
-  // Tabs
-  document.querySelectorAll(".store-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".store-tab").forEach((t) => t.classList.remove("active"));
-      document.querySelectorAll(".store-tab-content").forEach((c) => c.classList.remove("active"));
-      tab.classList.add("active");
-      byId(`store-tab-${tab.dataset.tab}`).classList.add("active");
-    });
-  });
-
   // Pizzas — lista de tamanhos
   byId("store-pizza-sizes").innerHTML = PIZZA_SIZES.map((size) => `
-    <article class="pizza-size-card" data-pizza-size="${size.key}">
+    <article class="pizza-size-card" onclick="openPizzaBuilder('${size.key}')">
       <div class="size-info">
         <strong>${size.label}: ${size.cm} (${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"})</strong>
         <span>${size.slices}</span>
@@ -1145,10 +1135,6 @@ function renderCustomerStore() {
       <div class="size-price">${currency.format(size.price)}</div>
     </article>
   `).join("");
-
-  document.querySelectorAll("[data-pizza-size]").forEach((card) => {
-    card.addEventListener("click", () => openPizzaBuilder(card.dataset.pizzaSize));
-  });
 
   // Bebidas
   const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
@@ -1158,14 +1144,10 @@ function renderCustomerStore() {
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
           <p>${item.description || "Bebida"}</p>
-          <button class="primary" data-add-bebida="${item.id}">Adicionar</button>
+          <button class="primary" onclick="addBebidaToCart(${item.id})">Adicionar</button>
         </article>
       `).join("")
     : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
-
-  document.querySelectorAll("[data-add-bebida]").forEach((button) => {
-    button.addEventListener("click", () => addBebidaToCart(Number(button.dataset.addBebida)));
-  });
 
   // Promoções
   const activePromos = promotions.filter((p) => p.active);
@@ -1185,29 +1167,46 @@ function renderCustomerStore() {
 function renderCart() {
   byId("cart-items").innerHTML = cart.length
     ? cart
-        .map((entry) => {
+        .map((entry, index) => {
           if (entry.type === "pizza") {
             const flavorsText = entry.flavors.map((f) => f.name).join(" + ");
             const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` <small>(${entry.notes})</small>` : "";
             return `
               <article class="cart-item">
-                <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
-                <p>${flavorsText}${notesText}</p>
-                <p>${currency.format(entry.price * entry.qty)}</p>
+                <div class="cart-item-info">
+                  <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
+                  <p>${flavorsText}${notesText}</p>
+                </div>
+                <div class="cart-item-actions">
+                  <span>${currency.format(entry.price * entry.qty)}</span>
+                  <button class="ghost danger-link" onclick="removeFromCart(${index})" title="Remover">×</button>
+                </div>
               </article>
             `;
           }
           return `
             <article class="cart-item">
-              <strong>${entry.qty}x ${entry.name}</strong>
-              <p>${currency.format(entry.price * entry.qty)}</p>
+              <div class="cart-item-info">
+                <strong>${entry.qty}x ${entry.name}</strong>
+              </div>
+              <div class="cart-item-actions">
+                <span>${currency.format(entry.price * entry.qty)}</span>
+                <button class="ghost danger-link" onclick="removeFromCart(${index})" title="Remover">×</button>
+              </div>
             </article>
           `;
         })
         .join("")
     : `<article class="cart-item"><strong>Carrinho vazio</strong><p>Adicione pizzas e bebidas para finalizar.</p></article>`;
   byId("cart-total").textContent = `Total: ${currency.format(cartTotal())}`;
+}
+
+function removeFromCart(index) {
+  if (index < 0 || index >= cart.length) return;
+  cart.splice(index, 1);
+  saveCart();
+  renderCart();
 }
 
 function addBebidaToCart(itemId) {
@@ -1273,7 +1272,11 @@ function addPizzaToCart() {
       return;
     }
     const item = menuItems.find((m) => m.id === Number(select.value));
-    if (item) flavors.push({ id: item.id, name: item.name });
+    if (!item) {
+      showToast("Erro ao encontrar o sabor selecionado.");
+      return;
+    }
+    flavors.push({ id: item.id, name: item.name });
   }
 
   const crust = byId("pizza-builder-crust").value;
@@ -2111,6 +2114,11 @@ async function checkoutCart() {
   const customer = byId("checkout-name").value.trim();
   if (!customer) {
     byId("checkout-error").textContent = "Informe seu nome.";
+    return;
+  }
+  const deliveryType = byId("checkout-type").value;
+  if (deliveryType === "Entrega" && !byId("checkout-address").value.trim()) {
+    byId("checkout-error").textContent = "Informe o endereço para entrega.";
     return;
   }
   if (!pixReceiptData) {
@@ -3174,6 +3182,17 @@ byId("pizza-builder-crust")?.addEventListener("change", () => {
   updatePizzaBuilderPrice(Number(dialog.dataset.basePrice || 0));
 });
 byId("close-pizza-builder")?.addEventListener("click", () => byId("pizza-builder-dialog")?.close());
+
+// Event delegation para tabs da loja pública (evita listeners duplicados)
+document.querySelector(".store-tabs")?.addEventListener("click", (e) => {
+  const tab = e.target.closest(".store-tab");
+  if (!tab) return;
+  document.querySelectorAll(".store-tab").forEach((t) => t.classList.remove("active"));
+  document.querySelectorAll(".store-tab-content").forEach((c) => c.classList.remove("active"));
+  tab.classList.add("active");
+  byId(`store-tab-${tab.dataset.tab}`)?.classList.add("active");
+});
+
 byId("create-driver-btn")?.addEventListener("click", createDriver);
 byId("confirm-cancel")?.addEventListener("click", confirmCancelOrder);
 byId("create-ingredient-btn")?.addEventListener("click", createIngredient);
