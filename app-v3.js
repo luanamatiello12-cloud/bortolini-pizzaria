@@ -29,6 +29,22 @@ let conversations = [];
 
 let drivers = [];
 
+const PIZZA_SIZES = [
+  { key: "broto", label: "Pizza Broto", cm: "20 cm", slices: "4 fatias", flavors: 1, price: 35 },
+  { key: "p", label: "Pizza P", cm: "25 cm", slices: "6 fatias", flavors: 2, price: 45 },
+  { key: "m", label: "Pizza M", cm: "30 cm", slices: "8 fatias", flavors: 2, price: 55 },
+  { key: "g", label: "Pizza G", cm: "35 cm", slices: "12 fatias", flavors: 3, price: 70 },
+  { key: "gg", label: "Pizza GG", cm: "40 cm", slices: "16 fatias", flavors: 4, price: 85 },
+];
+
+const CRUST_PRICES = {
+  "": 0,
+  "Borda recheada catupiry": 10,
+  "Borda recheada cheddar": 10,
+  "Borda recheada chocolate": 8,
+  "Borda de cream cheese": 8,
+};
+
 const fallbackMenu = [];
 
 function getItemImage(itemName) {
@@ -1108,57 +1124,194 @@ function renderReports() {
 function renderCustomerStore() {
   byId("store-hours").textContent = `${settings.opening_hours || "18:00 às 23:30"} · entrega ${currency.format(Number(settings.delivery_fee || 0))} · preparo ${settings.prep_time || "35 a 45 minutos"}`;
   renderQrPanel();
-  byId("store-products").innerHTML = menuItems
-    .filter((item) => item.active)
-    .map((item) => {
-      const promo = promotions.find((promotion) => promotion.item_name === item.name && promotion.active);
-      return `
+
+  // Tabs
+  document.querySelectorAll(".store-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".store-tab").forEach((t) => t.classList.remove("active"));
+      document.querySelectorAll(".store-tab-content").forEach((c) => c.classList.remove("active"));
+      tab.classList.add("active");
+      byId(`store-tab-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  // Pizzas — lista de tamanhos
+  byId("store-pizza-sizes").innerHTML = PIZZA_SIZES.map((size) => `
+    <article class="pizza-size-card" data-pizza-size="${size.key}">
+      <div class="size-info">
+        <strong>${size.label}: ${size.cm} (${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"})</strong>
+        <span>${size.slices}</span>
+      </div>
+      <div class="size-price">${currency.format(size.price)}</div>
+    </article>
+  `).join("");
+
+  document.querySelectorAll("[data-pizza-size]").forEach((card) => {
+    card.addEventListener("click", () => openPizzaBuilder(card.dataset.pizzaSize));
+  });
+
+  // Bebidas
+  const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
+  byId("store-bebidas").innerHTML = bebidas.length
+    ? bebidas.map((item) => `
         <article class="menu-card">
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
-          <strong>${item.name}${item.size ? ` (${item.size})` : ""}<span>${currency.format(item.price)}</span></strong>
-          <p>${item.category}${promo ? ` · ${formatDiscount(promo)}` : ""}</p>
-          <button class="primary" data-add-cart="${item.id}">Adicionar</button>
+          <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
+          <p>${item.description || "Bebida"}</p>
+          <button class="primary" data-add-bebida="${item.id}">Adicionar</button>
         </article>
-      `;
-    })
-    .join("");
+      `).join("")
+    : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
 
-  document.querySelectorAll("[data-add-cart]").forEach((button) => {
-    button.addEventListener("click", () => addToCart(Number(button.dataset.addCart)));
+  document.querySelectorAll("[data-add-bebida]").forEach((button) => {
+    button.addEventListener("click", () => addBebidaToCart(Number(button.dataset.addBebida)));
   });
+
+  // Promoções
+  const activePromos = promotions.filter((p) => p.active);
+  byId("store-promocoes").innerHTML = activePromos.length
+    ? activePromos.map((promo) => `
+        <article class="menu-card">
+          <strong>${promo.title}<span>${formatDiscount(promo)}</span></strong>
+          <p>${promo.item_name}</p>
+          <small>Válido de ${promo.starts_at} até ${promo.ends_at}</small>
+        </article>
+      `).join("")
+    : `<p class="form-hint">Nenhuma promoção ativa no momento.</p>`;
+
   renderCart();
 }
 
 function renderCart() {
   byId("cart-items").innerHTML = cart.length
     ? cart
-        .map(
-          (entry) => `
+        .map((entry) => {
+          if (entry.type === "pizza") {
+            const flavorsText = entry.flavors.map((f) => f.name).join(" + ");
+            const crustText = entry.crust ? ` · ${entry.crust}` : "";
+            const notesText = entry.notes ? ` <small>(${entry.notes})</small>` : "";
+            return `
+              <article class="cart-item">
+                <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
+                <p>${flavorsText}${notesText}</p>
+                <p>${currency.format(entry.price * entry.qty)}</p>
+              </article>
+            `;
+          }
+          return `
             <article class="cart-item">
               <strong>${entry.qty}x ${entry.name}</strong>
               <p>${currency.format(entry.price * entry.qty)}</p>
             </article>
-          `,
-        )
+          `;
+        })
         .join("")
     : `<article class="cart-item"><strong>Carrinho vazio</strong><p>Adicione pizzas e bebidas para finalizar.</p></article>`;
   byId("cart-total").textContent = `Total: ${currency.format(cartTotal())}`;
 }
 
-function addToCart(itemId) {
+function addBebidaToCart(itemId) {
   const item = menuItems.find((current) => current.id === itemId);
   if (!item) return;
-  const promo = promotions.find((promotion) => promotion.item_name === item.name && promotion.active);
-  const price = promo?.discount_type === "special" ? Number(promo.discount_value) : Number(item.price);
-  const existing = cart.find((entry) => entry.id === item.id);
+  const existing = cart.find((entry) => entry.type === "bebida" && entry.id === item.id);
   if (existing) {
     existing.qty += 1;
   } else {
-    cart.push({ id: item.id, name: item.name, price, qty: 1 });
+    cart.push({ type: "bebida", id: item.id, name: item.name, price: Number(item.price), qty: 1 });
   }
   saveCart();
   renderCart();
-  // Esconder confirmação PIX se o cliente adicionar novo item depois de um pedido
+  hidePixConfirmation();
+}
+
+function openPizzaBuilder(sizeKey) {
+  const size = PIZZA_SIZES.find((s) => s.key === sizeKey);
+  if (!size) return;
+  byId("pizza-builder-title").textContent = `${size.label} — ${size.cm}`;
+  byId("pizza-builder-subtitle").textContent = `Escolha ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"} (${size.slices})`;
+
+  const pizzaItems = menuItems.filter((item) => item.active && item.category === "Pizzas");
+  const options = pizzaItems.map((item) => `<option value="${item.id}">${item.name} — ${item.description || ""}</option>`).join("");
+
+  byId("pizza-builder-flavors").innerHTML = Array.from({ length: size.flavors }, (_, i) => `
+    <div class="pizza-builder-flavor-row">
+      <label>Sabor ${i + 1}</label>
+      <select id="pizza-flavor-${i}" required>
+        <option value="">Selecione um sabor</option>
+        ${options}
+      </select>
+    </div>
+  `).join("");
+
+  byId("pizza-builder-crust").value = "";
+  byId("pizza-builder-notes").value = "";
+  updatePizzaBuilderPrice(size.price);
+
+  const dialog = byId("pizza-builder-dialog");
+  dialog.dataset.sizeKey = sizeKey;
+  dialog.dataset.basePrice = size.price;
+  dialog.showModal();
+}
+
+function updatePizzaBuilderPrice(basePrice) {
+  const crust = byId("pizza-builder-crust").value;
+  const crustPrice = CRUST_PRICES[crust] || 0;
+  byId("pizza-builder-price-display").textContent = currency.format(basePrice + crustPrice);
+}
+
+function addPizzaToCart() {
+  const dialog = byId("pizza-builder-dialog");
+  const sizeKey = dialog.dataset.sizeKey;
+  const size = PIZZA_SIZES.find((s) => s.key === sizeKey);
+  if (!size) return;
+
+  const flavors = [];
+  for (let i = 0; i < size.flavors; i++) {
+    const select = byId(`pizza-flavor-${i}`);
+    if (!select || !select.value) {
+      showToast(`Selecione o sabor ${i + 1}`);
+      return;
+    }
+    const item = menuItems.find((m) => m.id === Number(select.value));
+    if (item) flavors.push({ id: item.id, name: item.name });
+  }
+
+  const crust = byId("pizza-builder-crust").value;
+  const notes = byId("pizza-builder-notes").value.trim();
+  const crustPrice = CRUST_PRICES[crust] || 0;
+  const price = size.price + crustPrice;
+
+  // Verificar se já existe pizza idêntica no carrinho
+  const existing = cart.find((entry) => {
+    if (entry.type !== "pizza" || entry.sizeKey !== sizeKey) return false;
+    if (entry.crust !== crust) return false;
+    if (entry.notes !== notes) return false;
+    if (entry.flavors.length !== flavors.length) return false;
+    return entry.flavors.every((f, i) => f.id === flavors[i].id);
+  });
+
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({
+      type: "pizza",
+      sizeKey,
+      sizeLabel: size.label,
+      flavors,
+      crust,
+      notes,
+      price,
+      qty: 1,
+    });
+  }
+
+  saveCart();
+  renderCart();
+  dialog.close();
+  hidePixConfirmation();
+}
+
+function hidePixConfirmation() {
   const pixBox = byId("pix-confirmation");
   if (pixBox && !pixBox.classList.contains("hidden")) {
     pixBox.classList.add("hidden");
@@ -1183,13 +1336,8 @@ function loadCart() {
 
 function cartTotal() {
   const subtotal = cart.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
-  const addon = addonPrice(byId("checkout-addon")?.value);
   const fee = byId("checkout-type")?.value === "Entrega" ? Number(zoneForAddress(byId("checkout-address")?.value)?.fee || settings.delivery_fee || 0) : 0;
-  return subtotal + addon + fee;
-}
-
-function addonPrice(addon) {
-  return addon === "Borda recheada" ? 8 : addon === "Extra queijo" ? 6 : 0;
+  return subtotal + fee;
 }
 
 function zoneForAddress(address) {
@@ -1969,17 +2117,35 @@ async function checkoutCart() {
     byId("checkout-error").textContent = "Anexe o comprovante do PIX para finalizar o pedido.";
     return;
   }
+  const itemLines = cart.map((entry) => {
+    if (entry.type === "pizza") {
+      const flavors = entry.flavors.map((f) => f.name).join(" + ");
+      const crust = entry.crust ? ` · ${entry.crust}` : "";
+      return `${entry.qty}x ${entry.sizeLabel}${crust} (${flavors})`;
+    }
+    return `${entry.qty}x ${entry.name}`;
+  });
+
+  const allNotes = [];
+  const checkoutNotes = byId("checkout-notes").value.trim();
+  if (checkoutNotes) allNotes.push(checkoutNotes);
+  cart.forEach((entry) => {
+    if (entry.type === "pizza" && entry.notes) {
+      allNotes.push(`${entry.sizeLabel}: ${entry.notes}`);
+    }
+  });
+
   const payload = {
     customer,
     customer_phone: byId("checkout-phone").value.trim(),
     address: byId("checkout-address").value.trim(),
-    notes: [byId("checkout-notes").value.trim(), byId("checkout-addon").value ? `Adicional: ${byId("checkout-addon").value}` : ""].filter(Boolean).join(" | "),
+    notes: allNotes.join(" | "),
     delivery_type: byId("checkout-type").value,
     channel: "Cardápio QR",
     status: "Novo",
-    item: `${cart.map((entry) => `${entry.qty}x ${entry.name}`).join(" + ")}${byId("checkout-addon").value ? ` + ${byId("checkout-addon").value}` : ""}`,
+    item: itemLines.join(" + "),
     items: cart.map((entry) => ({
-      name: entry.name,
+      name: entry.type === "pizza" ? `${entry.sizeLabel} (${entry.flavors.map((f) => f.name).join(" + ")})` : entry.name,
       qty: entry.qty,
       price: entry.price,
     })),
@@ -2999,6 +3165,15 @@ byId("close-recover-admin-dialog")?.addEventListener("click", () => byId("recove
 byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-dialog")?.close());
 byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
 byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);
+byId("pizza-builder-add")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  addPizzaToCart();
+});
+byId("pizza-builder-crust")?.addEventListener("change", () => {
+  const dialog = byId("pizza-builder-dialog");
+  updatePizzaBuilderPrice(Number(dialog.dataset.basePrice || 0));
+});
+byId("close-pizza-builder")?.addEventListener("click", () => byId("pizza-builder-dialog")?.close());
 byId("create-driver-btn")?.addEventListener("click", createDriver);
 byId("confirm-cancel")?.addEventListener("click", confirmCancelOrder);
 byId("create-ingredient-btn")?.addEventListener("click", createIngredient);
