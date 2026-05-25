@@ -193,6 +193,34 @@
                 </div>
                 <div id="store-tab-pizzas" class="store-tab-content active">
                   <div id="store-pizza-sizes" class="pizza-size-list"></div>
+                  <div id="pizza-builder-area" class="hidden">
+                    <div class="builder-head">
+                      <h3 id="pizza-builder-headline">Escolha os sabores</h3>
+                      <p class="form-hint" id="pizza-builder-hint"></p>
+                    </div>
+                    <div id="pizza-flavors-grid" class="menu-grid"></div>
+                    <div id="pizza-extras-area" class="hidden">
+                      <label>
+                        Tipo de borda
+                        <select id="pizza-builder-crust">
+                          <option value="">Sem borda recheada</option>
+                          <option value="Borda recheada catupiry">Borda recheada de catupiry (+ R$ 10,00)</option>
+                          <option value="Borda recheada cheddar">Borda recheada de cheddar (+ R$ 10,00)</option>
+                          <option value="Borda recheada chocolate">Borda recheada de chocolate (+ R$ 8,00)</option>
+                          <option value="Borda de cream cheese">Borda de cream cheese (+ R$ 8,00)</option>
+                        </select>
+                      </label>
+                      <label>
+                        Observações
+                        <textarea id="pizza-builder-notes" placeholder="Ex: sem cebola, bem passada, pouco queijo..."></textarea>
+                      </label>
+                      <div class="pizza-builder-price">
+                        <strong id="pizza-builder-price-display">R$ 0,00</strong>
+                      </div>
+                      <button class="primary" id="pizza-builder-add">Adicionar ao carrinho</button>
+                      <button class="ghost" id="pizza-builder-cancel" type="button">Cancelar</button>
+                    </div>
+                  </div>
                 </div>
                 <div id="store-tab-bebidas" class="store-tab-content hidden">
                   <div id="store-bebidas" class="menu-grid"></div>
@@ -286,35 +314,6 @@
         </section>
 
         <!-- Modal de montagem de pizza -->
-        <dialog id="pizza-builder-dialog">
-          <form method="dialog" class="dialog-card pizza-builder-card">
-            <div class="panel-head">
-              <h2 id="pizza-builder-title">Monte sua pizza</h2>
-              <button class="icon-button" id="close-pizza-builder" value="cancel" aria-label="Fechar">×</button>
-            </div>
-            <p class="form-hint" id="pizza-builder-subtitle"></p>
-            <div id="pizza-builder-flavors"></div>
-            <label>
-              Tipo de borda
-              <select id="pizza-builder-crust">
-                <option value="">Sem borda recheada</option>
-                <option value="Borda recheada catupiry">Borda recheada de catupiry (+ R$ 10,00)</option>
-                <option value="Borda recheada cheddar">Borda recheada de cheddar (+ R$ 10,00)</option>
-                <option value="Borda recheada chocolate">Borda recheada de chocolate (+ R$ 8,00)</option>
-                <option value="Borda de cream cheese">Borda de cream cheese (+ R$ 8,00)</option>
-              </select>
-            </label>
-            <label>
-              Observações
-              <textarea id="pizza-builder-notes" placeholder="Ex: sem cebola, bem passada, pouco queijo..."></textarea>
-            </label>
-            <div class="pizza-builder-price">
-              <strong id="pizza-builder-price-display">R$ 0,00</strong>
-            </div>
-            <button class="primary" type="submit" id="pizza-builder-add">Adicionar ao carrinho</button>
-          </form>
-        </dialog>
-
         <section id="order-track" class="view">
           <div class="customer-layout">
             <section class="panel">
