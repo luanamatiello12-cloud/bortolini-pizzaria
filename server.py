@@ -885,6 +885,39 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     "traceback": traceback.format_exc(),
                 })
             return
+        if path == "/api/debug-sync-all":
+            import traceback
+            results = []
+            try:
+                with connect() as conn:
+                    for item in SEED_MENU_ITEMS:
+                        try:
+                            row = conn.execute(
+                                "SELECT id FROM menu_items WHERE name = ?",
+                                (item["name"],),
+                            ).fetchone()
+                            if row:
+                                conn.execute(
+                                    "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
+                                    (item["category"], item.get("description", ""), item["name"]),
+                                )
+                                results.append({"name": item["name"], "action": "updated"})
+                            else:
+                                conn.execute(
+                                    "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
+                                    (item["name"], item["category"], item.get("description", "")),
+                                )
+                                results.append({"name": item["name"], "action": "inserted"})
+                        except Exception as item_err:
+                            results.append({"name": item["name"], "error": str(item_err), "type": type(item_err).__name__})
+                self.send_json({"ok": True, "results": results})
+            except Exception as e:
+                self.send_json({
+                    "error": str(e),
+                    "type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                })
+            return
         if path == "/api/promotions":
             self.send_json(self.get_promotions())
             return
