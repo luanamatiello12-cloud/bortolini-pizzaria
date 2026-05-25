@@ -3396,6 +3396,7 @@ if (byId("send-reply")) byId("send-reply")?.addEventListener("click", async () =
 loadData().then(() => {
   renderDemoUsers();
   restoreSession();
+  renderCustomerStore();
   setInterval(simulateDriverMovement, 7000);
 });
 
