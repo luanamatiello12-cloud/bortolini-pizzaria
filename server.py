@@ -1724,7 +1724,6 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
     def sync_menu_items(self):
         """Sincroniza o cardápio do SEED sem apagar dados existentes (upsert)."""
-        init_db()
         inserted = 0
         updated = 0
         with connect() as conn:
@@ -1741,8 +1740,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     updated += 1
                 else:
                     conn.execute(
-                        "INSERT INTO menu_items (name, category, price, description, size, active) VALUES (?, ?, 0, ?, ?, 1)",
-                        (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
+                        "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
+                        (item["name"], item["category"], item.get("description", "")),
                     )
                     inserted += 1
         return {
