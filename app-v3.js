@@ -1212,7 +1212,7 @@ function renderPizzaBuilderArea() {
     : "Sabores selecionados";
   byId("pizza-builder-hint").textContent = `${size.label} · ${size.cm} · ${size.slices}`;
 
-  const pizzaItems = menuItems.filter((item) => item.active && item.category === "Pizzas");
+  const pizzaItems = menuItems.filter((item) => item.active && ["Pizzas", "Pizza", "Pizza Doce"].includes(item.category));
   grid.innerHTML = pizzaItems.map((item) => {
     const isSelected = selectedIds.includes(item.id);
     const canSelect = !isSelected && remaining > 0;
