@@ -3017,7 +3017,7 @@ function isPublicPage() {
   const hash = window.location.hash;
   const path = window.location.pathname;
   const search = window.location.search;
-  if (hash === "#pedir") return true;
+  if (!hash || hash === "#pedir") return true;
   if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
   const urlParams = new URLSearchParams(search);
   const trackId = urlParams.get("pedido") || urlParams.get("order_id");
@@ -3741,6 +3741,13 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
 
 // Modo público do cardápio (cliente acessa via link #pedir ou homepage)
 function initCustomerPublicMode() {
+  // Se usuário tem sessão ativa de admin/financeiro, mostrar painel de gestão
+  if (state.currentUser?.role && ["admin", "financeiro", "entregador"].includes(state.currentUser.role)) {
+    if (!window.location.hash || window.location.hash === "#pedir") {
+      history.replaceState(null, "", window.location.pathname + "#admin");
+    }
+    return;
+  }
   const isPublic = window.location.hash === "#pedir" || !window.location.hash;
   if (isPublic && !window.location.search.includes("pedido=")) {
     document.body.classList.add("public-customer-mode");
@@ -3751,5 +3758,16 @@ function initCustomerPublicMode() {
     renderCustomerStore();
   }
 }
-window.addEventListener("hashchange", initCustomerPublicMode);
+
+function handleHashChange() {
+  initCustomerPublicMode();
+  // Se não é página pública e não está logado, mostrar login
+  if (!isPublicPage() && !state.currentUser?.role) {
+    document.body.classList.remove("public-customer-mode");
+    byId("login-screen").classList.remove("hidden");
+    byId("app-shell").classList.add("hidden");
+  }
+}
+
+window.addEventListener("hashchange", handleHashChange);
 document.addEventListener("DOMContentLoaded", initCustomerPublicMode);

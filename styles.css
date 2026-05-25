@@ -2203,3 +2203,23 @@ dialog::backdrop {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+
+/* Link de acesso admin na loja pública */
+.store-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-link {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline;
+  margin-left: auto;
+}
+
+.admin-link:hover {
+  color: var(--brand);
+}
