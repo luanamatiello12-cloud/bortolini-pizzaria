@@ -855,6 +855,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if path == "/api/profit-report":
             self.send_json(self.get_profit_report())
             return
+        if path == "/api/debug-menu":
+            try:
+                with connect() as conn:
+                    cols = table_columns(conn, "menu_items")
+                    count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+                    sample = conn.execute("SELECT name, category FROM menu_items LIMIT 3").fetchall()
+                self.send_json({
+                    "columns": list(cols),
+                    "count": count,
+                    "sample": [dict(row) for row in sample] if sample else [],
+                })
+            except Exception as e:
+                self.send_json({"error": str(e), "type": type(e).__name__}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
         if path == "/api/promotions":
             self.send_json(self.get_promotions())
             return
