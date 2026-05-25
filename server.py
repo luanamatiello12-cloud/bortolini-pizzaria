@@ -77,43 +77,43 @@ ROLE_PERMISSIONS = {
 
 
 SEED_MENU_ITEMS = [
-    {"name": "Calabresa", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, queijo parmesão, orégano", "size": "Grande"},
-    {"name": "Calabresa com Cebola", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, cebola em rodelas, orégano", "size": "Grande"},
-    {"name": "Calabresa com Farofa de Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela, calabresa fatiada, farofa de bacon, orégano", "size": "Grande"},
-    {"name": "Portuguesa", "category": "Pizza", "description": "Molho de tomate, muçarela, presunto, ovo cozido, cebola, ervilha, azeitona, orégano", "size": "Grande"},
-    {"name": "Marguerita", "category": "Pizza", "description": "Molho de tomate, muçarela, tomate em rodelas, orégano. Manjericão fresco adicionado após o forno", "size": "Grande"},
-    {"name": "Mexicana com Doritos", "category": "Pizza", "description": "Molho de tomate, muçarela, carne moída temperada, pimentão, cebola, milho, pimenta calabresa, orégano, Doritos. Doritos adicionados após o forno para manter crocância", "size": "Grande"},
-    {"name": "Brócolis com Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela (base), brócolis, farofa de bacon, muçarela (finalização), orégano", "size": "Grande"},
-    {"name": "Alho e Óleo", "category": "Pizza", "description": "Molho de tomate, pasta de alho e óleo, queijo parmesão, orégano", "size": "Grande"},
-    {"name": "Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela (base), bacon crocante, muçarela (finalização), orégano", "size": "Grande"},
-    {"name": "Milho", "category": "Pizza", "description": "Molho de tomate, muçarela, milho verde, orégano", "size": "Grande"},
-    {"name": "Milho com Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "Grande"},
-    {"name": "Vegetariana", "category": "Pizza", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "Grande"},
-    {"name": "Coração", "category": "Pizza", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "Grande"},
-    {"name": "Filé ao Molho Mostarda", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "size": "Grande"},
-    {"name": "Filé Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "Grande"},
-    {"name": "Frango com Catupiry", "category": "Pizza", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "Grande"},
-    {"name": "Frango Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "Grande"},
-    {"name": "Atum", "category": "Pizza", "description": "Molho de tomate, muçarela, atum sólido em óleo escorrido, orégano", "size": "Grande"},
-    {"name": "Atum Especial", "category": "Pizza", "description": "Molho de tomate, muçarela, atum sólido em óleo, requeijão cremoso em fios, orégano", "size": "Grande"},
-    {"name": "Estrogonofe de Carne", "category": "Pizza", "description": "Molho de tomate, muçarela, estrogonofe de carne, orégano. Batata palha adicionada após o forno", "size": "Grande"},
-    {"name": "Estrogonofe de Frango", "category": "Pizza", "description": "Molho de tomate, muçarela, estrogonofe de frango em cubos, muçarela finalização, orégano. Batata palha adicionada após o forno", "size": "Grande"},
-    {"name": "Costela Barbecue", "category": "Pizza", "description": "Molho de tomate, muçarela, costela desfiada ao molho barbecue, muçarela finalização, orégano. Toque extra de barbecue após o forno", "size": "Grande"},
-    {"name": "Lombo com Abacaxi", "category": "Pizza", "description": "Molho de tomate, muçarela, lombo canadense, orégano. Abacaxi adicionado após o forno com leve queima de maçarico", "size": "Grande"},
-    {"name": "Lombo c/ Farofa de Bacon e Catupiry", "category": "Pizza", "description": "Molho de tomate, muçarela, lombo canadense, farofa de bacon, catupiry em filetes, orégano. Catupiry distribuído em filetes antes de assar", "size": "Grande"},
-    {"name": "Cinco Queijos", "category": "Pizza", "description": "Molho de tomate, muçarela, queijo prato, provolone, cheddar, catupiry, orégano", "size": "Grande"},
-    {"name": "Bortolini Campeira ⭐", "category": "Pizza", "description": "Molho de tomate, muçarela, costela desfiada, creme de alho, queijo coalho. Finalizada com cebola crisps, chimichurri e cheiro verde (após forno)", "size": "Grande"},
-    {"name": "Tomate Seco e Rúcula", "category": "Pizza", "description": "Molho de tomate, muçarela (base), tomate seco, orégano, muçarela (finalização). Rúcula fresca adicionada após o forno", "size": "Grande"},
-    {"name": "Pizza Sushi de Atum Premium ⭐", "category": "Pizza", "description": "Molho de tomate, cream cheese, atum, cheiro verde, muçarela leve, molho teriyaki, gergelim. Cream cheese e teriyaki em riscos alternados", "size": "Grande"},
-    {"name": "Dois Amores", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate branco derretido, chocolate preto derretido. Círculos alternados de chocolate branco e preto", "size": "Grande"},
-    {"name": "Chocolate Branco", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate branco ralado. Finalizada com pedacinhos de Lacta após o forno", "size": "Grande"},
-    {"name": "Chocolate Preto", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate preto. Chamusque com queimador após o forno; finalizar com pedaços de Lacta", "size": "Grande"},
-    {"name": "Prestígio", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate ao leite, raspas/fios de chocolate, pedaços de Prestígio. Pedaços de Prestígio adicionados após o forno", "size": "Grande"},
-    {"name": "Charge", "category": "Pizza Doce", "description": "Massa de pizza, chocolate preto, paçoca de amendoim esfarelada, pedaços de Charge. Paçoca e Charge adicionados após o forno", "size": "Grande"},
-    {"name": "Kinder Bueno", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, chocolate preto (chamusquedo), pedaços de Kinder Bueno (Lacta). Chocolate chamusquedo com maçarico; Kinder Bueno após o forno", "size": "Grande"},
-    {"name": "Banana com Canela", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, banana em fatias, mel, açúcar com canela", "size": "Grande"},
-    {"name": "Pizza Bortolini ⭐", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos. Chamusque com maçarico; morangos e amendoim adicionados após o forno", "size": "Grande"},
-    {"name": "Bortolini Campeira Doce", "category": "Pizza Doce", "description": "Massa de pizza, creme de leite, Nutella, amendoim triturado, chocolate ralado. Variação doce especial da casa", "size": "Grande"},
+    {"name": "Calabresa", "category": "Pizzas", "description": "Molho de tomate, muçarela, calabresa fatiada, queijo parmesão, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Calabresa com Cebola", "category": "Pizzas", "description": "Molho de tomate, muçarela, calabresa fatiada, cebola em rodelas, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Calabresa com Farofa de Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela, calabresa fatiada, farofa de bacon, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Portuguesa", "category": "Pizzas", "description": "Molho de tomate, muçarela, presunto, ovo cozido, cebola, ervilha, azeitona, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Marguerita", "category": "Pizzas", "description": "Molho de tomate, muçarela, tomate em rodelas, orégano. Manjericão fresco adicionado após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Mexicana com Doritos", "category": "Pizzas", "description": "Molho de tomate, muçarela, carne moída temperada, pimentão, cebola, milho, pimenta calabresa, orégano, Doritos. Doritos adicionados após o forno para manter crocância", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Brócolis com Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela (base), brócolis, farofa de bacon, muçarela (finalização), orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Alho e Óleo", "category": "Pizzas", "description": "Molho de tomate, pasta de alho e óleo, queijo parmesão, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela (base), bacon crocante, muçarela (finalização), orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Milho", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho verde, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Milho com Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Vegetariana", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Coração", "category": "Pizzas", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Filé ao Molho Mostarda", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Filé Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Frango com Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Frango Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Atum", "category": "Pizzas", "description": "Molho de tomate, muçarela, atum sólido em óleo escorrido, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Atum Especial", "category": "Pizzas", "description": "Molho de tomate, muçarela, atum sólido em óleo, requeijão cremoso em fios, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Estrogonofe de Carne", "category": "Pizzas", "description": "Molho de tomate, muçarela, estrogonofe de carne, orégano. Batata palha adicionada após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Estrogonofe de Frango", "category": "Pizzas", "description": "Molho de tomate, muçarela, estrogonofe de frango em cubos, muçarela finalização, orégano. Batata palha adicionada após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Costela Barbecue", "category": "Pizzas", "description": "Molho de tomate, muçarela, costela desfiada ao molho barbecue, muçarela finalização, orégano. Toque extra de barbecue após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Lombo com Abacaxi", "category": "Pizzas", "description": "Molho de tomate, muçarela, lombo canadense, orégano. Abacaxi adicionado após o forno com leve queima de maçarico", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Lombo c/ Farofa de Bacon e Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, lombo canadense, farofa de bacon, catupiry em filetes, orégano. Catupiry distribuído em filetes antes de assar", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Cinco Queijos", "category": "Pizzas", "description": "Molho de tomate, muçarela, queijo prato, provolone, cheddar, catupiry, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Bortolini Campeira ⭐", "category": "Pizzas", "description": "Molho de tomate, muçarela, costela desfiada, creme de alho, queijo coalho. Finalizada com cebola crisps, chimichurri e cheiro verde (após forno)", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Tomate Seco e Rúcula", "category": "Pizzas", "description": "Molho de tomate, muçarela (base), tomate seco, orégano, muçarela (finalização). Rúcula fresca adicionada após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Pizza Sushi de Atum Premium ⭐", "category": "Pizzas", "description": "Molho de tomate, cream cheese, atum, cheiro verde, muçarela leve, molho teriyaki, gergelim. Cream cheese e teriyaki em riscos alternados", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Dois Amores", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate branco derretido, chocolate preto derretido. Círculos alternados de chocolate branco e preto", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Chocolate Branco", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate branco ralado. Finalizada com pedacinhos de Lacta após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Chocolate Preto", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate preto. Chamusque com queimador após o forno; finalizar com pedaços de Lacta", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Prestígio", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate ao leite, raspas/fios de chocolate, pedaços de Prestígio. Pedaços de Prestígio adicionados após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Charge", "category": "Pizzas", "description": "Massa de pizza, chocolate preto, paçoca de amendoim esfarelada, pedaços de Charge. Paçoca e Charge adicionados após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Kinder Bueno", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate preto (chamusquedo), pedaços de Kinder Bueno (Lacta). Chocolate chamusquedo com maçarico; Kinder Bueno após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Banana com Canela", "category": "Pizzas", "description": "Massa de pizza, creme de leite, banana em fatias, mel, açúcar com canela", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Pizza Bortolini ⭐", "category": "Pizzas", "description": "Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos. Chamusque com maçarico; morangos e amendoim adicionados após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Bortolini Campeira Doce", "category": "Pizzas", "description": "Massa de pizza, creme de leite, Nutella, amendoim triturado, chocolate ralado. Variação doce especial da casa", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Coca-Cola 2L", "category": "Bebidas", "description": "Refrigerante Coca-Cola garrafa 2 litros", "size": ""},
     {"name": "Guaraná 2L", "category": "Bebidas", "description": "Refrigerante Guaraná garrafa 2 litros", "size": ""},
     {"name": "Fanta 2L", "category": "Bebidas", "description": "Refrigerante Fanta garrafa 2 litros", "size": ""},
@@ -1063,6 +1063,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data)
                 return
+            if path == "/api/sync-menu":
+                if not self.require_permission("settings"):
+                    return
+                data = self.sync_menu_items()
+                if data is not None:
+                    self.send_json(data)
+                return
             self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
         except Exception as error:
             import traceback
@@ -1713,6 +1720,36 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             "ok": True,
             "menu_items": inserted_menu,
             "message": "Banco populado. Recarregue a pagina.",
+        }
+
+    def sync_menu_items(self):
+        """Sincroniza o cardápio do SEED sem apagar dados existentes (upsert)."""
+        init_db()
+        inserted = 0
+        updated = 0
+        with connect() as conn:
+            for item in SEED_MENU_ITEMS:
+                row = conn.execute(
+                    "SELECT id FROM menu_items WHERE name = ?",
+                    (item["name"],),
+                ).fetchone()
+                if row:
+                    conn.execute(
+                        "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
+                        (item["category"], item.get("description", ""), item["name"]),
+                    )
+                    updated += 1
+                else:
+                    conn.execute(
+                        "INSERT INTO menu_items (name, category, price, description, size, active) VALUES (?, ?, 0, ?, ?, 1)",
+                        (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
+                    )
+                    inserted += 1
+        return {
+            "ok": True,
+            "inserted": inserted,
+            "updated": updated,
+            "message": f"Cardápio sincronizado: {inserted} novos, {updated} atualizados.",
         }
 
     def get_settings(self):
