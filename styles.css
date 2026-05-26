@@ -2223,3 +2223,43 @@ dialog::backdrop {
 .admin-link:hover {
   color: var(--brand);
 }
+
+
+/* Inline builder no card de sabor */
+.flavor-inline-builder {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.inline-size-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.inline-size-list .pizza-size-card {
+  padding: 10px;
+  font-size: 13px;
+}
+
+.inline-size-list .pizza-size-card .size-info strong {
+  font-size: 14px;
+}
+
+.inline-size-list .pizza-size-card .size-price {
+  font-size: 15px;
+}
+
+.inline-flavors-grid {
+  margin: 10px 0;
+}
+
+.flavor-card .secondary {
+  margin-top: 8px;
+  width: 100%;
+}
