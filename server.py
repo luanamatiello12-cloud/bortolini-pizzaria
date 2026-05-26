@@ -869,6 +869,22 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self.send_json({"error": str(e), "type": type(e).__name__}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
+        if path == "/api/debug-insert":
+            import traceback
+            try:
+                with connect() as conn:
+                    conn.execute(
+                        "INSERT INTO ingredients (name, code, unit, stock_qty, min_qty, supplier, unit_cost) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *",
+                        ("Teste Debug", "TEST001", "kg", 0, 0, "", 0),
+                    )
+                self.send_json({"ok": True, "message": "INSERT funcionou!"})
+            except Exception as e:
+                self.send_json({
+                    "error": str(e),
+                    "type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                })
+            return
         if path == "/api/debug-sync":
             import traceback
             try:
