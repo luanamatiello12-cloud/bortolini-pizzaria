@@ -1280,7 +1280,7 @@ function toggleFlavor(itemId) {
 }
 
 function renderCart() {
-  byId("cart-items").innerHTML = cart.length
+  const cartHTML = cart.length
     ? cart
         .map((entry, index) => {
           if (entry.type === "pizza") {
@@ -1314,7 +1314,63 @@ function renderCart() {
         })
         .join("")
     : `<article class="cart-item"><strong>Carrinho vazio</strong><p>Adicione pizzas e bebidas para finalizar.</p></article>`;
-  byId("cart-total").textContent = `Total: ${currency.format(cartTotal())}`;
+  byId("cart-items") && (byId("cart-items").innerHTML = cartHTML);
+  byId("cart-total") && (byId("cart-total").textContent = `Total: ${currency.format(cartTotal())}`);
+
+  // Atualizar botão flutuante
+  const floatingBtn = byId("floating-cart-btn");
+  const floatingQty = byId("floating-cart-qty");
+  const floatingTotal = byId("floating-cart-total");
+  if (floatingBtn && floatingQty && floatingTotal) {
+    const totalQty = cart.reduce((sum, entry) => sum + entry.qty, 0);
+    floatingQty.textContent = totalQty;
+    floatingTotal.textContent = currency.format(cartTotal());
+    floatingBtn.classList.toggle("hidden", totalQty === 0);
+  }
+}
+
+function openCartReview() {
+  const dialog = byId("cart-review-dialog");
+  if (!dialog) return;
+  byId("cart-review-items").innerHTML = cart.length
+    ? cart
+        .map((entry, index) => {
+          if (entry.type === "pizza") {
+            const crustText = entry.crust ? ` · ${entry.crust}` : "";
+            const notesText = entry.notes ? ` · ${entry.notes}` : "";
+            return `
+              <article class="cart-item">
+                <div class="cart-item-info">
+                  <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
+                  <p>${entry.flavors.map((f) => f.name).join(" + ")}${notesText}</p>
+                </div>
+                <div class="cart-item-actions">
+                  <span>${currency.format(entry.price * entry.qty)}</span>
+                  <button class="ghost danger-link" onclick="removeFromCart(${index}); openCartReview();" title="Remover">×</button>
+                </div>
+              </article>
+            `;
+          }
+          return `
+            <article class="cart-item">
+              <div class="cart-item-info">
+                <strong>${entry.qty}x ${entry.name}</strong>
+              </div>
+              <div class="cart-item-actions">
+                <span>${currency.format(entry.price * entry.qty)}</span>
+                <button class="ghost danger-link" onclick="removeFromCart(${index}); openCartReview();" title="Remover">×</button>
+              </div>
+            </article>
+          `;
+        })
+        .join("")
+    : `<article class="cart-item"><strong>Carrinho vazio</strong></article>`;
+
+  const subtotal = cartTotal();
+  byId("review-subtotal").textContent = currency.format(subtotal);
+  byId("review-delivery-fee").textContent = "A calcular";
+  byId("review-total").textContent = currency.format(subtotal);
+  dialog.showModal();
 }
 
 function removeFromCart(index) {
@@ -1622,7 +1678,8 @@ function hidePixConfirmation() {
   const pixBox = byId("pix-confirmation");
   if (pixBox && !pixBox.classList.contains("hidden")) {
     pixBox.classList.add("hidden");
-    byId("cart-checkout-btn").classList.remove("hidden");
+    const floatingBtn = byId("floating-cart-btn");
+    if (floatingBtn) floatingBtn.classList.remove("hidden");
   }
 }
 
@@ -2429,12 +2486,14 @@ function copyWhatsAppTemplate(type) {
 }
 
 function openCheckoutDialog() {
-  byId("cart-error").textContent = "";
   if (!cart.length) {
-    byId("cart-error").textContent = "Adicione pelo menos um item ao carrinho.";
+    showToast("Adicione pelo menos um item ao carrinho.");
     return;
   }
   const subtotal = cartTotal();
+  const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
+  const address = byId("dialog-checkout-address")?.value || "";
+  const fee = deliveryType === "Entrega" ? getDeliveryFee(address) : 0;
   byId("checkout-summary").innerHTML = cart
     .map((entry) => {
       if (entry.type === "pizza") {
@@ -2445,7 +2504,7 @@ function openCheckoutDialog() {
       return `<article class="cart-item"><strong>${entry.qty}x ${entry.name}</strong></article>`;
     })
     .join("");
-  byId("checkout-dialog-total").textContent = `Subtotal: ${currency.format(subtotal)}`;
+  byId("checkout-dialog-total").textContent = `Total: ${currency.format(subtotal + fee)}`;
   byId("dialog-checkout-error").textContent = "";
   byId("dialog-checkout-name").value = "";
   byId("dialog-checkout-phone").value = "";
@@ -2535,7 +2594,8 @@ async function checkoutCart() {
 
     byId("checkout-dialog").close();
     const trackLink = `${window.location.origin}${window.location.pathname}?pedido=${created.id}`;
-    byId("cart-checkout-btn").classList.add("hidden");
+    const floatingBtn = byId("floating-cart-btn");
+    if (floatingBtn) floatingBtn.classList.add("hidden");
     byId("track-order-result").innerHTML = `
       <article class="cart-item">
         <strong>✅ Pedido #${created.id} recebido!</strong>
@@ -3525,7 +3585,11 @@ byId("order-category")?.addEventListener("change", (event) => {
 byId("order-delivery-type")?.addEventListener("change", updateOrderDeliveryMode);
 byId("create-product")?.addEventListener("click", createProduct);
 byId("create-promotion")?.addEventListener("click", createPromotion);
-byId("cart-checkout-btn")?.addEventListener("click", openCheckoutDialog);
+byId("floating-cart-btn")?.addEventListener("click", openCartReview);
+byId("cart-review-continue")?.addEventListener("click", () => {
+  byId("cart-review-dialog").close();
+  openCheckoutDialog();
+});
 byId("dialog-checkout-btn")?.addEventListener("click", checkoutCart);
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const addressLabel = byId("dialog-address-label");
