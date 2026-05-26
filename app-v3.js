@@ -1137,6 +1137,9 @@ function renderCustomerStore() {
     </article>
   `).join("");
 
+  // Renderizar grid de sabores (sempre visível)
+  renderPizzaFlavorsGrid();
+
   // Renderizar area de builder se tamanho selecionado
   renderPizzaBuilderArea();
 
@@ -1178,27 +1181,52 @@ let pizzaBuilderState = {
 function selectPizzaSize(sizeKey) {
   const size = PIZZA_SIZES.find((s) => s.key === sizeKey);
   if (!size) return;
+  // Se já tinha sabores selecionados e o novo tamanho é menor, truncar
+  const existingFlavors = pizzaBuilderState.flavors.slice(0, size.flavors);
   pizzaBuilderState = {
     sizeKey,
-    flavors: [],
+    flavors: existingFlavors,
     maxFlavors: size.flavors,
     basePrice: size.price,
   };
   byId("pizza-builder-crust").value = "";
   byId("pizza-builder-notes").value = "";
   renderCustomerStore();
-  byId("pizza-builder-area").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (existingFlavors.length > 0) {
+    byId("pizza-builder-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function renderPizzaFlavorsGrid() {
+  const grid = byId("pizza-flavors-grid");
+  if (!grid) return;
+  const selectedIds = pizzaBuilderState.flavors.map((f) => f.id);
+  const maxFlavors = pizzaBuilderState.maxFlavors || 1;
+  const remaining = pizzaBuilderState.sizeKey ? maxFlavors - selectedIds.length : 999;
+
+  const pizzaItems = menuItems.filter((item) => item.active && ["Pizzas", "Pizza", "Pizza Doce"].includes(item.category));
+  grid.innerHTML = pizzaItems.map((item) => {
+    const isSelected = selectedIds.includes(item.id);
+    const canSelect = !isSelected && remaining > 0;
+    return `
+      <article class="menu-card flavor-card ${isSelected ? "selected" : ""} ${canSelect || !pizzaBuilderState.sizeKey ? "" : "disabled"}" onclick="toggleFlavor(${item.id})">
+        ${renderPhoto(item.image_url, "menu-photo", item.name)}
+        <strong>${item.name}</strong>
+        <p class="ingredients-desc">${item.description || ""}</p>
+        ${isSelected ? '<span class="status-pill success">✓ Selecionado</span>' : ""}
+      </article>
+    `;
+  }).join("");
 }
 
 function renderPizzaBuilderArea() {
   const area = byId("pizza-builder-area");
-  const grid = byId("pizza-flavors-grid");
   const extras = byId("pizza-extras-area");
-  if (!area || !grid || !extras) return;
+  const selectedFlavorsBox = byId("pizza-builder-selected-flavors");
+  if (!area || !extras || !selectedFlavorsBox) return;
 
-  if (!pizzaBuilderState.sizeKey) {
+  if (!pizzaBuilderState.sizeKey || pizzaBuilderState.flavors.length === 0) {
     area.classList.add("hidden");
-    extras.classList.add("hidden");
     return;
   }
 
@@ -1208,32 +1236,15 @@ function renderPizzaBuilderArea() {
   const remaining = pizzaBuilderState.maxFlavors - selectedIds.length;
 
   byId("pizza-builder-headline").textContent = remaining > 0
-    ? `Escolha ${remaining} ${remaining === 1 ? "sabor" : "sabores"}`
-    : "Sabores selecionados";
-  byId("pizza-builder-hint").textContent = `${size.label} · ${size.cm} · ${size.slices}`;
+    ? `Escolha mais ${remaining} ${remaining === 1 ? "sabor" : "sabores"} para ${size.label}`
+    : `${size.label} — ${size.cm} (${size.slices})`;
+  byId("pizza-builder-hint").textContent = pizzaBuilderState.flavors.map((f) => f.name).join(" + ");
 
-  const pizzaItems = menuItems.filter((item) => item.active && ["Pizzas", "Pizza", "Pizza Doce"].includes(item.category));
-  grid.innerHTML = pizzaItems.map((item) => {
-    const isSelected = selectedIds.includes(item.id);
-    const canSelect = !isSelected && remaining > 0;
-    return `
-      <article class="menu-card flavor-card ${isSelected ? "selected" : ""} ${canSelect ? "" : "disabled"}" onclick="toggleFlavor(${item.id})">
-        ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}</strong>
-        <p class="ingredients-desc">${item.description || ""}</p>
-        ${isSelected ? '<span class="status-pill success">✓ Selecionado</span>' : ""}
-      </article>
-    `;
-  }).join("");
+  selectedFlavorsBox.innerHTML = pizzaBuilderState.flavors.map((f) => `
+    <span class="status-pill success">${f.name}</span>
+  `).join("");
 
-  // Mostrar extras (borda + obs) quando todos os sabores foram escolhidos
-  if (remaining === 0) {
-    extras.classList.remove("hidden");
-    updatePizzaBuilderPrice(pizzaBuilderState.basePrice);
-    extras.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  } else {
-    extras.classList.add("hidden");
-  }
+  updatePizzaBuilderPrice(pizzaBuilderState.basePrice);
 }
 
 function toggleFlavor(itemId) {
@@ -1241,12 +1252,19 @@ function toggleFlavor(itemId) {
   if (idx >= 0) {
     // Remover sabor
     pizzaBuilderState.flavors.splice(idx, 1);
-  } else if (pizzaBuilderState.flavors.length < pizzaBuilderState.maxFlavors) {
-    // Adicionar sabor
-    const item = menuItems.find((m) => m.id === itemId);
-    if (item) pizzaBuilderState.flavors.push({ id: item.id, name: item.name });
+  } else {
+    // Adicionar sabor (se já tem tamanho, respeitar limite; se não tem, permite 1)
+    const limit = pizzaBuilderState.sizeKey ? pizzaBuilderState.maxFlavors : 1;
+    if (pizzaBuilderState.flavors.length < limit) {
+      const item = menuItems.find((m) => m.id === itemId);
+      if (item) pizzaBuilderState.flavors.push({ id: item.id, name: item.name });
+    } else if (pizzaBuilderState.sizeKey) {
+      showToast(`Máximo de ${limit} ${limit === 1 ? "sabor" : "sabores"} para este tamanho`);
+    } else {
+      showToast("Selecione um tamanho primeiro para adicionar mais sabores");
+    }
   }
-  renderPizzaBuilderArea();
+  renderCustomerStore();
 }
 
 function renderCart() {
@@ -1316,10 +1334,17 @@ function updatePizzaBuilderPrice(basePrice) {
 
 function addPizzaToCart() {
   const size = PIZZA_SIZES.find((s) => s.key === pizzaBuilderState.sizeKey);
-  if (!size) return;
+  if (!size) {
+    showToast("Selecione um tamanho de pizza");
+    return;
+  }
 
-  if (pizzaBuilderState.flavors.length !== size.flavors) {
-    showToast(`Selecione ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}`);
+  if (pizzaBuilderState.flavors.length === 0) {
+    showToast("Selecione pelo menos 1 sabor");
+    return;
+  }
+  if (pizzaBuilderState.flavors.length > size.flavors) {
+    showToast(`Este tamanho permite no máximo ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}`);
     return;
   }
 

@@ -194,13 +194,20 @@
                 </div>
                 <div id="store-tab-pizzas" class="store-tab-content active">
                   <div id="store-pizza-sizes" class="pizza-size-list"></div>
-                  <div id="pizza-builder-area" class="hidden">
+                  <div id="pizza-flavors-section">
                     <div class="builder-head">
-                      <h3 id="pizza-builder-headline">Escolha os sabores</h3>
-                      <p class="form-hint" id="pizza-builder-hint"></p>
+                      <h3>Nossos Sabores</h3>
+                      <p class="form-hint">Clique nos sabores para selecionar</p>
                     </div>
                     <div id="pizza-flavors-grid" class="menu-grid"></div>
-                    <div id="pizza-extras-area" class="hidden">
+                  </div>
+                  <div id="pizza-builder-area" class="hidden">
+                    <div class="builder-head">
+                      <h3 id="pizza-builder-headline">Monte sua pizza</h3>
+                      <p class="form-hint" id="pizza-builder-hint"></p>
+                    </div>
+                    <div id="pizza-builder-selected-flavors"></div>
+                    <div id="pizza-extras-area">
                       <label>
                         Tipo de borda
                         <select id="pizza-builder-crust">
