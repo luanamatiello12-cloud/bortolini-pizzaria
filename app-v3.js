@@ -37,6 +37,22 @@ const PIZZA_SIZES = [
   { key: "gg", label: "Pizza GG", cm: "40 cm", slices: "16 fatias", flavors: 4, price: 85 },
 ];
 
+function updatePizzaSizesFromSettings() {
+  try {
+    const stored = JSON.parse(settings.pizza_sizes || "[]");
+    if (Array.isArray(stored)) {
+      stored.forEach((s) => {
+        const size = PIZZA_SIZES.find((ps) => ps.key === s.key);
+        if (size && s.price !== undefined) {
+          size.price = Number(s.price);
+        }
+      });
+    }
+  } catch (e) {
+    // manter padrões
+  }
+}
+
 const CRUST_PRICES = {
   "": 0,
   "Borda recheada catupiry": 10,
@@ -194,6 +210,7 @@ async function loadData() {
       delivery_fee: "",
       delivery_areas: "",
       prep_time: "",
+      pizza_sizes: JSON.stringify(PIZZA_SIZES.map((s) => ({ key: s.key, price: s.price }))),
     };
     deliveries = [];
     demoUsers = [
@@ -205,6 +222,7 @@ async function loadData() {
   }
   rememberCurrentLowStock();
   loadCart();
+  updatePizzaSizesFromSettings();
 }
 
 function filteredOrders() {
@@ -1844,6 +1862,22 @@ function renderSettings() {
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
   byId("settings-menu-link").value = baseUrl + "#pedir";
   byId("settings-driver-link").value = baseUrl + "entregador/";
+  // Preços por tamanho
+  try {
+    const stored = JSON.parse(settings.pizza_sizes || "[]");
+    PIZZA_SIZES.forEach((size) => {
+      const input = byId(`setting-pizza-${size.key}`);
+      if (input) {
+        const found = stored.find((s) => s.key === size.key);
+        input.value = found ? found.price : size.price;
+      }
+    });
+  } catch (e) {
+    PIZZA_SIZES.forEach((size) => {
+      const input = byId(`setting-pizza-${size.key}`);
+      if (input) input.value = size.price;
+    });
+  }
   renderDeliveryZones();
   renderTeamUsers();
 }
@@ -2839,17 +2873,23 @@ function printKitchenTickets() {
 }
 
 async function saveSettings() {
+  const pizzaSizes = PIZZA_SIZES.map((size) => ({
+    key: size.key,
+    price: Number(byId(`setting-pizza-${size.key}`).value) || size.price,
+  }));
   const payload = {
     restaurant_name: byId("setting-name").value,
     opening_hours: byId("setting-hours").value,
     delivery_fee: byId("setting-fee").value,
     prep_time: byId("setting-prep").value,
     delivery_areas: byId("setting-areas").value,
+    pizza_sizes: JSON.stringify(pizzaSizes),
   };
   try {
     settings = state.apiOnline
       ? await api("/api/settings", { method: "POST", body: JSON.stringify(payload) })
       : payload;
+    updatePizzaSizesFromSettings();
     byId("settings-message").textContent = "Configurações salvas.";
     renderCustomerStore();
   } catch (error) {

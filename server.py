@@ -586,6 +586,7 @@ def init_db():
             "evolution_url": "",
             "evolution_instance": "",
             "evolution_apikey": "",
+            "pizza_sizes": '[{"key":"broto","price":35},{"key":"p","price":45},{"key":"m","price":55},{"key":"g","price":70},{"key":"gg","price":85}]',
         }
         for key, value in seed_settings.items():
             conn.execute(
