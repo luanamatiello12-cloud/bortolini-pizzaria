@@ -2647,7 +2647,11 @@ async function sendPixComprovante() {
       });
     }
     byId("pix-sent-msg").classList.remove("hidden");
-    byId("pix-upload-section") && byId("pix-receipt-input").closest("div") && (byId("pix-receipt-input").disabled = true);
+    const pixUploadSection = document.querySelector(".pix-upload-section");
+    if (pixUploadSection) {
+      const fileInput = pixUploadSection.querySelector('input[type="file"]');
+      if (fileInput) fileInput.disabled = true;
+    }
     btn.classList.add("hidden");
     showToast("Comprovante enviado com sucesso!");
   } catch (error) {
@@ -3595,6 +3599,15 @@ byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const addressLabel = byId("dialog-address-label");
   if (addressLabel) {
     addressLabel.style.display = event.target.value === "Entrega" ? "" : "none";
+  }
+  const subtotal = cartTotal();
+  const fee = event.target.value === "Entrega" ? getDeliveryFee(byId("dialog-checkout-address")?.value) : 0;
+  byId("checkout-dialog-total").textContent = `Total: ${currency.format(subtotal + fee)}`;
+});
+byId("dialog-checkout-address")?.addEventListener("input", (event) => {
+  if (byId("dialog-checkout-type")?.value === "Entrega") {
+    const fee = getDeliveryFee(event.target.value);
+    byId("checkout-dialog-total").textContent = `Total: ${currency.format(cartTotal() + fee)}`;
   }
 });
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);
