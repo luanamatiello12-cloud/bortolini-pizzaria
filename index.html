@@ -967,65 +967,85 @@
     <script src="app-v3.js"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
-    <div class="driver-public-card">
-      <!-- Tela de login -->
-      <div id="driver-login-screen">
-        <div class="driver-public-header">
-          <h2>🛵 App do Entregador</h2>
-          <p>Informe seu CPF e PIN para acessar suas entregas</p>
+    <!-- Tela de login -->
+    <div id="driver-login-screen" class="driver-auth-screen">
+      <div class="driver-auth-logo">🛵</div>
+      <h1 class="driver-auth-title">App do Entregador</h1>
+      <p class="driver-auth-subtitle">Bortolini Pizzaria</p>
+      <form class="driver-auth-form" onsubmit="event.preventDefault(); driverPublicLogin();">
+        <label class="driver-auth-label">
+          <span>CPF</span>
+          <input id="driver-login-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
+        </label>
+        <label class="driver-auth-label">
+          <span>PIN</span>
+          <input id="driver-login-pin" type="password" inputmode="numeric" placeholder="Seu PIN" required />
+        </label>
+        <button class="driver-auth-btn driver-auth-btn-primary" type="submit">Entrar</button>
+        <button class="driver-auth-btn driver-auth-btn-ghost" type="button" onclick="showDriverRecover()">Esqueci meu PIN</button>
+        <p class="driver-auth-error" id="driver-login-error"></p>
+      </form>
+    </div>
+
+    <!-- Tela de recuperação de PIN -->
+    <div id="driver-recover-screen" class="driver-auth-screen hidden">
+      <div class="driver-auth-logo">🔑</div>
+      <h1 class="driver-auth-title">Recuperar PIN</h1>
+      <p class="driver-auth-subtitle">Chame o administrador e peça a chave mestra</p>
+      <form class="driver-auth-form" onsubmit="event.preventDefault(); driverPublicRecover();">
+        <label class="driver-auth-label">
+          <span>CPF</span>
+          <input id="driver-recover-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
+        </label>
+        <label class="driver-auth-label">
+          <span>Chave mestra</span>
+          <input id="driver-recover-master" type="password" placeholder="Chave do adm" required />
+        </label>
+        <label class="driver-auth-label">
+          <span>Novo PIN (4 a 6 numeros)</span>
+          <input id="driver-recover-newpin" type="password" inputmode="numeric" placeholder="Novo PIN" required />
+        </label>
+        <button class="driver-auth-btn driver-auth-btn-primary" type="submit">Redefinir PIN</button>
+        <button class="driver-auth-btn driver-auth-btn-ghost" type="button" onclick="showDriverLogin()">Voltar ao login</button>
+        <p class="driver-auth-error" id="driver-recover-error"></p>
+      </form>
+    </div>
+
+    <!-- Tela de entregas (após login) -->
+    <div id="driver-orders-screen" class="hidden driver-orders-screen">
+      <header class="driver-header">
+        <div class="driver-header-info">
+          <span class="driver-header-emoji">🛵</span>
+          <div>
+            <strong id="driver-public-name">Entregador</strong>
+            <span class="driver-header-status" id="driver-header-status">Online</span>
+          </div>
         </div>
-        <form id="driver-login-form" class="login-form" onsubmit="event.preventDefault(); driverPublicLogin();">
-          <label>
-            CPF
-            <input id="driver-login-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
-          </label>
-          <label>
-            PIN
-            <input id="driver-login-pin" type="password" inputmode="numeric" placeholder="Seu PIN" required />
-          </label>
-          <button class="primary" type="submit">Entrar</button>
-          <button class="ghost" type="button" onclick="showDriverRecover()">Esqueci meu PIN</button>
-          <p class="form-error" id="driver-login-error"></p>
-        </form>
-      </div>
-      <!-- Tela de recuperação de PIN -->
-      <div id="driver-recover-screen" class="hidden">
-        <div class="driver-public-header">
-          <h2>🔑 Recuperar PIN</h2>
-          <p>Chame o administrador e peca a chave mestra</p>
-        </div>
-        <form id="driver-recover-form" class="login-form" onsubmit="event.preventDefault(); driverPublicRecover();">
-          <label>
-            CPF
-            <input id="driver-recover-cpf" type="text" inputmode="numeric" placeholder="Somente numeros" required />
-          </label>
-          <label>
-            Chave mestra
-            <input id="driver-recover-master" type="password" placeholder="Chave do adm" required />
-          </label>
-          <label>
-            Novo PIN (4 a 6 numeros)
-            <input id="driver-recover-newpin" type="password" inputmode="numeric" placeholder="Novo PIN" required />
-          </label>
-          <button class="primary" type="submit">Redefinir PIN</button>
-          <button class="ghost" type="button" onclick="showDriverLogin()">Voltar ao login</button>
-          <p class="form-error" id="driver-recover-error"></p>
-        </form>
-      </div>
-      <!-- Tela de entregas (após login) -->
-      <div id="driver-orders-screen" class="hidden">
-        <div class="driver-public-header">
-          <h2>🛵 App do Entregador</h2>
-          <p id="driver-public-name"></p>
-        </div>
+      </header>
+
+      <main class="driver-orders-main">
         <div id="driver-public-orders" class="driver-orders-list"></div>
-        <div class="driver-location-box">
-          <p id="driver-location-status">📍 Localização não compartilhada</p>
-          <button class="primary" id="driver-share-location-btn" onclick="driverShareLocation()">Compartilhar localização</button>
-          <button class="secondary hidden" id="driver-stop-location-btn" onclick="driverStopLocation()">Parar compartilhamento</button>
+        <div class="driver-empty-state hidden" id="driver-empty-state">
+          <p>🎉 Nenhuma entrega no momento.</p>
+          <small>Puxe para baixo ou aguarde novos pedidos.</small>
         </div>
-        <button class="ghost" onclick="driverPublicLogout()" style="margin-top:12px;">Sair</button>
-      </div>
+      </main>
+
+      <!-- Sticky bottom bar -->
+      <nav class="driver-bottom-bar">
+        <button class="driver-bar-btn" id="driver-bar-gps" onclick="toggleDriverLocation()">
+          <span class="driver-bar-icon" id="driver-bar-gps-icon">📍</span>
+          <span class="driver-bar-label">GPS</span>
+        </button>
+        <button class="driver-bar-btn" onclick="loadDriverPublicOrders()">
+          <span class="driver-bar-icon">🔄</span>
+          <span class="driver-bar-label">Atualizar</span>
+        </button>
+        <button class="driver-bar-btn" onclick="driverPublicLogout()">
+          <span class="driver-bar-icon">🚪</span>
+          <span class="driver-bar-label">Sair</span>
+        </button>
+      </nav>
     </div>
   </div>
 

@@ -3948,9 +3948,10 @@ async function driverPublicLogin() {
     _driverUserId = data.id;
     _driverToken = data.token;
     localStorage.setItem("bortoliniDriver", JSON.stringify({ id: data.id, token: data.token, name: data.name }));
-    byId("driver-public-name").textContent = `Ola, ${data.name}! 🛵`;
+    byId("driver-public-name").textContent = data.name || "Entregador";
     showDriverOrders();
     loadDriverPublicOrders();
+    startDriverOrdersPoll();
   } catch(e) {
     byId("driver-login-error").textContent = "CPF ou PIN invalido.";
   }
@@ -3985,6 +3986,7 @@ function driverPublicLogout() {
   localStorage.removeItem("bortoliniDriver");
   _driverUserId = null;
   _driverToken = null;
+  stopDriverOrdersPoll();
   if (_driverLocationInterval !== null) {
     navigator.geolocation.clearWatch(_driverLocationInterval);
     _driverLocationInterval = null;
@@ -3997,21 +3999,38 @@ function initDriverPublicPage() {
   if (!page) return;
   page.classList.remove("hidden");
   document.querySelector(".app-layout") && document.querySelector(".app-layout").classList.add("hidden");
-  
+
   // Verifica se ja tem sessao salva
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniDriver"));
     if (saved?.id && saved?.token) {
       _driverUserId = saved.id;
       _driverToken = saved.token;
-      byId("driver-public-name").textContent = `Ola, ${saved.name || "Entregador"}! 🛵`;
+      byId("driver-public-name").textContent = saved.name || "Entregador";
       showDriverOrders();
       loadDriverPublicOrders();
+      startDriverOrdersPoll();
       return;
     }
   } catch(e) {}
-  
+
   showDriverLogin();
+}
+
+let _driverOrdersPoll = null;
+
+function startDriverOrdersPoll() {
+  if (_driverOrdersPoll) return;
+  _driverOrdersPoll = setInterval(() => {
+    if (_driverUserId) loadDriverPublicOrders();
+  }, 15000);
+}
+
+function stopDriverOrdersPoll() {
+  if (_driverOrdersPoll) {
+    clearInterval(_driverOrdersPoll);
+    _driverOrdersPoll = null;
+  }
 }
 
 async function loadDriverPublicOrders() {
@@ -4020,79 +4039,112 @@ async function loadDriverPublicOrders() {
     const data = await fetch(`/api/public/driver/${_driverUserId}`, {
       headers: _driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {}
     }).then(r => r.json());
-    byId("driver-public-name").textContent = `Ola, ${data.driver_name || "Entregador"}! 🛵`;
+    byId("driver-public-name").textContent = data.driver_name || "Entregador";
     const list = byId("driver-public-orders");
+    const emptyState = byId("driver-empty-state");
+
     if (!data.orders || data.orders.length === 0) {
-      list.innerHTML = '<p style="padding:1rem;color:var(--muted)">Nenhuma entrega ativa no momento.</p>';
+      list.innerHTML = "";
+      list.classList.add("hidden");
+      emptyState.classList.remove("hidden");
+      _driverCurrentOrderId = null;
       return;
     }
-    list.innerHTML = data.orders.map(order => `
-      <div class="driver-order-card">
+
+    list.classList.remove("hidden");
+    emptyState.classList.add("hidden");
+
+    list.innerHTML = data.orders.map(order => {
+      const statusClass = order.status === "Cozinha" ? "cozinha" : order.status === "Entrega" ? "entrega" : "";
+      const phone = String(order.customer_phone || "").replace(/\D/g, "");
+      const whatsappLink = phone ? `https://wa.me/55${phone}` : "";
+      const mapsLink = order.address ? `https://maps.google.com/?q=${encodeURIComponent(order.address)}` : "";
+
+      return `
+      <article class="driver-order-card">
         <div class="driver-order-header">
           <strong>Pedido #${order.id}</strong>
-          <span class="status-pill">${order.status}</span>
+          <span class="driver-order-status ${statusClass}">${order.status}</span>
         </div>
-        <p><strong>Cliente:</strong> ${order.customer}</p>
-        <p><strong>Endereço:</strong> ${order.address || "Não informado"}</p>
-        <p><strong>Itens:</strong> ${order.item}</p>
-        <p><strong>Total:</strong> R$ ${Number(order.total).toFixed(2)}</p>
+        <div class="driver-order-customer">${order.customer || "Cliente"}</div>
+        ${phone ? `<div class="driver-order-phone">📞 ${order.customer_phone}</div>` : ""}
+        ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${order.address}</a>` : ""}
+        <div class="driver-order-items">${order.item}</div>
+        <div class="driver-order-total">${currency.format(Number(order.total || 0))}</div>
         <div class="driver-order-actions">
-          <a class="secondary btn-sm" href="https://maps.google.com/?q=${encodeURIComponent(order.address || '')}" target="_blank">📍 Ver no mapa</a>
-          <button class="primary btn-sm" onclick="driverMarkDelivered(${order.id})">✅ Marcar entregue</button>
+          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Mapa</a>` : ""}
+          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank">💬 WhatsApp</a>` : ""}
+          <button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})">✅ Marcar como entregue</button>
         </div>
-      </div>
-    `).join('');
+      </article>
+    `;}).join("");
+
     _driverCurrentOrderId = data.orders[0]?.id || null;
   } catch(e) {
-    byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:var(--danger)">Erro ao carregar pedidos.</p>';
+    byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Erro ao carregar pedidos.</p>';
   }
 }
 
 async function driverMarkDelivered(orderId) {
+  const btn = byId(`driver-deliver-${orderId}`);
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
   try {
     await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
       method: "PATCH",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ status: "Entregue" })
     });
-    showToast("Pedido marcado como entregue!");
+    showToast("✅ Pedido entregue!");
     loadDriverPublicOrders();
   } catch(e) {
     showToast("Erro ao atualizar pedido.");
+    if (btn) { btn.disabled = false; btn.textContent = "✅ Marcar como entregue"; }
   }
 }
 
-function driverShareLocation() {
-  if (!navigator.geolocation) { showToast("GPS não disponível."); return; }
-  byId("driver-share-location-btn").classList.add("hidden");
-  byId("driver-stop-location-btn").classList.remove("hidden");
-  byId("driver-location-status").textContent = "📍 Compartilhando localização...";
+function toggleDriverLocation() {
+  if (_driverLocationInterval !== null) {
+    // Parar
+    navigator.geolocation.clearWatch(_driverLocationInterval);
+    _driverLocationInterval = null;
+    const icon = byId("driver-bar-gps-icon");
+    if (icon) icon.textContent = "📍";
+    const status = byId("driver-header-status");
+    if (status) { status.textContent = "Offline"; status.classList.add("offline"); }
+    showToast("Localização pausada");
+  } else {
+    // Iniciar
+    if (!navigator.geolocation) { showToast("GPS não disponível."); return; }
+    const icon = byId("driver-bar-gps-icon");
+    if (icon) icon.textContent = "📡";
+    const status = byId("driver-header-status");
+    if (status) { status.textContent = "Online"; status.classList.remove("offline"); }
 
-  function sendLocation(pos) {
-    const { latitude: lat, longitude: lng } = pos.coords;
-    byId("driver-location-status").textContent = `📍 Localização ativa: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    if (_driverCurrentOrderId) {
-      fetch(`/api/deliveries/${_driverCurrentOrderId}/location`, {
-        method: "PATCH",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ lat, lng })
-      }).catch(() => {});
+    function sendLocation(pos) {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      if (_driverCurrentOrderId) {
+        fetch(`/api/deliveries/${_driverCurrentOrderId}/location`, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ lat, lng })
+        }).catch(() => {});
+      }
+      if (_driverUserId) {
+        fetch(`/api/public/drivers/${_driverUserId}/location`, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
+          body: JSON.stringify({ lat, lng })
+        }).catch(() => {});
+      }
     }
-    // Atualiza localização do entregador independente de pedido
-    if (_driverUserId) {
-      fetch(`/api/public/drivers/${_driverUserId}/location`, {
-        method: "PATCH",
-        headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
-        body: JSON.stringify({ lat, lng })
-      }).catch(() => {});
-    }
+
+    _driverLocationInterval = navigator.geolocation.watchPosition(
+      sendLocation,
+      () => { showToast("⚠️ Erro ao obter GPS."); },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+    );
+    showToast("Localização ativa");
   }
-
-  _driverLocationInterval = navigator.geolocation.watchPosition(
-    sendLocation,
-    () => { byId("driver-location-status").textContent = "⚠️ Erro ao obter GPS."; },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
-  );
 }
 
 function driverStopLocation() {
@@ -4100,9 +4152,6 @@ function driverStopLocation() {
     navigator.geolocation.clearWatch(_driverLocationInterval);
     _driverLocationInterval = null;
   }
-  byId("driver-share-location-btn").classList.remove("hidden");
-  byId("driver-stop-location-btn").classList.add("hidden");
-  byId("driver-location-status").textContent = "📍 Localização pausada.";
 }
 
 async function registerDriver() {
