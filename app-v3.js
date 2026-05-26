@@ -1622,7 +1622,7 @@ function hidePixConfirmation() {
   const pixBox = byId("pix-confirmation");
   if (pixBox && !pixBox.classList.contains("hidden")) {
     pixBox.classList.add("hidden");
-    byId("checkout-btn").classList.remove("hidden");
+    byId("cart-checkout-btn").classList.remove("hidden");
   }
 }
 
@@ -1642,9 +1642,11 @@ function loadCart() {
 }
 
 function cartTotal() {
-  const subtotal = cart.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
-  const fee = byId("checkout-type")?.value === "Entrega" ? Number(zoneForAddress(byId("checkout-address")?.value)?.fee || settings.delivery_fee || 0) : 0;
-  return subtotal + fee;
+  return cart.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
+}
+
+function getDeliveryFee(address) {
+  return Number(zoneForAddress(address)?.fee || settings.delivery_fee || 0);
 }
 
 function zoneForAddress(address) {
@@ -2426,25 +2428,51 @@ function copyWhatsAppTemplate(type) {
   showToast("Mensagem pronta copiada.");
 }
 
+function openCheckoutDialog() {
+  byId("cart-error").textContent = "";
+  if (!cart.length) {
+    byId("cart-error").textContent = "Adicione pelo menos um item ao carrinho.";
+    return;
+  }
+  const subtotal = cartTotal();
+  byId("checkout-summary").innerHTML = cart
+    .map((entry) => {
+      if (entry.type === "pizza") {
+        const crustText = entry.crust ? ` · ${entry.crust}` : "";
+        const notesText = entry.notes ? ` · ${entry.notes}` : "";
+        return `<article class="cart-item"><strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong><p>${entry.flavors.map((f) => f.name).join(" + ")}${notesText}</p></article>`;
+      }
+      return `<article class="cart-item"><strong>${entry.qty}x ${entry.name}</strong></article>`;
+    })
+    .join("");
+  byId("checkout-dialog-total").textContent = `Subtotal: ${currency.format(subtotal)}`;
+  byId("dialog-checkout-error").textContent = "";
+  byId("dialog-checkout-name").value = "";
+  byId("dialog-checkout-phone").value = "";
+  byId("dialog-checkout-type").value = "Entrega";
+  byId("dialog-checkout-address").value = "";
+  byId("dialog-checkout-payment").value = "PIX";
+  byId("dialog-checkout-notes").value = "";
+  byId("dialog-address-label").style.display = "";
+  byId("checkout-dialog").showModal();
+}
+
 async function checkoutCart() {
-  byId("checkout-error").textContent = "";
+  byId("dialog-checkout-error").textContent = "";
   const stockBeforeCheckout = [...ingredients];
   if (!cart.length) {
-    byId("checkout-error").textContent = "Adicione pelo menos um item.";
+    byId("dialog-checkout-error").textContent = "Adicione pelo menos um item.";
     return;
   }
-  const customer = byId("checkout-name").value.trim();
+  const customer = byId("dialog-checkout-name").value.trim();
   if (!customer) {
-    byId("checkout-error").textContent = "Informe seu nome.";
+    byId("dialog-checkout-error").textContent = "Informe seu nome.";
     return;
   }
-  const deliveryType = byId("checkout-type").value;
-  if (deliveryType === "Entrega" && !byId("checkout-address").value.trim()) {
-    byId("checkout-error").textContent = "Informe o endereço para entrega.";
-    return;
-  }
-  if (!pixReceiptData) {
-    byId("checkout-error").textContent = "Anexe o comprovante do PIX para finalizar o pedido.";
+  const deliveryType = byId("dialog-checkout-type").value;
+  const address = byId("dialog-checkout-address").value.trim();
+  if (deliveryType === "Entrega" && !address) {
+    byId("dialog-checkout-error").textContent = "Informe o endereço para entrega.";
     return;
   }
   const itemLines = cart.map((entry) => {
@@ -2457,7 +2485,7 @@ async function checkoutCart() {
   });
 
   const allNotes = [];
-  const checkoutNotes = byId("checkout-notes").value.trim();
+  const checkoutNotes = byId("dialog-checkout-notes").value.trim();
   if (checkoutNotes) allNotes.push(checkoutNotes);
   cart.forEach((entry) => {
     if (entry.type === "pizza" && entry.notes) {
@@ -2465,12 +2493,16 @@ async function checkoutCart() {
     }
   });
 
+  const subtotal = cartTotal();
+  const deliveryFee = deliveryType === "Entrega" ? getDeliveryFee(address) : 0;
+  const total = subtotal + deliveryFee;
+
   const payload = {
     customer,
-    customer_phone: byId("checkout-phone").value.trim(),
-    address: byId("checkout-address").value.trim(),
+    customer_phone: byId("dialog-checkout-phone").value.trim(),
+    address,
     notes: allNotes.join(" | "),
-    delivery_type: byId("checkout-type").value,
+    delivery_type: deliveryType,
     channel: "Cardápio QR",
     status: "Novo",
     item: itemLines.join(" + "),
@@ -2479,11 +2511,11 @@ async function checkoutCart() {
       qty: entry.qty,
       price: entry.price,
     })),
-    total: cartTotal(),
-    payment: byId("checkout-payment").value,
-    payment_receipt_url: byId("checkout-payment").value === "PIX" ? (pixReceiptData || "") : "",
+    total,
+    payment: byId("dialog-checkout-payment").value,
+    payment_receipt_url: "",
     eta: settings.prep_time || "35 min",
-    delivery_fee: byId("checkout-type").value === "Entrega" ? Number(zoneForAddress(byId("checkout-address").value)?.fee || settings.delivery_fee || 0) : 0,
+    delivery_fee: deliveryFee,
     discount: 0,
   };
   try {
@@ -2499,12 +2531,11 @@ async function checkoutCart() {
     cart = [];
     saveCart();
     pixReceiptData = "";
-    byId("checkout-receipt").value = "";
-    byId("receipt-preview").classList.add("hidden");
     renderAll();
 
+    byId("checkout-dialog").close();
     const trackLink = `${window.location.origin}${window.location.pathname}?pedido=${created.id}`;
-    byId("checkout-btn").classList.add("hidden");
+    byId("cart-checkout-btn").classList.add("hidden");
     byId("track-order-result").innerHTML = `
       <article class="cart-item">
         <strong>✅ Pedido #${created.id} recebido!</strong>
@@ -2513,8 +2544,15 @@ async function checkoutCart() {
       </article>
     `;
     byId("track-order-result").scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Se pagamento for PIX, mostrar confirmação com CNPJ
+    if (payload.payment === "PIX") {
+      byId("pix-confirmation").classList.remove("hidden");
+      byId("pix-order-summary").textContent = `${payload.item} · ${currency.format(payload.total)}`;
+      window._pixOrderId = created.id;
+    }
   } catch (error) {
-    byId("checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
+    byId("dialog-checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
   }
 }
 
@@ -3487,7 +3525,14 @@ byId("order-category")?.addEventListener("change", (event) => {
 byId("order-delivery-type")?.addEventListener("change", updateOrderDeliveryMode);
 byId("create-product")?.addEventListener("click", createProduct);
 byId("create-promotion")?.addEventListener("click", createPromotion);
-byId("checkout-btn")?.addEventListener("click", checkoutCart);
+byId("cart-checkout-btn")?.addEventListener("click", openCheckoutDialog);
+byId("dialog-checkout-btn")?.addEventListener("click", checkoutCart);
+byId("dialog-checkout-type")?.addEventListener("change", (event) => {
+  const addressLabel = byId("dialog-address-label");
+  if (addressLabel) {
+    addressLabel.style.display = event.target.value === "Entrega" ? "" : "none";
+  }
+});
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);
 byId("export-orders")?.addEventListener("click", exportOrders);
 byId("export-stock")?.addEventListener("click", exportStock);
@@ -3550,10 +3595,7 @@ byId("save-recipe-btn")?.addEventListener("click", saveRecipeIngredient);
 byId("share-location-btn")?.addEventListener("click", () => {
   shareRealLocation();
 });
-byId("checkout-type")?.addEventListener("change", renderCart);
-byId("checkout-address")?.addEventListener("input", renderCart);
-byId("checkout-addon")?.addEventListener("change", renderCart);
-// Pagamento sempre PIX, campo de comprovante sempre visível
+// Checkout movido para dialog (estilo iFood)
 byId("calc-item")?.addEventListener("change", renderIngredientCalculator);
 byId("calc-qty")?.addEventListener("input", renderIngredientCalculator);
 
@@ -3630,26 +3672,7 @@ byId("product-photo")?.addEventListener("change", (event) => {
   reader.readAsDataURL(file);
 });
 
-byId("checkout-receipt")?.addEventListener("change", (event) => {
-  const file = event.target.files?.[0];
-  pixReceiptData = "";
-  byId("receipt-preview").classList.add("hidden");
-  byId("receipt-preview").style.backgroundImage = "";
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.addEventListener("load", () => {
-    pixReceiptData = reader.result;
-    if (file.type.startsWith("image/")) {
-      byId("receipt-preview").style.backgroundImage = `url("${pixReceiptData}")`;
-      byId("receipt-preview").textContent = "";
-    } else {
-      byId("receipt-preview").textContent = file.name;
-    }
-    byId("receipt-preview").classList.remove("hidden");
-  });
-  reader.readAsDataURL(file);
-});
+// Upload de comprovante PIX após pedido já existe via pix-receipt-input
 
 if (byId("send-reply")) byId("send-reply")?.addEventListener("click", async () => {
   const input = byId("reply-input");

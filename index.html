@@ -241,43 +241,8 @@
                 <h2>Carrinho</h2>
                 <div id="cart-items" class="cart-list"></div>
                 <strong id="cart-total">Total: R$ 0,00</strong>
-                <label>
-                  Nome
-                  <input id="checkout-name" placeholder="Seu nome" />
-                </label>
-                <label>
-                  Telefone
-                  <input id="checkout-phone" placeholder="WhatsApp" />
-                </label>
-                <label>
-                  Entrega ou retirada
-                  <select id="checkout-type">
-                    <option>Entrega</option>
-                    <option>Retirada</option>
-                  </select>
-                </label>
-                <label>
-                  Endereço
-                  <input id="checkout-address" placeholder="Rua, número, bairro" />
-                </label>
-                <label>
-                  Pagamento
-                  <select id="checkout-payment" disabled>
-                    <option>PIX</option>
-                  </select>
-                </label>
-                <label>
-                  Observações gerais do pedido
-                  <textarea id="checkout-notes" placeholder="Ex: troco para 100, campainha não funciona..."></textarea>
-                </label>
-                <label id="receipt-field">
-                  Comprovante PIX <span class="required">*</span>
-                  <input id="checkout-receipt" type="file" accept="image/*,application/pdf" required />
-                  <small>Anexe o comprovante para finalizar o pedido</small>
-                </label>
-                <div class="photo-preview hidden" id="receipt-preview"></div>
-                <p class="form-error" id="checkout-error"></p>
-                <button class="primary" id="checkout-btn">Finalizar pedido</button>
+                <button class="primary" id="cart-checkout-btn" type="button">Fechar pedido</button>
+                <p class="form-error" id="cart-error"></p>
 
                 <!-- Confirmação pós-pedido PIX -->
                 <div id="pix-confirmation" class="hidden">
@@ -1133,6 +1098,53 @@
         <button class="secondary" onclick="byId('driver-created-dialog').close()" type="button">Fechar</button>
       </div>
     </div>
+  </dialog>
+  <!-- Modal de checkout (estilo iFood) -->
+  <dialog id="checkout-dialog" aria-labelledby="checkout-dialog-title">
+    <form method="dialog" class="dialog-card">
+      <div class="panel-head">
+        <h2 id="checkout-dialog-title">Fechar pedido</h2>
+        <button class="icon-button" onclick="byId('checkout-dialog').close()" value="cancel" aria-label="Fechar">×</button>
+      </div>
+      <div id="checkout-summary" class="cart-list" style="margin-bottom:12px;"></div>
+      <strong id="checkout-dialog-total" style="display:block;margin-bottom:12px;">Total: R$ 0,00</strong>
+      <label>
+        Nome <span class="required">*</span>
+        <input id="dialog-checkout-name" placeholder="Seu nome" required />
+      </label>
+      <label>
+        Telefone
+        <input id="dialog-checkout-phone" placeholder="WhatsApp" />
+      </label>
+      <label>
+        Entrega ou retirada
+        <select id="dialog-checkout-type">
+          <option>Entrega</option>
+          <option>Retirada</option>
+        </select>
+      </label>
+      <label id="dialog-address-label">
+        Endereço <span class="required">*</span>
+        <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
+      </label>
+      <label>
+        Pagamento
+        <select id="dialog-checkout-payment">
+          <option>PIX</option>
+          <option>Dinheiro</option>
+          <option>Cartão</option>
+        </select>
+      </label>
+      <label>
+        Observações
+        <textarea id="dialog-checkout-notes" placeholder="Ex: troco para 100, campainha não funciona..."></textarea>
+      </label>
+      <p class="form-error" id="dialog-checkout-error"></p>
+      <div class="dialog-actions" style="display:flex;gap:8px;">
+        <button class="secondary" onclick="byId('checkout-dialog').close()" type="button">Voltar</button>
+        <button class="primary" id="dialog-checkout-btn" type="button">Finalizar pedido</button>
+      </div>
+    </form>
   </dialog>
   </body>
 </html>
