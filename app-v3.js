@@ -431,6 +431,7 @@ function orderAge(order) {
 }
 
 function renderMenu() {
+  renderPizzaSizePrices();
   const categoryFilter = byId("menu-category-filter");
   if (categoryFilter) {
     const categories = ["Todos", ...new Set(menuItems.map((item) => item.category).filter(Boolean))];
@@ -1862,11 +1863,15 @@ function renderSettings() {
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
   byId("settings-menu-link").value = baseUrl + "#pedir";
   byId("settings-driver-link").value = baseUrl + "entregador/";
-  // Preços por tamanho
+  renderDeliveryZones();
+  renderTeamUsers();
+}
+
+function renderPizzaSizePrices() {
   try {
     const stored = JSON.parse(settings.pizza_sizes || "[]");
     PIZZA_SIZES.forEach((size) => {
-      const input = byId(`setting-pizza-${size.key}`);
+      const input = byId(`menu-pizza-${size.key}`);
       if (input) {
         const found = stored.find((s) => s.key === size.key);
         input.value = found ? found.price : size.price;
@@ -1874,12 +1879,10 @@ function renderSettings() {
     });
   } catch (e) {
     PIZZA_SIZES.forEach((size) => {
-      const input = byId(`setting-pizza-${size.key}`);
+      const input = byId(`menu-pizza-${size.key}`);
       if (input) input.value = size.price;
     });
   }
-  renderDeliveryZones();
-  renderTeamUsers();
 }
 
 function renderTeamUsers() {
@@ -2873,27 +2876,44 @@ function printKitchenTickets() {
 }
 
 async function saveSettings() {
-  const pizzaSizes = PIZZA_SIZES.map((size) => ({
-    key: size.key,
-    price: Number(byId(`setting-pizza-${size.key}`).value) || size.price,
-  }));
   const payload = {
     restaurant_name: byId("setting-name").value,
     opening_hours: byId("setting-hours").value,
     delivery_fee: byId("setting-fee").value,
     prep_time: byId("setting-prep").value,
     delivery_areas: byId("setting-areas").value,
+  };
+  try {
+    settings = state.apiOnline
+      ? await api("/api/settings", { method: "POST", body: JSON.stringify(payload) })
+      : { ...settings, ...payload };
+    byId("settings-message").textContent = "Configurações salvas.";
+    renderCustomerStore();
+  } catch (error) {
+    byId("settings-message").textContent = "Não foi possível salvar.";
+  }
+}
+
+async function savePizzaSizePrices() {
+  const pizzaSizes = PIZZA_SIZES.map((size) => ({
+    key: size.key,
+    price: Number(byId(`menu-pizza-${size.key}`).value) || size.price,
+  }));
+  const payload = {
+    ...settings,
     pizza_sizes: JSON.stringify(pizzaSizes),
   };
   try {
     settings = state.apiOnline
       ? await api("/api/settings", { method: "POST", body: JSON.stringify(payload) })
-      : payload;
+      : { ...settings, pizza_sizes: JSON.stringify(pizzaSizes) };
     updatePizzaSizesFromSettings();
-    byId("settings-message").textContent = "Configurações salvas.";
+    byId("pizza-prices-message").textContent = "Preços salvos.";
+    byId("pizza-prices-message").classList.remove("form-error");
     renderCustomerStore();
   } catch (error) {
-    byId("settings-message").textContent = "Não foi possível salvar.";
+    byId("pizza-prices-message").textContent = "Não foi possível salvar.";
+    byId("pizza-prices-message").classList.add("form-error");
   }
 }
 
@@ -3482,6 +3502,7 @@ byId("call-pizzeria")?.addEventListener("click", callPizzeriaWhatsApp);
 byId("print-kitchen")?.addEventListener("click", printKitchenTickets);
 byId("logout-btn")?.addEventListener("click", logout);
 byId("save-settings-btn")?.addEventListener("click", saveSettings);
+byId("save-pizza-prices-btn")?.addEventListener("click", savePizzaSizePrices);
 byId("save-integrations-btn")?.addEventListener("click", saveIntegrations);
 byId("save-pin-btn")?.addEventListener("click", saveNewPin);
 byId("copy-driver-created-link")?.addEventListener("click", () => {

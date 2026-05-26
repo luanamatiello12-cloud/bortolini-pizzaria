@@ -392,6 +392,26 @@
           </div>
           <section class="panel">
             <div class="panel-head">
+              <h2>Preços por tamanho de pizza</h2>
+              <span class="status-pill">Cardápio</span>
+            </div>
+            <div class="form-grid">
+              <label>Broto (20cm, 4 fatias, 1 sabor)
+                <input id="menu-pizza-broto" type="number" min="0" step="0.01" /></label>
+              <label>P (25cm, 6 fatias, 2 sabores)
+                <input id="menu-pizza-p" type="number" min="0" step="0.01" /></label>
+              <label>M (30cm, 8 fatias, 2 sabores)
+                <input id="menu-pizza-m" type="number" min="0" step="0.01" /></label>
+              <label>G (35cm, 12 fatias, 3 sabores)
+                <input id="menu-pizza-g" type="number" min="0" step="0.01" /></label>
+              <label>GG (40cm, 16 fatias, 4 sabores)
+                <input id="menu-pizza-gg" type="number" min="0" step="0.01" /></label>
+            </div>
+            <button class="primary" id="save-pizza-prices-btn" type="button">Salvar preços</button>
+            <p class="form-error" id="pizza-prices-message"></p>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
               <h2>Promoções lançadas</h2>
               <span class="status-pill">Campanhas</span>
             </div>
@@ -633,22 +653,6 @@
               <button class="secondary" id="create-zone-btn" type="button">Adicionar bairro</button>
             </div>
             <div id="delivery-zones-list" class="ingredient-list"></div>
-            <div class="panel-head">
-              <h2>Preços por tamanho de pizza</h2>
-              <span class="status-pill">Cardápio</span>
-            </div>
-            <div class="form-grid">
-              <label>Broto (20cm, 4 fatias, 1 sabor)
-                <input id="setting-pizza-broto" type="number" min="0" step="0.01" /></label>
-              <label>P (25cm, 6 fatias, 2 sabores)
-                <input id="setting-pizza-p" type="number" min="0" step="0.01" /></label>
-              <label>M (30cm, 8 fatias, 2 sabores)
-                <input id="setting-pizza-m" type="number" min="0" step="0.01" /></label>
-              <label>G (35cm, 12 fatias, 3 sabores)
-                <input id="setting-pizza-g" type="number" min="0" step="0.01" /></label>
-              <label>GG (40cm, 16 fatias, 4 sabores)
-                <input id="setting-pizza-gg" type="number" min="0" step="0.01" /></label>
-            </div>
             <div class="panel-head">
               <h2>Acessos da equipe</h2>
               <span class="status-pill">Email + PIN</span>
