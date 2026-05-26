@@ -170,7 +170,7 @@ def validate_session(token):
         return None
     with connect() as conn:
         if USE_POSTGRES:
-            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'"
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at::timestamp > CURRENT_TIMESTAMP - INTERVAL '7 days'"
         else:
             sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > datetime('now', '-7 days')"
         row = conn.execute(sql, (token,)).fetchone()
