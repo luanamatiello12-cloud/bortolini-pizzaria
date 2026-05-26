@@ -200,42 +200,10 @@
                   <button class="store-tab" data-tab="promocoes">🏷️ Promoções</button>
                 </div>
                 <div id="store-tab-pizzas" class="store-tab-content active">
-                  <div id="store-pizza-sizes" class="pizza-size-list"></div>
-                  <div id="pizza-flavors-section">
-                    <div class="builder-head">
-                      <h3>Nossos Sabores</h3>
-                      <p class="form-hint">Clique nos sabores para selecionar</p>
-                    </div>
-                    <div id="pizza-flavors-grid" class="menu-grid"></div>
+                  <div class="builder-head">
+                    <h3>Pizzas</h3>
                   </div>
-                  <div id="pizza-builder-area" class="hidden">
-                    <div class="builder-head">
-                      <h3 id="pizza-builder-headline">Monte sua pizza</h3>
-                      <p class="form-hint" id="pizza-builder-hint"></p>
-                    </div>
-                    <div id="pizza-builder-selected-flavors"></div>
-                    <div id="pizza-extras-area">
-                      <label>
-                        Tipo de borda
-                        <select id="pizza-builder-crust">
-                          <option value="">Sem borda recheada</option>
-                          <option value="Borda recheada catupiry">Borda recheada de catupiry (+ R$ 10,00)</option>
-                          <option value="Borda recheada cheddar">Borda recheada de cheddar (+ R$ 10,00)</option>
-                          <option value="Borda recheada chocolate">Borda recheada de chocolate (+ R$ 8,00)</option>
-                          <option value="Borda de cream cheese">Borda de cream cheese (+ R$ 8,00)</option>
-                        </select>
-                      </label>
-                      <label>
-                        Observações
-                        <textarea id="pizza-builder-notes" placeholder="Ex: sem cebola, bem passada, pouco queijo..."></textarea>
-                      </label>
-                      <div class="pizza-builder-price">
-                        <strong id="pizza-builder-price-display">R$ 0,00</strong>
-                      </div>
-                      <button class="primary" id="pizza-builder-add">Adicionar ao carrinho</button>
-                      <button class="ghost" id="pizza-builder-cancel" type="button">Cancelar</button>
-                    </div>
-                  </div>
+                  <div id="store-pizza-sizes-list" class="pizza-sizes-store"></div>
                 </div>
                 <div id="store-tab-bebidas" class="store-tab-content hidden">
                   <div id="store-bebidas" class="menu-grid"></div>
@@ -1163,6 +1131,34 @@
         <button class="secondary" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" type="button">Voltar ao carrinho</button>
         <button class="primary" id="dialog-checkout-btn" type="button">Finalizar pedido</button>
       </div>
+    </div>
+  </dialog>
+  <!-- Modal de escolha de sabores (após selecionar tamanho) -->
+  <dialog id="pizza-flavors-dialog" class="pizza-flavors-dialog">
+    <div class="dialog-card">
+      <div class="panel-head">
+        <h2 id="pizza-flavors-dialog-title">Escolha os sabores</h2>
+        <button class="icon-button" onclick="byId('pizza-flavors-dialog').close()" aria-label="Fechar">×</button>
+      </div>
+      <p class="form-hint" id="pizza-flavors-dialog-hint">Selecione até X sabores</p>
+      <div id="pizza-flavors-dialog-list" class="menu-grid"></div>
+      <label>Tipo de borda
+        <select id="pizza-flavors-dialog-crust" onchange="updatePizzaFlavorsDialogPrice()">
+          <option value="">Sem borda recheada</option>
+          <option value="Borda recheada catupiry">Borda recheada de catupiry (+ R$ 10,00)</option>
+          <option value="Borda recheada cheddar">Borda recheada de cheddar (+ R$ 10,00)</option>
+          <option value="Borda recheada chocolate">Borda recheada de chocolate (+ R$ 8,00)</option>
+          <option value="Borda de cream cheese">Borda de cream cheese (+ R$ 8,00)</option>
+        </select>
+      </label>
+      <label>Observações
+        <textarea id="pizza-flavors-dialog-notes" placeholder="Ex: sem cebola, bem passada, pouco queijo..."></textarea>
+      </label>
+      <div class="pizza-builder-price">
+        <strong id="pizza-flavors-dialog-price">R$ 0,00</strong>
+      </div>
+      <p class="form-error" id="pizza-flavors-dialog-error"></p>
+      <button class="primary" id="pizza-flavors-dialog-add" type="button">Adicionar ao carrinho</button>
     </div>
   </dialog>
   </body>

@@ -2403,3 +2403,100 @@ dialog::backdrop {
 .public-customer-mode .cart-panel {
   display: none !important;
 }
+
+/* Lista de tamanhos na loja (estilo vídeo anota.ai) */
+.pizza-sizes-store {
+  display: grid;
+  gap: 14px;
+}
+
+.pizza-size-store-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.pizza-size-store-card:hover {
+  border-color: var(--brand);
+  box-shadow: 0 4px 14px rgba(16, 120, 56, 0.1);
+}
+
+.pizza-size-store-card .size-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pizza-size-store-card .size-text strong {
+  font-size: 1.05rem;
+  color: #1a1a1a;
+}
+
+.pizza-size-store-card .size-text span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pizza-size-store-card .size-text .size-price-store {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #dc2626;
+}
+
+.pizza-size-store-card .size-photo {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f0fdf4;
+}
+
+/* Dialog de escolha de sabores */
+.pizza-flavors-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: 92vh;
+}
+
+.pizza-flavors-dialog .dialog-card {
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+/* Sabores selecionados no dialog */
+.flavor-dialog-card {
+  position: relative;
+}
+
+.flavor-dialog-card .flavor-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  font-size: 14px;
+  color: transparent;
+}
+
+.flavor-dialog-card.selected .flavor-check {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.flavor-dialog-card.selected {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand);
+}

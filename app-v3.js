@@ -1144,22 +1144,20 @@ function renderCustomerStore() {
   byId("store-hours").textContent = `${settings.opening_hours || "18:00 às 23:30"} · entrega ${currency.format(Number(settings.delivery_fee || 0))} · preparo ${settings.prep_time || "35 a 45 minutos"}`;
   renderQrPanel();
 
-  // Pizzas — lista de tamanhos informativa (não clicável)
-  byId("store-pizza-sizes").innerHTML = PIZZA_SIZES.map((size) => `
-    <article class="pizza-size-card info-only">
-      <div class="size-info">
-        <strong>${size.label}: ${size.cm} (${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"})</strong>
-        <span>${size.slices}</span>
-      </div>
-      <div class="size-price">${currency.format(size.price)}</div>
-    </article>
-  `).join("");
-
-  // Renderizar grid de sabores (sempre visível)
-  renderPizzaFlavorsGrid();
-
-  // Esconder a área antiga de builder (fluxo inline agora)
-  byId("pizza-builder-area")?.classList.add("hidden");
+  // Pizzas — lista de tamanhos clicáveis (estilo vídeo)
+  const pizzaSizesList = byId("store-pizza-sizes-list");
+  if (pizzaSizesList) {
+    pizzaSizesList.innerHTML = PIZZA_SIZES.map((size) => `
+      <article class="pizza-size-store-card" onclick="openPizzaSizeSelector('${size.key}')">
+        <div class="size-text">
+          <strong>${size.label}: ${size.cm} (${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"})</strong>
+          <span>${size.slices}</span>
+          <span class="size-price-store">${currency.format(size.price)}</span>
+        </div>
+        <img class="size-photo" src="assets/logo.png" alt="${size.label}" />
+      </article>
+    `).join("");
+  }
 
   // Bebidas
   const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
@@ -1189,6 +1187,125 @@ function renderCustomerStore() {
   renderCart();
 }
 
+// Estado do dialog de sabores
+let pizzaFlavorsDialogState = {
+  sizeKey: "",
+  flavors: [],
+  maxFlavors: 0,
+  basePrice: 0,
+};
+
+function openPizzaSizeSelector(sizeKey) {
+  const size = PIZZA_SIZES.find((s) => s.key === sizeKey);
+  if (!size) return;
+
+  pizzaFlavorsDialogState = {
+    sizeKey,
+    flavors: [],
+    maxFlavors: size.flavors,
+    basePrice: size.price,
+  };
+
+  byId("pizza-flavors-dialog-title").textContent = `${size.label}: ${size.cm}`;
+  byId("pizza-flavors-dialog-hint").textContent = `Selecione até ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}`;
+  byId("pizza-flavors-dialog-crust").value = "";
+  byId("pizza-flavors-dialog-notes").value = "";
+  byId("pizza-flavors-dialog-error").textContent = "";
+
+  renderPizzaFlavorsDialog();
+  updatePizzaFlavorsDialogPrice();
+  byId("pizza-flavors-dialog").showModal();
+}
+
+function renderPizzaFlavorsDialog() {
+  const pizzaItems = menuItems.filter((item) => item.active && ["Pizzas", "Pizza", "Pizza Doce"].includes(item.category));
+  const container = byId("pizza-flavors-dialog-list");
+  if (!container) return;
+
+  container.innerHTML = pizzaItems.map((item) => {
+    const isSelected = pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
+    return `
+      <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
+        <div class="flavor-check">✓</div>
+        ${renderPhoto(item.image_url, "menu-photo", item.name)}
+        <strong>${item.name}</strong>
+        <p class="ingredients-desc">${item.description || ""}</p>
+      </article>
+    `;
+  }).join("");
+}
+
+function togglePizzaFlavorDialog(flavorId) {
+  const item = menuItems.find((m) => m.id === flavorId);
+  if (!item) return;
+
+  const idx = pizzaFlavorsDialogState.flavors.findIndex((f) => f.id === flavorId);
+  if (idx >= 0) {
+    // Deselecionar
+    pizzaFlavorsDialogState.flavors.splice(idx, 1);
+  } else {
+    // Selecionar (respeitar limite)
+    if (pizzaFlavorsDialogState.flavors.length < pizzaFlavorsDialogState.maxFlavors) {
+      pizzaFlavorsDialogState.flavors.push({ id: item.id, name: item.name });
+    } else {
+      showToast(`Máximo de ${pizzaFlavorsDialogState.maxFlavors} ${pizzaFlavorsDialogState.maxFlavors === 1 ? "sabor" : "sabores"} para este tamanho`);
+      return;
+    }
+  }
+  renderPizzaFlavorsDialog();
+}
+
+function updatePizzaFlavorsDialogPrice() {
+  const crust = byId("pizza-flavors-dialog-crust")?.value || "";
+  const crustPrice = CRUST_PRICES[crust] || 0;
+  const price = pizzaFlavorsDialogState.basePrice + crustPrice;
+  byId("pizza-flavors-dialog-price").textContent = currency.format(price);
+}
+
+function addPizzaFromFlavorsDialog() {
+  const size = PIZZA_SIZES.find((s) => s.key === pizzaFlavorsDialogState.sizeKey);
+  if (!size) return;
+
+  if (pizzaFlavorsDialogState.flavors.length === 0) {
+    byId("pizza-flavors-dialog-error").textContent = "Selecione pelo menos 1 sabor.";
+    return;
+  }
+
+  const crust = byId("pizza-flavors-dialog-crust")?.value || "";
+  const notes = byId("pizza-flavors-dialog-notes")?.value.trim() || "";
+  const crustPrice = CRUST_PRICES[crust] || 0;
+  const price = size.price + crustPrice;
+
+  const existing = cart.find((entry) => {
+    if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;
+    if (entry.crust !== crust) return false;
+    if (entry.notes !== notes) return false;
+    if (entry.flavors.length !== pizzaFlavorsDialogState.flavors.length) return false;
+    return entry.flavors.every((f, i) => f.id === pizzaFlavorsDialogState.flavors[i].id);
+  });
+
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({
+      type: "pizza",
+      sizeKey: size.key,
+      sizeLabel: size.label,
+      flavors: [...pizzaFlavorsDialogState.flavors],
+      crust,
+      notes,
+      price,
+      qty: 1,
+    });
+  }
+
+  saveCart();
+  renderCart();
+  hidePixConfirmation();
+  byId("pizza-flavors-dialog").close();
+  showToast("Pizza adicionada ao carrinho!");
+}
+
 let pizzaBuilderState = {
   sizeKey: "",
   flavors: [],
@@ -1216,19 +1333,7 @@ function selectPizzaSize(sizeKey) {
 }
 
 function renderPizzaFlavorsGrid() {
-  const grid = byId("pizza-flavors-grid");
-  if (!grid) return;
-
-  const pizzaItems = menuItems.filter((item) => item.active && ["Pizzas", "Pizza", "Pizza Doce"].includes(item.category));
-  grid.innerHTML = pizzaItems.map((item) => `
-    <article class="menu-card flavor-card" id="flavor-card-${item.id}">
-      ${renderPhoto(item.image_url, "menu-photo", item.name)}
-      <strong>${item.name}</strong>
-      <p class="ingredients-desc">${item.description || ""}</p>
-      <button class="secondary" onclick="openFlavorSizeSelector(${item.id})">Escolher tamanho</button>
-      <div class="flavor-inline-builder hidden" id="flavor-inline-${item.id}"></div>
-    </article>
-  `).join("");
+  // Função mantida para compatibilidade, mas não usada no novo fluxo
 }
 
 function renderPizzaBuilderArea() {
@@ -3641,17 +3746,8 @@ byId("close-recover-admin-dialog")?.addEventListener("click", () => byId("recove
 byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-dialog")?.close());
 byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
 byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);
-byId("pizza-builder-add")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  addPizzaToCart();
-});
-byId("pizza-builder-cancel")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  cancelPizzaBuilder();
-});
-byId("pizza-builder-crust")?.addEventListener("change", () => {
-  updatePizzaBuilderPrice(pizzaBuilderState.basePrice || 0);
-});
+byId("pizza-flavors-dialog-add")?.addEventListener("click", addPizzaFromFlavorsDialog);
+byId("pizza-flavors-dialog-crust")?.addEventListener("change", updatePizzaFlavorsDialogPrice);
 
 // Event delegation para tabs da loja pública (evita listeners duplicados)
 document.querySelector(".store-tabs")?.addEventListener("click", (e) => {
