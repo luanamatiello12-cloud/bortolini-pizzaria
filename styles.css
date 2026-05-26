@@ -2235,33 +2235,78 @@ dialog::backdrop {
   border-radius: 10px;
 }
 
+/* Botão "Escolher tamanho" no card */
+.flavor-card .secondary {
+  margin-top: 8px;
+  width: 100%;
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: 0;
+  font-weight: 700;
+}
+
+/* Grid de tamanhos no inline builder */
 .inline-size-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
   margin-bottom: 12px;
 }
 
+/* Botões de tamanho vermelhos (estilo iFood) */
 .inline-size-list .pizza-size-card {
-  padding: 10px;
-  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.inline-size-list .pizza-size-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+}
+
+.inline-size-list .pizza-size-card .size-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .inline-size-list .pizza-size-card .size-info strong {
-  font-size: 14px;
+  font-size: 15px;
+  color: #fff;
+}
+
+.inline-size-list .pizza-size-card .size-info span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .inline-size-list .pizza-size-card .size-price {
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Tamanho selecionado */
+.inline-size-list .pizza-size-card.selected {
+  background: linear-gradient(180deg, #166534, #14532d);
+  box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.3);
 }
 
 .inline-flavors-grid {
   margin: 10px 0;
-}
-
-.flavor-card .secondary {
-  margin-top: 8px;
-  width: 100%;
 }
 
 /* Botão flutuante de carrinho (estilo iFood) */
