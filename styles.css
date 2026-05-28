@@ -1687,6 +1687,61 @@ dialog::backdrop {
   .qr-actions {
     grid-template-columns: 1fr;
   }
+
+  /* ── Tabela de pedidos vira cards em mobile ── */
+  .table-wrap table thead {
+    display: none;
+  }
+  .table-wrap table,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+  .table-wrap tr {
+    margin-bottom: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .table-wrap td {
+    border: none;
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    white-space: normal;
+    text-align: right;
+  }
+  .table-wrap td:last-child {
+    border-bottom: none;
+  }
+  .table-wrap td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .table-wrap td:nth-child(1)::before { content: "Pedido"; }
+  .table-wrap td:nth-child(2)::before { content: "Cliente"; }
+  .table-wrap td:nth-child(3)::before { content: "Canal"; }
+  .table-wrap td:nth-child(4)::before { content: "Status"; }
+  .table-wrap td:nth-child(5)::before { content: "Total"; }
+  .table-wrap td:nth-child(6)::before { content: "Pagamento"; }
+  .table-wrap td:nth-child(7)::before { content: "Ação"; }
+
+  /* ── Mapa de entregas com altura mínima em mobile ── */
+  .delivery-map .map-area {
+    min-height: 340px;
+  }
 }
 
 @media (max-width: 620px) {
