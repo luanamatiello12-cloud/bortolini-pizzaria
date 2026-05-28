@@ -908,7 +908,10 @@ function destinationPoint(index) {
 function formatLocation(delivery) {
   const lat = Number(delivery.driver_lat).toFixed(4);
   const lng = Number(delivery.driver_lng).toFixed(4);
-  return `Localização: ${lat}, ${lng} · atualizado agora`;
+  const updatedAt = delivery.last_location_at
+    ? new Date(delivery.last_location_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "sem horário";
+  return `Localização: ${lat}, ${lng} · atualizado às ${updatedAt}`;
 }
 
 function simulateDriverMovement() {
@@ -3874,7 +3877,7 @@ byId("pix-receipt-input")?.addEventListener("change", (event) => {
 // ── App público do entregador ──────────────────────────────────────────
 let _driverLocationInterval = null;
 let _driverUserId = null;
-let _driverCurrentOrderId = null;
+let _driverCurrentOrderIds = [];
 let _driverToken = null;
 
 function showDriverLogin() {
@@ -3945,6 +3948,7 @@ function driverPublicLogout() {
   localStorage.removeItem("bortoliniDriver");
   _driverUserId = null;
   _driverToken = null;
+  _driverCurrentOrderIds = [];
   stopDriverOrdersPoll();
   if (_driverLocationInterval !== null) {
     navigator.geolocation.clearWatch(_driverLocationInterval);
@@ -4006,7 +4010,7 @@ async function loadDriverPublicOrders() {
       list.innerHTML = "";
       list.classList.add("hidden");
       emptyState.classList.remove("hidden");
-      _driverCurrentOrderId = null;
+      _driverCurrentOrderIds = [];
       return;
     }
 
@@ -4038,7 +4042,7 @@ async function loadDriverPublicOrders() {
       </article>
     `;}).join("");
 
-    _driverCurrentOrderId = data.orders[0]?.id || null;
+    _driverCurrentOrderIds = data.orders.map(o => o.id);
   } catch(e) {
     byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Erro ao carregar pedidos.</p>';
   }
@@ -4081,13 +4085,13 @@ function toggleDriverLocation() {
 
     function sendLocation(pos) {
       const { latitude: lat, longitude: lng } = pos.coords;
-      if (_driverCurrentOrderId) {
-        fetch(`/api/deliveries/${_driverCurrentOrderId}/location`, {
+      _driverCurrentOrderIds.forEach(orderId => {
+        fetch(`/api/deliveries/${orderId}/location`, {
           method: "PATCH",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({ lat, lng })
         }).catch(() => {});
-      }
+      });
       if (_driverUserId) {
         fetch(`/api/public/drivers/${_driverUserId}/location`, {
           method: "PATCH",
