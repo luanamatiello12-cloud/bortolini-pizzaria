@@ -1722,7 +1722,6 @@ dialog::backdrop {
     border-bottom: none;
   }
   .table-wrap td::before {
-    content: attr(data-label);
     font-weight: 700;
     color: var(--muted);
     font-size: 0.72rem;
