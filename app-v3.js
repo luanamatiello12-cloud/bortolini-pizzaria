@@ -773,49 +773,8 @@ function renderIngredientCalculator() {
 }
 
 function renderInbox() {
-  if (!conversations.length) {
-    byId("conversation-list").innerHTML = `<article class="empty-card"><strong>Nenhuma conversa</strong><p>As mensagens dos canais digitais aparecem aqui.</p></article>`;
-    byId("chat-client").textContent = "Atendimento IA";
-    byId("chat-channel").textContent = "Sem conversa";
-    byId("inbox-mode-label").textContent = "Sem conversa";
-    byId("messages").innerHTML = `<div class="message ai">Digite uma mensagem do cliente para testar a resposta automatica.</div>`;
-    return;
-  }
-  if (state.conversation >= conversations.length) state.conversation = 0;
-  byId("conversation-list").innerHTML = conversations
-    .map(
-      (conversation, index) => `
-        <button class="conversation-button ${index === state.conversation ? "active" : ""}" data-conversation="${index}">
-          <strong>${conversation.client}</strong>
-          <p>${conversation.channel} - ${inboxModeLabel(conversation.mode)}</p>
-          <small>${conversation.preview}</small>
-        </button>
-      `,
-    )
-    .join("");
-
-  const active = conversations[state.conversation];
-  byId("chat-client").textContent = active.client;
-  byId("chat-channel").textContent = active.assigned_to ? `${active.channel} - ${active.assigned_to}` : active.channel;
-  byId("inbox-mode-label").textContent = inboxModeLabel(active.mode);
-  byId("reply-input").placeholder = active.mode === "human"
-    ? "Digite a resposta do atendente"
-    : active.mode === "assisted"
-      ? "Digite a mensagem do cliente para gerar sugestao"
-      : "Digite a mensagem do cliente para a IA responder";
-  document.querySelectorAll("[data-inbox-mode]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.inboxMode === active.mode);
-  });
-  byId("messages").innerHTML = active.messages
-    .map(([author, text]) => `<div class="message ${author === "ai" ? "ai" : author === "agent" ? "agent" : author === "system" ? "system" : ""}">${text}</div>`)
-    .join("");
-
-  document.querySelectorAll("[data-conversation]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.conversation = Number(button.dataset.conversation);
-      renderInbox();
-    });
-  });
+  // A view de inbox foi simplificada — agora so mostra QR code do WhatsApp
+  // Os elementos de chat foram removidos do HTML para evitar erros
   renderInboxQrPanel();
 }
 
