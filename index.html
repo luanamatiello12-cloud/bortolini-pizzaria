@@ -1197,6 +1197,43 @@
       <button class="primary" id="pizza-flavors-dialog-add" type="button">Adicionar ao carrinho</button>
     </div>
   </dialog>
+
+  <!-- Modal de edição de ingrediente -->
+  <dialog id="ingredient-edit-dialog" class="checkout-dialog">
+    <div class="dialog-card">
+      <div class="panel-head">
+        <h2>Editar ingrediente</h2>
+        <button class="icon-button" onclick="byId('ingredient-edit-dialog').close()" aria-label="Fechar">×</button>
+      </div>
+      <input type="hidden" id="edit-ingredient-id" />
+      <label>Nome <span class="required">*</span>
+        <input id="edit-ingredient-name" required />
+      </label>
+      <label>Código <span class="required">*</span>
+        <input id="edit-ingredient-code" required />
+      </label>
+      <label>Unidade
+        <input id="edit-ingredient-unit" placeholder="kg, g, un, L" />
+      </label>
+      <label>Quantidade em estoque
+        <input id="edit-ingredient-stock" type="number" step="0.01" min="0" />
+      </label>
+      <label>Quantidade mínima
+        <input id="edit-ingredient-min" type="number" step="0.01" min="0" />
+      </label>
+      <label>Custo unitário
+        <input id="edit-ingredient-cost" type="number" step="0.01" min="0" />
+      </label>
+      <label>Fornecedor
+        <input id="edit-ingredient-supplier" />
+      </label>
+      <p class="form-error" id="edit-ingredient-error"></p>
+      <div class="dialog-actions">
+        <button class="secondary" onclick="byId('ingredient-edit-dialog').close()" type="button">Cancelar</button>
+        <button class="primary" onclick="saveIngredientEdit()" type="button">Salvar alterações</button>
+      </div>
+    </div>
+  </dialog>
   </body>
 </html>
 <!-- deployed at 2026-05-22T22:35:08Z -->

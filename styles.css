@@ -702,6 +702,63 @@ h2 {
   gap: 12px;
 }
 
+/* Fichas técnicas agrupadas por pizza */
+.recipe-group {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.recipe-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--line);
+}
+.recipe-group-header strong {
+  font-size: 1.05rem;
+  color: #1a1a1a;
+}
+.recipe-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: #f0fdf4;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.recipe-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.recipe-group-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+.recipe-group-list li:last-child {
+  border-bottom: none;
+}
+.recipe-ing-name {
+  font-size: 0.9rem;
+  color: #374151;
+}
+.recipe-ing-qty {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
 .inventory-row {
   display: grid;
   grid-template-columns: minmax(180px, 1.3fr) repeat(3, minmax(110px, 0.8fr)) minmax(220px, 1.2fr);

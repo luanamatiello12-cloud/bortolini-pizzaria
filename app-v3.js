@@ -601,6 +601,7 @@ function renderInventory() {
                   <input type="number" step="0.01" value="${ingredient.stock_qty}" data-stock-input="${ingredient.id}" />
                 </label>
                 <button class="ghost" data-update-stock="${ingredient.id}">Salvar</button>
+                <button class="ghost" onclick="openIngredientEditor(${ingredient.id})">✏️ Editar</button>
               </div>
             </article>
           `,
@@ -608,24 +609,30 @@ function renderInventory() {
         .join("")
     : `<article class="ingredient-card empty-card"><strong>Nenhum ingrediente cadastrado</strong><p>Use o formulario acima para criar o primeiro item de estoque.</p></article>`;
 
+  // Agrupa fichas técnicas por pizza
+  const recipesByItem = recipes.reduce((acc, recipe) => {
+    if (!acc[recipe.item_name]) acc[recipe.item_name] = [];
+    acc[recipe.item_name].push(recipe);
+    return acc;
+  }, {});
+
   byId("recipes-list").innerHTML = recipes.length
-    ? recipes
-        .map(
-          (recipe) => `
-            <article class="ingredient-card recipe-row">
-              <div>
-                <small>Produto</small>
-                <strong>${recipe.item_name}</strong>
-              </div>
-              <div>
-                <small>Consome por unidade</small>
-                <strong>${Number(recipe.quantity).toLocaleString("pt-BR")} ${recipe.unit}</strong>
-                <p>${recipe.ingredient_name}</p>
-              </div>
-            </article>
-          `,
-        )
-        .join("")
+    ? Object.entries(recipesByItem).map(([itemName, itemRecipes]) => `
+        <article class="ingredient-card recipe-group">
+          <div class="recipe-group-header">
+            <strong>${itemName}</strong>
+            <span class="recipe-count">${itemRecipes.length} ingrediente(s)</span>
+          </div>
+          <ul class="recipe-group-list">
+            ${itemRecipes.map((r) => `
+              <li>
+                <span class="recipe-ing-name">${r.ingredient_name}</span>
+                <span class="recipe-ing-qty">${Number(r.quantity).toLocaleString("pt-BR")} ${r.unit}</span>
+              </li>
+            `).join("")}
+          </ul>
+        </article>
+      `).join("")
     : `<article class="ingredient-card empty-card"><strong>Nenhuma ficha tecnica cadastrada</strong><p>Cadastre quanto cada produto consome no bloco "Receita do produto".</p></article>`;
 
   const movementsBox = byId("stock-movements-list");
@@ -2342,6 +2349,50 @@ async function createPromotion() {
     renderMenu();
   } catch (error) {
     byId("promotion-error").textContent = "Não foi possível lançar a promoção.";
+  }
+}
+
+function openIngredientEditor(ingredientId) {
+  const ingredient = ingredients.find((i) => i.id === ingredientId);
+  if (!ingredient) return;
+  byId("edit-ingredient-id").value = ingredient.id;
+  byId("edit-ingredient-name").value = ingredient.name || "";
+  byId("edit-ingredient-code").value = ingredient.code || "";
+  byId("edit-ingredient-unit").value = ingredient.unit || "";
+  byId("edit-ingredient-stock").value = ingredient.stock_qty || 0;
+  byId("edit-ingredient-min").value = ingredient.min_qty || 0;
+  byId("edit-ingredient-cost").value = ingredient.unit_cost || 0;
+  byId("edit-ingredient-supplier").value = ingredient.supplier || "";
+  byId("edit-ingredient-error").textContent = "";
+  byId("ingredient-edit-dialog").showModal();
+}
+
+async function saveIngredientEdit() {
+  const id = Number(byId("edit-ingredient-id").value);
+  const payload = {
+    name: byId("edit-ingredient-name").value.trim(),
+    code: byId("edit-ingredient-code").value.trim(),
+    unit: byId("edit-ingredient-unit").value.trim(),
+    stock_qty: parseFloat(byId("edit-ingredient-stock").value) || 0,
+    min_qty: parseFloat(byId("edit-ingredient-min").value) || 0,
+    unit_cost: parseFloat(byId("edit-ingredient-cost").value) || 0,
+    supplier: byId("edit-ingredient-supplier").value.trim(),
+  };
+  if (!payload.name || !payload.code) {
+    byId("edit-ingredient-error").textContent = "Nome e código são obrigatórios.";
+    return;
+  }
+  try {
+    const updated = state.apiOnline
+      ? await api(`/api/ingredients/${id}`, { method: "PATCH", body: JSON.stringify(payload) })
+      : { ...ingredients.find((i) => i.id === id), ...payload };
+    ingredients = ingredients.map((i) => (i.id === id ? updated : i));
+    renderInventory();
+    renderRecipeRows();
+    byId("ingredient-edit-dialog").close();
+    showToast("Ingrediente atualizado!");
+  } catch (error) {
+    byId("edit-ingredient-error").textContent = error.message || "Erro ao salvar.";
   }
 }
 
