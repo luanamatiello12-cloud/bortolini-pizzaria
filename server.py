@@ -49,6 +49,8 @@ DB_PATH = Path(os.environ.get("DATABASE_PATH", ROOT / "bortolini.db"))
 UPLOADS_DIR = Path(os.environ.get("UPLOADS_PATH", ROOT / "uploads"))
 APP_SECRET = os.environ.get("APP_SECRET", "local-dev-change-before-production")
 ADMIN_MASTER_KEY = os.environ.get("ADMIN_MASTER_KEY", "BORTOLINI-2026")
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "bortolini-webhook-local")
+PIX_CNPJ = os.environ.get("PIX_CNPJ", "66.686.680/0001-57")
 USE_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 DB_INTEGRITY_ERROR = (sqlite3.IntegrityError,)
 if psycopg is not None:
@@ -398,7 +400,7 @@ def validate_session(token):
         return None
     with connect() as conn:
         if USE_POSTGRES:
-            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at::timestamp > CURRENT_TIMESTAMP - INTERVAL '7 days'"
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at IS NOT NULL AND created_at::timestamp > CURRENT_TIMESTAMP - INTERVAL '7 days'"
         else:
             sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > datetime('now', '-7 days')"
         row = conn.execute(sql, (token,)).fetchone()
@@ -1094,6 +1096,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if path.startswith("/uploads/"):
             self.serve_upload(path)
             return
+
+        # Public endpoints (no auth required)
         if path.startswith("/api/public/orders/") and not path.endswith("/comprovante"):
             try:
                 order_id = int(path.rsplit("/", 1)[-1])
@@ -1104,75 +1108,109 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data)
             return
-        if path.startswith("/entregador"):
+
+        if path == "/entregador" or path == "/entregador/":
             # Serve SPA para o app do entregador
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
             self.wfile.write((ROOT / "index.html").read_bytes())
             return
-        if path.startswith("/api/public/driver/"):
-            try:
-                driver_user_id = int(path.rsplit("/", 1)[-1])
-            except ValueError:
-                self.send_error(HTTPStatus.BAD_REQUEST, "ID inválido")
-                return
+
+        # Driver public API — robust path parsing
+        driver_public_match = re.match(r"^/api/public/driver/(\d+)$", path)
+        if driver_public_match:
+            driver_user_id = int(driver_public_match.group(1))
             data = self.get_public_driver_orders(driver_user_id)
             if data is not None:
                 self.send_json(data)
             return
-        if path == "/api/orders":
-            self.send_json(self.get_orders())
-            return
+
         if path == "/api/menu":
             self.send_json(self.get_menu())
-            return
-        if path == "/api/ingredients":
-            self.send_json(self.get_ingredients())
-            return
-        if path == "/api/recipes":
-            self.send_json(self.get_recipes())
-            return
-        if path == "/api/stock-movements":
-            self.send_json(self.get_stock_movements())
-            return
-        if path == "/api/delivery-zones":
-            self.send_json(self.get_delivery_zones())
-            return
-        if path == "/api/profit-report":
-            self.send_json(self.get_profit_report())
             return
         if path == "/api/promotions":
             self.send_json(self.get_promotions())
             return
+        if path == "/api/delivery-zones":
+            self.send_json(self.get_delivery_zones())
+            return
+        if path == "/api/public/settings":
+            self.send_json(self.get_public_settings())
+            return
+
+        # Protected endpoints (require auth)
+        if path == "/api/orders":
+            if not self.require_permission("orders"):
+                return
+            self.send_json(self.get_orders())
+            return
+        if path == "/api/ingredients":
+            if not self.require_permission("inventory"):
+                return
+            self.send_json(self.get_ingredients())
+            return
+        if path == "/api/recipes":
+            if not self.require_permission("inventory"):
+                return
+            self.send_json(self.get_recipes())
+            return
+        if path == "/api/stock-movements":
+            if not self.require_permission("inventory"):
+                return
+            self.send_json(self.get_stock_movements())
+            return
+        if path == "/api/profit-report":
+            if not self.require_permission("finance"):
+                return
+            self.send_json(self.get_profit_report())
+            return
         if path == "/api/stats":
+            if not self.require_permission("orders"):
+                return
             self.send_json(self.get_stats())
             return
         if path == "/api/users":
+            if not self.require_permission("settings"):
+                return
             self.send_json(self.get_demo_users())
             return
         if path == "/api/deliveries":
+            if not self.require_permission("delivery"):
+                return
             self.send_json(self.get_deliveries())
             return
         if path == "/api/drivers":
+            if not self.require_permission("drivers"):
+                return
             self.send_json(self.get_drivers())
             return
         if path == "/api/customers":
+            if not self.require_permission("customers"):
+                return
             self.send_json(self.get_customers())
             return
         if path.startswith("/api/customers/") and path.endswith("/orders"):
+            if not self.require_permission("customers"):
+                return
             customer_id = int(path.split("/")[-2])
             data = self.get_customer_orders(customer_id)
             if data is not None:
                 self.send_json(data)
             return
         if path == "/api/closeout":
+            if not self.require_permission("finance"):
+                return
             self.send_json(self.get_closeout())
             return
         if path == "/api/settings":
+            if not self.require_permission("settings"):
+                return
             self.send_json(self.get_settings())
             return
         if path == "/api/inbox":
+            if not self.require_permission("orders"):
+                return
             self.send_json(self.get_inbox())
             return
         super().do_GET()
@@ -1325,6 +1363,18 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data, HTTPStatus.CREATED)
                 return
+            if path == "/api/public/driver/login":
+                payload = self.read_json()
+                data = self.driver_login_by_cpf(payload)
+                if data is not None:
+                    self.send_json(data)
+                return
+            if path == "/api/public/driver/recover":
+                payload = self.read_json()
+                data = self.driver_recover_pin(payload)
+                if data is not None:
+                    self.send_json(data)
+                return
             if path.startswith("/api/public/orders/") and path.endswith("/comprovante"):
                 parts = path.split("/")
                 try:
@@ -1338,6 +1388,11 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     self.send_json(data)
                 return
             if path == "/api/webhook/evolution":
+                # Validar assinatura do webhook
+                webhook_secret = self.headers.get("X-Webhook-Secret", "")
+                if not hmac.compare_digest(webhook_secret, WEBHOOK_SECRET):
+                    self.send_error(HTTPStatus.UNAUTHORIZED, "Assinatura de webhook inválida")
+                    return
                 payload = self.read_json()
                 data = self.receive_evolution_webhook(payload)
                 self.send_json(data)
@@ -1426,26 +1481,38 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_json(data)
             return
         if path.startswith("/api/public/drivers/") and path.endswith("/location"):
-            driver_id = int(path.split("/")[-2])
+            driver_id_from_token = self.require_driver_auth()
+            if driver_id_from_token is None:
+                return
             payload = self.read_json()
-            data = self.update_driver_location(driver_id, payload)
-            if data is not None:
-                self.send_json(data)
-            return
-        if path == "/api/public/driver/login":
-            payload = self.read_json()
-            data = self.driver_login_by_cpf(payload)
-            if data is not None:
-                self.send_json(data)
-            return
-        if path == "/api/public/driver/recover":
-            payload = self.read_json()
-            data = self.driver_recover_pin(payload)
-            if data is not None:
-                self.send_json(data)
+            with connect() as conn:
+                user = conn.execute("SELECT name FROM users WHERE id = ? AND role = 'entregador'", (driver_id_from_token,)).fetchone()
+                if not user:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Entregador não encontrado")
+                    return
+                driver = conn.execute("SELECT id FROM drivers WHERE lower(name) = lower(?)", (user["name"],)).fetchone()
+                if not driver:
+                    self.send_error(HTTPStatus.NOT_FOUND, "Entregador não encontrado")
+                    return
+                data = self.update_driver_location(driver["id"], payload)
+                if data is not None:
+                    self.send_json(data)
             return
         if path.startswith("/api/public/driver/orders/") and path.endswith("/deliver"):
+            driver_id_from_token = self.require_driver_auth()
+            if driver_id_from_token is None:
+                return
             order_id = int(path.split("/")[-2])
+            # Verificar se o pedido está atribuído a este entregador
+            with connect() as conn:
+                user = conn.execute("SELECT name FROM users WHERE id = ? AND role = 'entregador'", (driver_id_from_token,)).fetchone()
+                order = conn.execute("SELECT id, status, driver_name FROM orders WHERE id = ?", (order_id,)).fetchone()
+            if not user or not order:
+                self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
+                return
+            if order["driver_name"] != user["name"]:
+                self.send_error(HTTPStatus.FORBIDDEN, "Pedido não atribuído a você")
+                return
             payload = self.read_json()
             data = self.driver_mark_delivered(order_id, payload)
             if data is not None:
@@ -1498,6 +1565,58 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return
         self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
 
+    def do_OPTIONS(self):
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Session-Token, Authorization, X-Webhook-Secret")
+        self.end_headers()
+
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+        try:
+            if path.startswith("/api/menu/"):
+                if not self.require_permission("menu"):
+                    return
+                item_id = int(path.rsplit("/", 1)[-1])
+                self.delete_menu_item(item_id)
+                return
+            if path.startswith("/api/ingredients/"):
+                if not self.require_permission("inventory"):
+                    return
+                ingredient_id = int(path.rsplit("/", 1)[-1])
+                self.delete_ingredient(ingredient_id)
+                return
+            if path.startswith("/api/delivery-zones/"):
+                if not self.require_permission("settings"):
+                    return
+                zone_id = int(path.rsplit("/", 1)[-1])
+                self.delete_delivery_zone(zone_id)
+                return
+            if path.startswith("/api/promotions/"):
+                if not self.require_permission("promotions"):
+                    return
+                promotion_id = int(path.rsplit("/", 1)[-1])
+                self.delete_promotion(promotion_id)
+                return
+            if path.startswith("/api/drivers/"):
+                if not self.require_permission("drivers"):
+                    return
+                driver_id = int(path.rsplit("/", 1)[-1])
+                self.delete_driver(driver_id)
+                return
+            if path.startswith("/api/orders/"):
+                if not self.require_permission("orders"):
+                    return
+                order_id = int(path.rsplit("/", 1)[-1])
+                self.delete_order(order_id)
+                return
+            self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
+        except Exception as error:
+            import traceback
+            traceback.print_exc()
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Erro interno no servidor")
+
     def require_permission(self, permission):
         # Validar via token de sessão se presente
         token = self.headers.get("X-Session-Token", "")
@@ -1516,6 +1635,19 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return True
         self.send_error(HTTPStatus.FORBIDDEN, "Perfil sem permissão para esta ação")
         return False
+
+    def require_driver_auth(self):
+        """Valida token Bearer do entregador e retorna o user_id."""
+        auth = self.headers.get("Authorization", "")
+        token = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
+        if not token:
+            self.send_error(HTTPStatus.UNAUTHORIZED, "Token de autenticação obrigatório")
+            return None
+        session = validate_session(token)
+        if not session or session.get("role") != "entregador":
+            self.send_error(HTTPStatus.UNAUTHORIZED, "Sessão inválida ou expirada")
+            return None
+        return session["user_id"]
 
     def read_json(self):
         length = int(self.headers.get("Content-Length", 0))
@@ -1542,11 +1674,11 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return rows_to_dicts(rows)
 
     def get_public_order(self, order_id):
+        """Retorna apenas campos públicos de um pedido (para acompanhamento do cliente)."""
         with connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, customer, status, item, total, eta, delivery_type, cancel_reason, payment_receipt_url,
-                       payment_status, payment_receipt_status, payment_receipt_note,
+                SELECT id, customer, status, item, total, eta, delivery_type,
                        driver_name, driver_lat, driver_lng, last_location_at
                 FROM orders
                 WHERE id = ?
@@ -1583,9 +1715,17 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             while conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
                 email = f"{original_email}.{suffix}"
                 suffix += 1
+            cpf = only_digits(phone) if phone else ""
+            # Garantir username único
+            username = name.lower().replace(" ", ".")
+            original_username = username
+            suffix = 1
+            while conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone():
+                username = f"{original_username}.{suffix}"
+                suffix += 1
             cursor = conn.execute(
                 "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
-                (name.lower().replace(" ", "."), email, "", "", hash_pin(pin), name, "entregador"),
+                (username, email, cpf, "", hash_pin(pin), name, "entregador"),
             )
             user_row = cursor.fetchone()
             user_id = user_row["id"]
@@ -2049,6 +2189,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             for key in SENSITIVE_SETTINGS:
                 if settings.get(key):
                     settings[key] = "********"
+        settings["pix_cnpj"] = PIX_CNPJ
+        return settings
+
+    def get_public_settings(self):
+        """Retorna apenas configurações seguras para a loja pública."""
+        with connect() as conn:
+            rows = conn.execute("SELECT key, value FROM settings").fetchall()
+        all_settings = {row["key"]: row["value"] for row in rows}
+        public_keys = {
+            "restaurant_name", "opening_hours", "delivery_fee", "delivery_areas",
+            "prep_time", "pizza_sizes", "pix_key"
+        }
+        settings = {k: all_settings.get(k, "") for k in public_keys}
+        settings["pix_cnpj"] = PIX_CNPJ
         return settings
 
     def get_inbox(self):
@@ -2692,10 +2846,15 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def update_menu_item(self, item_id, payload):
         fields = []
         values = []
+        image_url_value = None
         for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons"]:
             if field in payload:
                 fields.append(f"{field} = ?")
-                values.append(data_url_to_upload(payload[field], f"produto-{item_id}") if field == "image_url" else payload[field])
+                if field == "image_url":
+                    image_url_value = payload[field]
+                    values.append(image_url_value)  # placeholder; será substituído após validação
+                else:
+                    values.append(payload[field])
         if not fields:
             self.send_error(HTTPStatus.BAD_REQUEST, "Nada para atualizar")
             return
@@ -2706,6 +2865,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             except DB_INTEGRITY_ERROR:
                 self.send_error(HTTPStatus.CONFLICT, "Produto já existe")
                 return
+            # Só salva imagem no disco se o UPDATE foi bem-sucedido
+            if image_url_value and image_url_value.startswith("data:"):
+                uploaded_url = data_url_to_upload(image_url_value, f"produto-{item_id}")
+                conn.execute("UPDATE menu_items SET image_url = ? WHERE id = ?", (uploaded_url, item_id))
             row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (item_id,)).fetchone()
         if row is None:
             self.send_error(HTTPStatus.NOT_FOUND, "Produto não encontrado")
@@ -3224,6 +3387,39 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
             return
         return dict(row)
+
+    def delete_menu_item(self, item_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM menu_ingredients WHERE menu_item_id = ?", (item_id,))
+            conn.execute("DELETE FROM menu_items WHERE id = ?", (item_id,))
+        self.send_json({"ok": True})
+
+    def delete_ingredient(self, ingredient_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM menu_ingredients WHERE ingredient_id = ?", (ingredient_id,))
+            conn.execute("DELETE FROM ingredients WHERE id = ?", (ingredient_id,))
+        self.send_json({"ok": True})
+
+    def delete_delivery_zone(self, zone_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM delivery_zones WHERE id = ?", (zone_id,))
+        self.send_json({"ok": True})
+
+    def delete_promotion(self, promotion_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM promotions WHERE id = ?", (promotion_id,))
+        self.send_json({"ok": True})
+
+    def delete_driver(self, driver_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM drivers WHERE id = ?", (driver_id,))
+        self.send_json({"ok": True})
+
+    def delete_order(self, order_id):
+        with connect() as conn:
+            conn.execute("DELETE FROM order_items WHERE order_id = ?", (order_id,))
+            conn.execute("DELETE FROM orders WHERE id = ?", (order_id,))
+        self.send_json({"ok": True})
 
     def driver_mark_delivered(self, order_id, payload):
         with connect() as conn:

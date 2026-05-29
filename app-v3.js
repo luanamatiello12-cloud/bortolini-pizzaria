@@ -3,6 +3,16 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+function escapeHtml(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 let menuItems = [];
 let orders = [];
 let demoUsers = [];
@@ -164,6 +174,7 @@ async function loadData() {
     ["/api/promotions",     (v) => { promotions = v; }],
     ["/api/customers",      (v) => { customers = v; }],
     ["/api/settings",       (v) => { settings = v; }],
+    ["/api/public/settings",(v) => { if (!settings.restaurant_name) settings = v; }],
     ["/api/inbox",          (v) => { conversations = v; }],
     ["/api/drivers",        (v) => { drivers = v; }],
     ["/api/closeout",       (v) => { closeout = v; }],
@@ -271,12 +282,12 @@ function renderOwnerAlerts() {
   const pendingPix = orders.filter((order) => order.payment === "PIX" && !["Pago", "Comprovante aprovado"].includes(order.payment_status || ""));
   const lowStock = ingredients.filter((ingredient) => ingredient.low_stock || Number(ingredient.stock_qty) <= Number(ingredient.min_qty));
   const alerts = [
-    ...late.map((order) => [`Pedido atrasado`, `#${order.id} - ${order.item} - ${orderAge(order)} min`]),
-    ...pendingPix.map((order) => [`PIX pendente`, `#${order.id} - ${order.customer} - ${currency.format(order.total)}`]),
-    ...lowStock.map((ingredient) => [`Estoque no mínimo`, `${ingredient.name}: ${Number(ingredient.stock_qty).toLocaleString("pt-BR")} ${ingredient.unit}`]),
+    ...late.map((order) => [`Pedido atrasado`, `#${order.id} - ${escapeHtml(order.item)} - ${orderAge(order)} min`]),
+    ...pendingPix.map((order) => [`PIX pendente`, `#${order.id} - ${escapeHtml(order.customer)} - ${currency.format(order.total)}`]),
+    ...lowStock.map((ingredient) => [`Estoque no mínimo`, `${escapeHtml(ingredient.name)}: ${Number(ingredient.stock_qty).toLocaleString("pt-BR")} ${escapeHtml(ingredient.unit)}`]),
   ];
   box.innerHTML = alerts.length
-    ? alerts.slice(0, 8).map(([title, detail]) => `<article class="best-item"><strong>${title}</strong><span>${detail}</span></article>`).join("")
+    ? alerts.slice(0, 8).map(([title, detail]) => `<article class="best-item"><strong>${escapeHtml(title)}</strong><span>${detail}</span></article>`).join("")
     : `<article class="best-item"><strong>Operação tranquila</strong><span>Sem alertas críticos agora.</span></article>`;
 }
 
@@ -290,12 +301,12 @@ function renderOrders() {
           <td>#${order.id}</td>
           <td>
             <div class="order-cell">
-              ${renderPhoto(getItemImage(order.item), "order-photo", order.item)}
-              <div>${order.customer}<br><small>${order.item}${order.driver_name ? ` · ${order.driver_name} em rota` : ""}${order.payment_receipt_url ? " · comprovante anexado" : ""}</small></div>
+              ${renderPhoto(getItemImage(order.item), "order-photo", escapeHtml(order.item))}
+              <div>${escapeHtml(order.customer)}<br><small>${escapeHtml(order.item)}${order.driver_name ? ` · ${escapeHtml(order.driver_name)} em rota` : ""}${order.payment_receipt_url ? " · comprovante anexado" : ""}</small></div>
             </div>
           </td>
-          <td>${order.channel}<br><small>${order.delivery_type || "Entrega"}</small></td>
-          <td><span class="status-pill">${order.status}</span></td>
+          <td>${escapeHtml(order.channel)}<br><small>${escapeHtml(order.delivery_type) || "Entrega"}</small></td>
+          <td><span class="status-pill">${escapeHtml(order.status)}</span></td>
           <td>${currency.format(order.total)}</td>
           <td><span class="status-pill">${order.payment || "Não informado"}</span></td>
           <td>
@@ -347,10 +358,10 @@ function renderLiveOrders() {
       (order) => `
         <article class="order-card">
           <div>
-            <strong>#${order.id} · ${order.customer}</strong>
-            <p>${order.item} via ${order.channel}</p>
+            <strong>#${order.id} · ${escapeHtml(order.customer)}</strong>
+            <p>${escapeHtml(order.item)} via ${escapeHtml(order.channel)}</p>
           </div>
-          <span class="status-pill">${order.status}</span>
+          <span class="status-pill">${escapeHtml(order.status)}</span>
         </article>
       `,
     )
@@ -1134,8 +1145,8 @@ function renderCustomerStore() {
     ? bebidas.map((item) => `
         <article class="menu-card-ifood">
           <div class="ifood-info">
-            <strong>${item.name}</strong>
-            <p>${item.description || "Bebida"}</p>
+            <strong>${escapeHtml(item.name)}</strong>
+            <p>${escapeHtml(item.description) || "Bebida"}</p>
             <span class="ifood-price">${currency.format(item.price)}</span>
           </div>
           <button class="add-btn-round" id="add-btn-${item.id}" onclick="addBebidaToCartAnimated(${item.id})">+</button>
@@ -1148,9 +1159,9 @@ function renderCustomerStore() {
   byId("store-promocoes").innerHTML = activePromos.length
     ? activePromos.map((promo) => `
         <article class="menu-card">
-          <strong>${promo.title}<span>${formatDiscount(promo)}</span></strong>
-          <p>${promo.item_name}</p>
-          <small>Válido de ${promo.starts_at} até ${promo.ends_at}</small>
+          <strong>${escapeHtml(promo.title)}<span>${formatDiscount(promo)}</span></strong>
+          <p>${escapeHtml(promo.item_name)}</p>
+          <small>Válido de ${escapeHtml(promo.starts_at)} até ${escapeHtml(promo.ends_at)}</small>
         </article>
       `).join("")
     : `<p class="form-hint">Nenhuma promoção ativa no momento.</p>`;
@@ -2779,13 +2790,13 @@ async function checkoutCart() {
 }
 
 function copyPix() {
-  const cnpj = "66.686.680/0001-57";
+  const cnpj = settings.pix_cnpj || "66.686.680/0001-57";
   navigator.clipboard.writeText(cnpj).then(() => {
     const btn = byId("pix-copy-btn");
     btn.textContent = "Copiado!";
     setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
   }).catch(() => {
-    showToast("Chave PIX: 66.686.680/0001-57");
+    showToast(`Chave PIX: ${cnpj}`);
   });
 }
 
@@ -4122,12 +4133,12 @@ async function loadDriverPublicOrders() {
       <article class="driver-order-card">
         <div class="driver-order-header">
           <strong>Pedido #${order.id}</strong>
-          <span class="driver-order-status ${statusClass}">${order.status}</span>
+          <span class="driver-order-status ${statusClass}">${escapeHtml(order.status)}</span>
         </div>
-        <div class="driver-order-customer">${order.customer || "Cliente"}</div>
-        ${phone ? `<div class="driver-order-phone">📞 ${order.customer_phone}</div>` : ""}
-        ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${order.address}</a>` : ""}
-        <div class="driver-order-items">${order.item}</div>
+        <div class="driver-order-customer">${escapeHtml(order.customer) || "Cliente"}</div>
+        ${phone ? `<div class="driver-order-phone">📞 ${escapeHtml(order.customer_phone)}</div>` : ""}
+        ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${escapeHtml(order.address)}</a>` : ""}
+        <div class="driver-order-items">${escapeHtml(order.item)}</div>
         <div class="driver-order-total">${currency.format(Number(order.total || 0))}</div>
         <div class="driver-order-actions">
           ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Mapa</a>` : ""}
@@ -4139,7 +4150,7 @@ async function loadDriverPublicOrders() {
 
     _driverCurrentOrderIds = data.orders.map(o => o.id);
   } catch(e) {
-    byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Erro ao carregar pedidos.</p>';
+    byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Nenhum pedido atribuído no momento.</p>';
   }
 }
 
