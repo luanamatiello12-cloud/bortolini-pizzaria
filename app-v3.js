@@ -1186,6 +1186,11 @@ function renderPizzaFlavorsDialog() {
   const container = byId("pizza-flavors-dialog-list");
   if (!container) return;
 
+  if (!pizzaItems.length) {
+    container.innerHTML = `<p class="form-hint" style="text-align:center;padding:24px 0;">🍕 Nenhum sabor cadastrado no cardápio.<br><small>Entre no admin e sincronize o cardápio em Configurações.</small></p>`;
+    return;
+  }
+
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
     return `
