@@ -1121,15 +1121,17 @@ function renderCustomerStore() {
     `).join("");
   }
 
-  // Bebidas
+  // Bebidas (cards estilo iFood)
   const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
   byId("store-bebidas").innerHTML = bebidas.length
     ? bebidas.map((item) => `
-        <article class="menu-card">
-          ${renderPhoto(item.image_url, "menu-photo", item.name)}
-          <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
-          <p>${item.description || "Bebida"}</p>
-          <button class="primary" onclick="addBebidaToCart(${item.id})">Adicionar</button>
+        <article class="menu-card-ifood">
+          <div class="ifood-info">
+            <strong>${item.name}</strong>
+            <p>${item.description || "Bebida"}</p>
+            <span class="ifood-price">${currency.format(item.price)}</span>
+          </div>
+          <button class="add-btn-round" id="add-btn-${item.id}" onclick="addBebidaToCartAnimated(${item.id})">+</button>
         </article>
       `).join("")
     : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
@@ -1459,6 +1461,15 @@ function addBebidaToCart(itemId) {
   saveCart();
   renderCart();
   hidePixConfirmation();
+}
+
+function addBebidaToCartAnimated(itemId) {
+  const btn = byId(`add-btn-${itemId}`);
+  if (btn) {
+    btn.classList.add("added");
+    setTimeout(() => btn.classList.remove("added"), 400);
+  }
+  addBebidaToCart(itemId);
 }
 
 function updatePizzaBuilderPrice(basePrice) {
@@ -2552,6 +2563,27 @@ function copyWhatsAppTemplate(type) {
   showToast("Mensagem pronta copiada.");
 }
 
+function selectPaymentCard(card) {
+  if (!card) return;
+  const container = card.closest('.payment-cards');
+  if (container) {
+    container.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+  }
+  card.classList.add('selected');
+  const input = card.querySelector('input[type="radio"]');
+  if (input) input.checked = true;
+
+  const trocoBox = byId('checkout-troco-box');
+  if (trocoBox) {
+    if (card.dataset.payment === 'Dinheiro') {
+      trocoBox.classList.remove('hidden');
+    } else {
+      trocoBox.classList.add('hidden');
+      byId('dialog-checkout-troco').value = '';
+    }
+  }
+}
+
 function openCheckoutDialog() {
   if (!cart.length) {
     showToast("Adicione pelo menos um item ao carrinho.");
@@ -2577,7 +2609,7 @@ function openCheckoutDialog() {
   byId("dialog-checkout-phone").value = "";
   byId("dialog-checkout-type").value = "Entrega";
   byId("dialog-checkout-address").value = "";
-  byId("dialog-checkout-payment").value = "PIX";
+  selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
   byId("dialog-address-label").style.display = "";
   byId("checkout-dialog").showModal();
@@ -2613,6 +2645,13 @@ async function checkoutCart() {
   const allNotes = [];
   const checkoutNotes = byId("dialog-checkout-notes").value.trim();
   if (checkoutNotes) allNotes.push(checkoutNotes);
+
+  const paymentMethod = document.querySelector('input[name="checkout-payment"]:checked')?.value || "PIX";
+  if (paymentMethod === "Dinheiro") {
+    const troco = byId("dialog-checkout-troco")?.value?.trim();
+    if (troco) allNotes.push(`Troco para: R$ ${troco}`);
+  }
+
   cart.forEach((entry) => {
     if (entry.type === "pizza" && entry.notes) {
       allNotes.push(`${entry.sizeLabel}: ${entry.notes}`);
@@ -2638,7 +2677,7 @@ async function checkoutCart() {
       price: entry.price,
     })),
     total,
-    payment: byId("dialog-checkout-payment").value,
+    payment: document.querySelector('input[name="checkout-payment"]:checked')?.value || "PIX",
     payment_receipt_url: "",
     eta: settings.prep_time || "35 min",
     delivery_fee: deliveryFee,

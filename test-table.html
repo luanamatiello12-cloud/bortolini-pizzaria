@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --surface: #fff;
+  --line: #e5e7eb;
+  --muted: #6b7280;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+body { font-family: Inter, sans-serif; margin: 0; padding: 20px; background: #f3f4f6; }
+
+/* Regras globais */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+tr:last-child td { border-bottom: 0; }
+
+/* Mobile */
+@media (max-width: 760px) {
+  .table-wrap table thead { display: none; }
+  .table-wrap table, .table-wrap tbody, .table-wrap tr, .table-wrap td {
+    display: block; width: 100%;
+  }
+  .table-wrap tr {
+    margin-bottom: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .table-wrap td {
+    border: none;
+    padding: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    white-space: normal;
+    text-align: right;
+  }
+  .table-wrap td:last-child { border-bottom: none; }
+  .table-wrap td::before {
+    font-weight: 700; color: var(--muted); font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.02em; flex-shrink: 0;
+  }
+  .table-wrap td:nth-child(1)::before { content: "Pedido"; }
+  .table-wrap td:nth-child(2)::before { content: "Cliente"; }
+  .table-wrap td:nth-child(3)::before { content: "Canal"; }
+  .table-wrap td:nth-child(4)::before { content: "Status"; }
+  .table-wrap td:nth-child(5)::before { content: "Total"; }
+  .table-wrap td:nth-child(6)::before { content: "Pagamento"; }
+  .table-wrap td:nth-child(7)::before { content: "Ação"; }
+}
+</style>
+</head>
+<body>
+<h2>Reduza a janela para &lt; 760px para ver os cards</h2>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Pedido</th><th>Cliente</th><th>Canal</th><th>Status</th><th>Total</th><th>Pagamento</th><th>Ação</th></tr></thead>
+    <tbody>
+      <tr><td>#42</td><td>Maria</td><td>WhatsApp</td><td><span>Entrega</span></td><td>R$ 55,00</td><td>PIX</td><td><button>Ver</button></td></tr>
+      <tr><td>#43</td><td>João</td><td>Instagram</td><td><span>Cozinha</span></td><td>R$ 70,00</td><td>Dinheiro</td><td><button>Ver</button></td></tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

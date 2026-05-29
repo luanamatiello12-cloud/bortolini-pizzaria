@@ -2404,14 +2404,20 @@ dialog::backdrop {
   font-weight: 800;
 }
 
-/* Modal de revisão do carrinho */
+/* Drawer de sacola (estilo iFood) */
 .cart-review-dialog {
-  width: min(560px, calc(100vw - 32px));
-  max-height: 90vh;
+  width: 100%;
+  max-width: 560px;
+  margin: auto auto 0;
+  border-radius: 20px 20px 0 0;
+  padding: 0;
+  border: none;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
 }
 .cart-review-dialog .dialog-card {
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
 }
 .cart-review-totals {
   display: grid;
@@ -2438,14 +2444,161 @@ dialog::backdrop {
   color: #dc2626;
 }
 
-/* Checkout dialog maior */
+/* Drawer de checkout (estilo iFood) */
 .checkout-dialog {
-  width: min(520px, calc(100vw - 32px));
-  max-height: 92vh;
+  width: 100%;
+  max-width: 560px;
+  margin: auto auto 0;
+  border-radius: 20px 20px 0 0;
+  padding: 0;
+  border: none;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
 }
 .checkout-dialog .dialog-card {
   max-height: 92vh;
   overflow-y: auto;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+}
+
+/* ── Cards de pagamento (estilo iFood) ── */
+.payment-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.payment-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.payment-card:hover {
+  border-color: #16a34a;
+}
+.payment-card.selected {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  background: #f0fdf4;
+}
+.payment-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.payment-card .pay-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Campo de troco (só aparece quando Dinheiro está selecionado) */
+#checkout-troco-box {
+  transition: opacity 0.2s, transform 0.2s;
+}
+#checkout-troco-box.hidden {
+  display: none !important;
+}
+
+/* ── Botão '+' redondo nos cards de produto (estilo iFood) ── */
+.add-btn-round {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+.add-btn-round:active {
+  transform: scale(0.9);
+}
+.add-btn-round.added {
+  animation: addCartBounce 0.4s ease;
+}
+
+@keyframes addCartBounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.25); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Card de produto ajustado para o botão '+' à direita */
+.menu-card-ifood {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.menu-card-ifood .ifood-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.menu-card-ifood .ifood-info strong {
+  font-size: 1rem;
+  color: #1a1a1a;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.menu-card-ifood .ifood-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.menu-card-ifood .ifood-price {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #dc2626;
+}
+
+/* Ajuste no botão flutuante do carrinho */
+.floating-cart-btn {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.35);
+  transition: transform 0.15s ease;
+}
+.floating-cart-btn:hover {
+  transform: translateX(-50%) scale(1.03);
 }
 
 /* Área de status do pedido */

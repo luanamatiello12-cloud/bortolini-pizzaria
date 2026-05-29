@@ -188,7 +188,8 @@
             <!-- Botão flutuante de carrinho (estilo iFood) -->
             <button class="floating-cart-btn" id="floating-cart-btn" type="button">
               <span id="floating-cart-qty">0</span>
-              <span>Ver carrinho</span>
+              <span>Ver sacola</span>
+              <span style="opacity:0.7;">·</span>
               <strong id="floating-cart-total">R$ 0,00</strong>
             </button>
 
@@ -1134,17 +1135,31 @@
         Endereço <span class="required">*</span>
         <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
       </label>
-      <label>
-        Pagamento
-        <select id="dialog-checkout-payment">
-          <option>PIX</option>
-          <option>Dinheiro</option>
-          <option>Cartão</option>
-        </select>
+      <label style="margin-bottom:4px;">Pagamento</label>
+      <div class="payment-cards" id="checkout-payment-cards">
+        <label class="payment-card selected" data-payment="PIX" onclick="selectPaymentCard(this)">
+          <input type="radio" name="checkout-payment" value="PIX" checked />
+          <span class="pay-icon">💠</span>
+          <span>PIX</span>
+        </label>
+        <label class="payment-card" data-payment="Dinheiro" onclick="selectPaymentCard(this)">
+          <input type="radio" name="checkout-payment" value="Dinheiro" />
+          <span class="pay-icon">💵</span>
+          <span>Dinheiro</span>
+        </label>
+        <label class="payment-card" data-payment="Cartão" onclick="selectPaymentCard(this)">
+          <input type="radio" name="checkout-payment" value="Cartão" />
+          <span class="pay-icon">💳</span>
+          <span>Cartão</span>
+        </label>
+      </div>
+      <label id="checkout-troco-box" class="hidden" style="margin-top:10px;">
+        Troco para quanto?
+        <input id="dialog-checkout-troco" type="number" placeholder="Ex: 100" />
       </label>
-      <label>
+      <label style="margin-top:12px;">
         Observações
-        <textarea id="dialog-checkout-notes" placeholder="Ex: troco para 100, campainha não funciona..."></textarea>
+        <textarea id="dialog-checkout-notes" placeholder="Ex: campainha não funciona..."></textarea>
       </label>
       <p class="form-error" id="dialog-checkout-error"></p>
       <div class="dialog-actions" style="display:flex;gap:8px;">
