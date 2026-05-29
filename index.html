@@ -1109,62 +1109,64 @@
 
   <!-- Modal de checkout (estilo iFood) -->
   <dialog id="checkout-dialog" class="checkout-dialog">
-    <div class="dialog-card">
+    <div class="dialog-card checkout-layout">
       <div class="panel-head">
         <h2>Finalizar pedido</h2>
         <button class="icon-button" onclick="byId('checkout-dialog').close()" aria-label="Fechar">×</button>
       </div>
-      <div id="checkout-summary" class="cart-list" style="margin-bottom:12px;"></div>
-      <strong id="checkout-dialog-total" style="display:block;margin-bottom:12px;">Total: R$ 0,00</strong>
-      <label>
-        Nome <span class="required">*</span>
-        <input id="dialog-checkout-name" placeholder="Seu nome" />
-      </label>
-      <label>
-        Telefone
-        <input id="dialog-checkout-phone" placeholder="WhatsApp" />
-      </label>
-      <label>
-        Entrega ou retirada
-        <select id="dialog-checkout-type">
-          <option>Entrega</option>
-          <option>Retirada</option>
-        </select>
-      </label>
-      <label id="dialog-address-label">
-        Endereço <span class="required">*</span>
-        <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
-      </label>
-      <label style="margin-bottom:4px;">Pagamento</label>
-      <div class="payment-cards" id="checkout-payment-cards">
-        <label class="payment-card selected" data-payment="PIX" onclick="selectPaymentCard(this)">
-          <input type="radio" name="checkout-payment" value="PIX" checked />
-          <span class="pay-icon">💠</span>
-          <span>PIX</span>
+      <div class="checkout-scroll">
+        <div id="checkout-summary" class="cart-list" style="margin-bottom:12px;"></div>
+        <strong id="checkout-dialog-total" style="display:block;margin-bottom:12px;">Total: R$ 0,00</strong>
+        <label>
+          Nome <span class="required">*</span>
+          <input id="dialog-checkout-name" placeholder="Seu nome" />
         </label>
-        <label class="payment-card" data-payment="Dinheiro" onclick="selectPaymentCard(this)">
-          <input type="radio" name="checkout-payment" value="Dinheiro" />
-          <span class="pay-icon">💵</span>
-          <span>Dinheiro</span>
+        <label>
+          Telefone
+          <input id="dialog-checkout-phone" placeholder="WhatsApp" />
         </label>
-        <label class="payment-card" data-payment="Cartão" onclick="selectPaymentCard(this)">
-          <input type="radio" name="checkout-payment" value="Cartão" />
-          <span class="pay-icon">💳</span>
-          <span>Cartão</span>
+        <label>
+          Entrega ou retirada
+          <select id="dialog-checkout-type">
+            <option>Entrega</option>
+            <option>Retirada</option>
+          </select>
         </label>
+        <label id="dialog-address-label">
+          Endereço <span class="required">*</span>
+          <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
+        </label>
+        <label style="margin-bottom:4px;">Pagamento</label>
+        <div class="payment-cards" id="checkout-payment-cards">
+          <label class="payment-card selected" data-payment="PIX" onclick="selectPaymentCard(this)">
+            <input type="radio" name="checkout-payment" value="PIX" checked />
+            <span class="pay-icon">💠</span>
+            <span>PIX</span>
+          </label>
+          <label class="payment-card" data-payment="Dinheiro" onclick="selectPaymentCard(this)">
+            <input type="radio" name="checkout-payment" value="Dinheiro" />
+            <span class="pay-icon">💵</span>
+            <span>Dinheiro</span>
+          </label>
+          <label class="payment-card" data-payment="Cartão" onclick="selectPaymentCard(this)">
+            <input type="radio" name="checkout-payment" value="Cartão" />
+            <span class="pay-icon">💳</span>
+            <span>Cartão</span>
+          </label>
+        </div>
+        <label id="checkout-troco-box" class="hidden" style="margin-top:10px;">
+          Troco para quanto?
+          <input id="dialog-checkout-troco" type="number" placeholder="Ex: 100" />
+        </label>
+        <label style="margin-top:12px;">
+          Observações
+          <textarea id="dialog-checkout-notes" placeholder="Ex: campainha não funciona..."></textarea>
+        </label>
+        <p class="form-error" id="dialog-checkout-error"></p>
       </div>
-      <label id="checkout-troco-box" class="hidden" style="margin-top:10px;">
-        Troco para quanto?
-        <input id="dialog-checkout-troco" type="number" placeholder="Ex: 100" />
-      </label>
-      <label style="margin-top:12px;">
-        Observações
-        <textarea id="dialog-checkout-notes" placeholder="Ex: campainha não funciona..."></textarea>
-      </label>
-      <p class="form-error" id="dialog-checkout-error"></p>
-      <div class="dialog-actions" style="display:flex;gap:8px;">
-        <button class="secondary" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" type="button">Voltar ao carrinho</button>
+      <div class="checkout-footer">
         <button class="primary" id="dialog-checkout-btn" type="button">Finalizar pedido</button>
+        <button class="ghost" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" type="button">← Voltar ao carrinho</button>
       </div>
     </div>
   </dialog>
