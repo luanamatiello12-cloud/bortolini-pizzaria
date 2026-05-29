@@ -125,6 +125,234 @@ PIX_CNPJ = "66.686.680/0001-57"
 WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta aprovada
 
 
+# ── Seed de ingredientes e fichas técnicas ──
+SEED_INGREDIENTS = [
+    {"name": "Massa de pizza", "code": "MASSA-001", "unit": "g", "stock_qty": 200000, "min_qty": 50000, "unit_cost": 0.008},
+    {"name": "Molho de tomate", "code": "MOLHO-001", "unit": "g", "stock_qty": 30000, "min_qty": 5000, "unit_cost": 0.012},
+    {"name": "Muçarela", "code": "MUZ-001", "unit": "g", "stock_qty": 120000, "min_qty": 20000, "unit_cost": 0.045},
+    {"name": "Orégano", "code": "OREG-001", "unit": "g", "stock_qty": 1000, "min_qty": 200, "unit_cost": 0.08},
+    {"name": "Calabresa fatiada", "code": "CALAB-001", "unit": "g", "stock_qty": 25000, "min_qty": 5000, "unit_cost": 0.035},
+    {"name": "Queijo parmesão", "code": "PARM-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.065},
+    {"name": "Cebola em rodelas", "code": "CEB-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.012},
+    {"name": "Farofa de bacon", "code": "FARBAC-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.04},
+    {"name": "Presunto", "code": "PRES-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.03},
+    {"name": "Ovo cozido", "code": "OVO-001", "unit": "g", "stock_qty": 3000, "min_qty": 600, "unit_cost": 0.015},
+    {"name": "Ervilha", "code": "ERV-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.018},
+    {"name": "Azeitona", "code": "AZEIT-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.025},
+    {"name": "Tomate em rodelas", "code": "TOM-001", "unit": "g", "stock_qty": 6000, "min_qty": 1000, "unit_cost": 0.015},
+    {"name": "Manjericão fresco", "code": "MANJ-001", "unit": "g", "stock_qty": 500, "min_qty": 100, "unit_cost": 0.12},
+    {"name": "Carne moída temperada", "code": "CARNEM-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.03},
+    {"name": "Pimentão", "code": "PIMEN-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.018},
+    {"name": "Pimenta calabresa", "code": "PIMCAL-001", "unit": "g", "stock_qty": 500, "min_qty": 100, "unit_cost": 0.05},
+    {"name": "Doritos queijo nacho", "code": "DORIT-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.055},
+    {"name": "Brócolis", "code": "BROC-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.02},
+    {"name": "Bacon em cubos", "code": "BACON-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.045},
+    {"name": "Pasta de alho e óleo", "code": "ALHO-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.025},
+    {"name": "Milho verde", "code": "MILHO-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.015},
+    {"name": "Palmito", "code": "PALM-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.04},
+    {"name": "Coração em fatias", "code": "CORAC-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.04},
+    {"name": "Filé ao molho mostarda", "code": "FILEM-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.055},
+    {"name": "Filé cremoso", "code": "FILEC-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.06},
+    {"name": "Catupiry", "code": "CATU-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.05},
+    {"name": "Frango desfiado", "code": "FRANGD-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.025},
+    {"name": "Frango cremoso", "code": "FRANGC-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.035},
+    {"name": "Atum sólido em óleo", "code": "ATUM-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.045},
+    {"name": "Requeijão cremoso", "code": "REQ-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.03},
+    {"name": "Estrogonofe de carne", "code": "ESTCAR-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.04},
+    {"name": "Batata palha", "code": "BATP-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.035},
+    {"name": "Estrogonofe de frango em cubos", "code": "ESTFRAN-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.035},
+    {"name": "Costela ao molho barbecue", "code": "COSTBBQ-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.05},
+    {"name": "Lombo canadense", "code": "LOMBO-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.04},
+    {"name": "Abacaxi", "code": "ABAC-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.018},
+    {"name": "Queijo prato", "code": "PRATO-001", "unit": "g", "stock_qty": 6000, "min_qty": 1200, "unit_cost": 0.04},
+    {"name": "Provolone", "code": "PROVO-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.055},
+    {"name": "Cheddar", "code": "CHEDD-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.05},
+    {"name": "Tomate seco", "code": "TOMSEC-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.035},
+    {"name": "Rúcula", "code": "RUCU-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.03},
+    {"name": "Costela desfiada", "code": "COSTDES-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.05},
+    {"name": "Creme de alho", "code": "CRALHO-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.03},
+    {"name": "Queijo coalho", "code": "COALHO-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.045},
+    {"name": "Cebola crisps", "code": "CEBCRISP-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.04},
+    {"name": "Chimichurri", "code": "CHIMI-001", "unit": "g", "stock_qty": 2000, "min_qty": 400, "unit_cost": 0.06},
+    {"name": "Cheiro verde", "code": "CHEIRO-001", "unit": "g", "stock_qty": 1000, "min_qty": 200, "unit_cost": 0.04},
+    {"name": "Cream cheese", "code": "CREAM-001", "unit": "g", "stock_qty": 6000, "min_qty": 1200, "unit_cost": 0.035},
+    {"name": "Molho teriyaki", "code": "TERI-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.055},
+    {"name": "Gergelim", "code": "GERG-001", "unit": "g", "stock_qty": 1000, "min_qty": 200, "unit_cost": 0.08},
+    {"name": "Creme de leite", "code": "CRLEITE-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.018},
+    {"name": "Nutella", "code": "NUTEL-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.065},
+    {"name": "Amendoim triturado", "code": "AMEND-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.025},
+    {"name": "Chocolate ralado", "code": "CHOC-RAL-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.045},
+    {"name": "Morango", "code": "MORAN-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.035},
+    {"name": "Chocolate preto", "code": "CHOCP-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.04},
+    {"name": "Paçoca de amendoim", "code": "PACOCA-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.02},
+    {"name": "Pedaços de Charge", "code": "CHARGE-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.035},
+    {"name": "Pedacinhos de Lacta", "code": "LACTA-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.04},
+    {"name": "Kinder Bueno", "code": "KINDER-001", "unit": "g", "stock_qty": 3000, "min_qty": 600, "unit_cost": 0.08},
+    {"name": "Chocolate branco", "code": "CHOCB-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.045},
+    {"name": "Chocolate ao leite", "code": "CHOCL-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.04},
+    {"name": "Pedaços de Prestígio", "code": "PRES-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.045},
+    {"name": "Banana fatiada", "code": "BANAN-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.012},
+    {"name": "Mel", "code": "MEL-001", "unit": "g", "stock_qty": 2000, "min_qty": 400, "unit_cost": 0.03},
+    {"name": "Açúcar com canela", "code": "ACUCAN-001", "unit": "g", "stock_qty": 2000, "min_qty": 400, "unit_cost": 0.015},
+]
+
+# Mapeamento de pizzas para ingredientes (fichas técnicas)
+SEED_RECIPES = {
+    "Calabresa": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Calabresa fatiada", 190), ("Queijo parmesão", 22),
+    ],
+    "Calabresa com Cebola": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Calabresa fatiada", 190), ("Cebola em rodelas", 52), ("Queijo parmesão", 22),
+    ],
+    "Calabresa com Farofa de Bacon": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Calabresa fatiada", 190), ("Farofa de bacon", 36), ("Queijo parmesão", 22),
+    ],
+    "Portuguesa": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Presunto", 110), ("Ovo cozido", 60), ("Cebola em rodelas", 52), ("Ervilha", 40),
+        ("Azeitona", 25), ("Queijo parmesão", 22),
+    ],
+    "Marguerita": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Tomate em rodelas", 110), ("Manjericão fresco", 10), ("Queijo parmesão", 22),
+    ],
+    "Mexicana com Doritos": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Carne moída temperada", 170), ("Pimentão", 40), ("Cebola em rodelas", 52),
+        ("Milho verde", 155), ("Pimenta calabresa", 4), ("Doritos queijo nacho", 50), ("Queijo parmesão", 22),
+    ],
+    "Brócolis com Bacon": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Brócolis", 150), ("Farofa de bacon", 36), ("Queijo parmesão", 22),
+    ],
+    "Alho e Óleo": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Pasta de alho e óleo", 160), ("Queijo parmesão", 22),
+    ],
+    "Bacon": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Bacon em cubos", 160), ("Queijo parmesão", 22),
+    ],
+    "Milho": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Milho verde", 155), ("Queijo parmesão", 22),
+    ],
+    "Milho com Bacon": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Milho verde", 155), ("Bacon em cubos", 160), ("Queijo parmesão", 22),
+    ],
+    "Vegetariana": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Milho verde", 155), ("Ervilha", 40), ("Brócolis", 150), ("Azeitona", 25),
+        ("Palmito", 80), ("Queijo parmesão", 22),
+    ],
+    "Coração": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Coração em fatias", 230), ("Queijo parmesão", 22),
+    ],
+    "Filé ao Molho Mostarda": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Filé ao molho mostarda", 230), ("Queijo parmesão", 22),
+    ],
+    "Filé Cremoso": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Filé cremoso", 230), ("Catupiry", 77), ("Queijo parmesão", 22),
+    ],
+    "Frango com Catupiry": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Frango desfiado", 190), ("Catupiry", 77), ("Queijo parmesão", 22),
+    ],
+    "Frango Cremoso": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Frango cremoso", 230), ("Queijo parmesão", 22),
+    ],
+    "Atum": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Atum sólido em óleo", 185), ("Queijo parmesão", 22),
+    ],
+    "Atum Especial": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Atum sólido em óleo", 185), ("Requeijão cremoso", 90), ("Queijo parmesão", 22),
+    ],
+    "Estrogonofe de Carne": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Estrogonofe de carne", 300), ("Batata palha", 40), ("Queijo parmesão", 22),
+    ],
+    "Estrogonofe de Frango": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Estrogonofe de frango em cubos", 230), ("Batata palha", 40), ("Queijo parmesão", 22),
+    ],
+    "Costela Barbecue": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Costela ao molho barbecue", 230), ("Queijo parmesão", 22),
+    ],
+    "Lombo com Abacaxi": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Lombo canadense", 170), ("Abacaxi", 120), ("Queijo parmesão", 22),
+    ],
+    "Lombo c/ Farofa de Bacon e Catupiry": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Lombo canadense", 170), ("Farofa de bacon", 36), ("Catupiry", 77), ("Queijo parmesão", 22),
+    ],
+    "Cinco Queijos": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Queijo prato", 80), ("Provolone", 60), ("Cheddar", 60), ("Catupiry", 77), ("Queijo parmesão", 22),
+    ],
+    "Bortolini Campeira ⭐": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Costela desfiada", 190), ("Creme de alho", 60), ("Queijo coalho", 140),
+        ("Cebola crisps", 10), ("Chimichurri", 5), ("Cheiro verde", 5),
+    ],
+    "Tomate Seco e Rúcula": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Tomate seco", 130), ("Rúcula", 40), ("Queijo parmesão", 22),
+    ],
+    "Pizza Sushi de Atum Premium ⭐": [
+        ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
+        ("Cream cheese", 110), ("Atum sólido em óleo", 185), ("Molho teriyaki", 50), ("Gergelim", 20),
+    ],
+    "Dois Amores": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate branco", 170), ("Chocolate preto", 220),
+    ],
+    "Chocolate Branco": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate branco", 170), ("Pedacinhos de Lacta", 80),
+    ],
+    "Chocolate Preto": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate preto", 220), ("Pedacinhos de Lacta", 80),
+    ],
+    "Prestígio": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate ao leite", 260), ("Pedaços de Prestígio", 80),
+    ],
+    "Charge": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate preto", 220), ("Paçoca de amendoim", 110), ("Pedaços de Charge", 110),
+    ],
+    "Kinder Bueno": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Chocolate preto", 220), ("Kinder Bueno", 80),
+    ],
+    "Banana com Canela": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Banana fatiada", 260), ("Mel", 20), ("Açúcar com canela", 22),
+    ],
+    "Pizza Bortolini ⭐": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Amendoim triturado", 50), ("Nutella", 150), ("Chocolate ralado", 50), ("Morango", 140),
+    ],
+    "Bortolini Campeira Doce": [
+        ("Massa de pizza", 380), ("Creme de leite", 145),
+        ("Nutella", 150), ("Amendoim triturado", 50), ("Chocolate ralado", 50),
+    ],
+}
+
+
 # Seeds removidos — sistema inicia limpo para cadastro manual
 
 USER_SEED = [
@@ -606,6 +834,55 @@ def init_db():
                 conn.execute(
                     "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
                     (item["name"], item["category"], item.get("description", "")),
+                )
+
+        # Seed de ingredientes no estoque
+        for ingredient in SEED_INGREDIENTS:
+            row = conn.execute("SELECT id FROM ingredients WHERE name = ?", (ingredient["name"],)).fetchone()
+            if not row:
+                conn.execute(
+                    """
+                    INSERT INTO ingredients (name, code, unit, stock_qty, min_qty, supplier, unit_cost)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        ingredient["name"],
+                        ingredient["code"],
+                        ingredient["unit"],
+                        ingredient["stock_qty"],
+                        ingredient["min_qty"],
+                        "Bortolini Fornecedor",
+                        ingredient["unit_cost"],
+                    ),
+                )
+
+        # Seed de fichas técnicas (receitas)
+        # Monta mapa nome -> id dos ingredientes
+        ingredient_map = {}
+        for row in conn.execute("SELECT id, name FROM ingredients").fetchall():
+            ingredient_map[row["name"]] = row["id"]
+
+        # Monta mapa nome -> id dos produtos do menu
+        menu_map = {}
+        for row in conn.execute("SELECT id, name FROM menu_items").fetchall():
+            menu_map[row["name"]] = row["id"]
+
+        for pizza_name, ingredients_list in SEED_RECIPES.items():
+            menu_item_id = menu_map.get(pizza_name)
+            if not menu_item_id:
+                continue
+            for ing_name, qty in ingredients_list:
+                ingredient_id = ingredient_map.get(ing_name)
+                if not ingredient_id:
+                    continue
+                # Upsert na ficha técnica
+                conn.execute(
+                    """
+                    INSERT INTO menu_ingredients (menu_item_id, ingredient_id, quantity)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(menu_item_id, ingredient_id) DO UPDATE SET quantity = excluded.quantity
+                    """,
+                    (menu_item_id, ingredient_id, qty),
                 )
 
 
