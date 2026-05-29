@@ -2522,6 +2522,22 @@ dialog::backdrop {
   flex-direction: column;
   height: 100%;
 }
+
+/* Modal de edição (centralizado) */
+.edit-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: 90vh;
+  margin: auto;
+  border-radius: 12px;
+  padding: 0;
+  border: none;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.edit-dialog .dialog-card {
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 18px;
+}
 .checkout-scroll {
   flex: 1;
   overflow-y: auto;
