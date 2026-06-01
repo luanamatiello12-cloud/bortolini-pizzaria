@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260529" />
+    <link rel="stylesheet" href="/styles.css?v=20260601" />
   </head>
   <body>
     <section class="login-screen" id="login-screen">
@@ -964,7 +964,7 @@
       </form>
     </dialog>
 
-    <script src="/app-v3.js?v=20260529"></script>
+    <script src="/app-v3.js?v=20260601"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1091,81 +1091,119 @@
   </dialog>
   <!-- Modal de revisão do carrinho (estilo iFood) -->
   <dialog id="cart-review-dialog" class="cart-review-dialog">
-    <div class="dialog-card">
-      <div class="panel-head">
+    <div class="dialog-card ifood-cart-card">
+      <div class="ifood-checkout-header">
+        <button class="icon-button" onclick="byId('cart-review-dialog').close()" aria-label="Voltar">←</button>
         <h2>Seu pedido</h2>
-        <button class="icon-button" onclick="byId('cart-review-dialog').close()" aria-label="Fechar">×</button>
+        <span></span>
       </div>
-      <div id="cart-review-items" class="cart-list"></div>
-      <div class="cart-review-totals">
-        <div class="review-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
-        <div class="review-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
-        <div class="review-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
+      <div id="cart-review-items" class="ifood-items-list"></div>
+      <button class="ifood-add-more" onclick="byId('cart-review-dialog').close()" type="button">
+        <span>+</span> Adicionar mais itens
+      </button>
+      <div class="ifood-summary-box">
+        <div class="ifood-summary-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
+        <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
+        <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
       </div>
-      <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
+      <div class="ifood-footer-fixed">
+        <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
+      </div>
     </div>
   </dialog>
 
   <!-- Modal de checkout (estilo iFood) -->
   <dialog id="checkout-dialog" class="checkout-dialog">
-    <div class="dialog-card checkout-layout">
-      <div class="panel-head">
+    <div class="dialog-card ifood-checkout-card">
+      <div class="ifood-checkout-header">
+        <button class="icon-button" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" aria-label="Voltar">←</button>
         <h2>Finalizar pedido</h2>
-        <button class="icon-button" onclick="byId('checkout-dialog').close()" aria-label="Fechar">×</button>
+        <span></span>
       </div>
-      <div class="checkout-scroll">
-        <div id="checkout-summary" class="cart-list" style="margin-bottom:12px;"></div>
-        <strong id="checkout-dialog-total" style="display:block;margin-bottom:12px;">Total: R$ 0,00</strong>
-        <label>
-          Nome <span class="required">*</span>
-          <input id="dialog-checkout-name" placeholder="Seu nome" />
-        </label>
-        <label>
-          Telefone
-          <input id="dialog-checkout-phone" placeholder="WhatsApp" />
-        </label>
-        <label>
-          Entrega ou retirada
-          <select id="dialog-checkout-type">
-            <option>Entrega</option>
-            <option>Retirada</option>
-          </select>
-        </label>
-        <label id="dialog-address-label">
-          Endereço <span class="required">*</span>
-          <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
-        </label>
-        <label style="margin-bottom:4px;">Pagamento</label>
-        <div class="payment-cards" id="checkout-payment-cards">
-          <label class="payment-card selected" data-payment="PIX" onclick="selectPaymentCard(this)">
-            <input type="radio" name="checkout-payment" value="PIX" checked />
-            <span class="pay-icon">💠</span>
-            <span>PIX</span>
+      <div class="ifood-checkout-scroll">
+        <!-- Endereço -->
+        <div class="ifood-address-section">
+          <div class="ifood-address-icon">📍</div>
+          <div class="ifood-address-info">
+            <small>Entregar em</small>
+            <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
+            <span class="ifood-eta">🕐 <span id="checkout-eta">35 min</span></span>
+          </div>
+        </div>
+        <!-- Itens -->
+        <div id="checkout-summary" class="ifood-items-list"></div>
+        <!-- Dados pessoais -->
+        <div class="ifood-form-section">
+          <label class="ifood-input-line">
+            <span>Nome <span class="required">*</span></span>
+            <input id="dialog-checkout-name" placeholder="Seu nome" />
           </label>
-          <label class="payment-card" data-payment="Dinheiro" onclick="selectPaymentCard(this)">
-            <input type="radio" name="checkout-payment" value="Dinheiro" />
-            <span class="pay-icon">💵</span>
-            <span>Dinheiro</span>
+          <label class="ifood-input-line">
+            <span>Telefone</span>
+            <input id="dialog-checkout-phone" placeholder="WhatsApp" />
           </label>
-          <label class="payment-card" data-payment="Cartão" onclick="selectPaymentCard(this)">
-            <input type="radio" name="checkout-payment" value="Cartão" />
-            <span class="pay-icon">💳</span>
-            <span>Cartão</span>
+          <label class="ifood-input-line">
+            <span>Entrega</span>
+            <select id="dialog-checkout-type">
+              <option>Entrega</option>
+              <option>Retirada</option>
+            </select>
           </label>
         </div>
-        <label id="checkout-troco-box" class="hidden" style="margin-top:10px;">
-          Troco para quanto?
-          <input id="dialog-checkout-troco" type="number" placeholder="Ex: 100" />
-        </label>
-        <label style="margin-top:12px;">
-          Observações
+        <!-- Pagamento -->
+        <div class="ifood-payment-section">
+          <strong>Forma de pagamento</strong>
+          <div class="ifood-payment-list" id="checkout-payment-cards">
+            <label class="ifood-pay-row selected" data-payment="PIX" onclick="selectPaymentCard(this)">
+              <span class="ifood-pay-left">
+                <span class="ifood-pay-icon">💠</span>
+                <span>PIX</span>
+              </span>
+              <input type="radio" name="checkout-payment" value="PIX" checked />
+              <span class="ifood-pay-check">✓</span>
+            </label>
+            <label class="ifood-pay-row" data-payment="Dinheiro" onclick="selectPaymentCard(this)">
+              <span class="ifood-pay-left">
+                <span class="ifood-pay-icon">💵</span>
+                <span>Dinheiro</span>
+              </span>
+              <input type="radio" name="checkout-payment" value="Dinheiro" />
+              <span class="ifood-pay-check">✓</span>
+            </label>
+            <label class="ifood-pay-row" data-payment="Cartão" onclick="selectPaymentCard(this)">
+              <span class="ifood-pay-left">
+                <span class="ifood-pay-icon">💳</span>
+                <span>Cartão</span>
+              </span>
+              <input type="radio" name="checkout-payment" value="Cartão" />
+              <span class="ifood-pay-check">✓</span>
+            </label>
+          </div>
+          <div id="checkout-troco-box" class="hidden ifood-troco">
+            <label>
+              <span>Troco para quanto?</span>
+              <input id="dialog-checkout-troco" type="number" placeholder="Ex: 100" />
+            </label>
+          </div>
+        </div>
+        <!-- Observações -->
+        <label class="ifood-notes">
+          <span>Observações</span>
           <textarea id="dialog-checkout-notes" placeholder="Ex: campainha não funciona..."></textarea>
         </label>
+        <!-- Resumo de valores -->
+        <div class="ifood-summary-box">
+          <div class="ifood-summary-line"><span>Subtotal</span><span id="checkout-subtotal">R$ 0,00</span></div>
+          <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="checkout-fee">R$ 0,00</span></div>
+          <div class="ifood-summary-line total"><span>Total</span><strong id="checkout-grand-total">R$ 0,00</strong></div>
+        </div>
         <p class="form-error" id="dialog-checkout-error"></p>
       </div>
-      <div class="checkout-footer">
-        <button class="primary" id="dialog-checkout-btn" type="button">Finalizar pedido</button>
-        <button class="ghost" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" type="button">← Voltar ao carrinho</button>
+      <div class="ifood-footer-fixed">
+        <button class="primary" id="dialog-checkout-btn" type="button">
+          <span>Finalizar pedido</span>
+          <span id="checkout-btn-total">· R$ 0,00</span>
+        </button>
       </div>
     </div>
   </dialog>

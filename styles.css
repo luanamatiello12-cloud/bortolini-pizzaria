@@ -2558,7 +2558,341 @@ dialog::backdrop {
   border-radius: 12px;
 }
 
-/* ── Cards de pagamento (estilo iFood) ── */
+/* ── Layout iFood Checkout ── */
+.ifood-checkout-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.ifood-checkout-header h2 {
+  flex: 1;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+}
+.ifood-checkout-header .icon-button {
+  width: 36px;
+  height: 36px;
+  font-size: 1.3rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.ifood-checkout-header span:last-child {
+  width: 36px;
+}
+
+.ifood-checkout-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0 100px;
+}
+
+/* Endereço */
+.ifood-address-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  background: #f8f8f8;
+  border-bottom: 1px solid var(--line);
+}
+.ifood-address-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+  margin-top: 2px;
+}
+.ifood-address-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ifood-address-info small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.ifood-address-info input {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  width: 100%;
+}
+.ifood-address-info input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+.ifood-eta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Lista de itens */
+.ifood-items-list {
+  padding: 0 18px;
+}
+.ifood-items-list .ifood-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.ifood-item-row .ifood-item-qty {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 28px;
+}
+.ifood-item-row .ifood-item-info {
+  flex: 1;
+}
+.ifood-item-row .ifood-item-info strong {
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}
+.ifood-item-row .ifood-item-info p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+.ifood-item-row .ifood-item-price {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+/* Adicionar mais */
+.ifood-add-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 18px;
+  padding: 12px;
+  border: 1.5px dashed #ccc;
+  border-radius: 10px;
+  background: #fff;
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ifood-add-more:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+.ifood-add-more span {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* Form section */
+.ifood-form-section {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ifood-input-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ifood-input-line span {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ifood-input-line input,
+.ifood-input-line select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+/* Pagamento */
+.ifood-payment-section {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.ifood-payment-section > strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: #1a1a1a;
+}
+.ifood-payment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ifood-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ifood-pay-row:last-child {
+  border-bottom: none;
+}
+.ifood-pay-row:hover {
+  background: #fafafa;
+}
+.ifood-pay-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ifood-pay-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.ifood-pay-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ifood-pay-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: transparent;
+  transition: all 0.2s;
+}
+.ifood-pay-row.selected .ifood-pay-check {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+.ifood-troco {
+  margin-top: 8px;
+  padding: 0 0 8px;
+}
+.ifood-troco label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ifood-troco label span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.ifood-troco input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+/* Observações */
+.ifood-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.ifood-notes span {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ifood-notes textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Resumo */
+.ifood-summary-box {
+  padding: 16px 18px;
+}
+.ifood-summary-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.ifood-summary-line.total {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.ifood-summary-line.total strong {
+  color: #dc2626;
+  font-size: 1.2rem;
+}
+
+/* Footer fixo */
+.ifood-footer-fixed {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid var(--line);
+  z-index: 10;
+}
+.ifood-footer-fixed .primary {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ifood-footer-fixed .primary span:last-child {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Card containers */
+.ifood-cart-card,
+.ifood-checkout-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.ifood-cart-card .dialog-card,
+.ifood-checkout-card .dialog-card {
+  padding: 0;
+}
+
+/* Cards de pagamento antigos (manter compatibilidade) */
 .payment-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

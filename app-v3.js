@@ -1431,32 +1431,28 @@ function openCartReview() {
             const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` · ${entry.notes}` : "";
             return `
-              <article class="cart-item">
-                <div class="cart-item-info">
-                  <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
-                  <p>${entry.flavors.map((f) => f.name).join(" + ")}${notesText}</p>
+              <div class="ifood-item-row">
+                <span class="ifood-item-qty">${entry.qty}x</span>
+                <div class="ifood-item-info">
+                  <strong>${escapeHtml(entry.sizeLabel)}${escapeHtml(crustText)}</strong>
+                  <p>${entry.flavors.map((f) => escapeHtml(f.name)).join(" + ")}${escapeHtml(notesText)}</p>
                 </div>
-                <div class="cart-item-actions">
-                  <span>${currency.format(entry.price * entry.qty)}</span>
-                  <button class="ghost danger-link" onclick="removeFromCart(${index}); openCartReview();" title="Remover">×</button>
-                </div>
-              </article>
+                <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+              </div>
             `;
           }
           return `
-            <article class="cart-item">
-              <div class="cart-item-info">
-                <strong>${entry.qty}x ${entry.name}</strong>
+            <div class="ifood-item-row">
+              <span class="ifood-item-qty">${entry.qty}x</span>
+              <div class="ifood-item-info">
+                <strong>${escapeHtml(entry.name)}</strong>
               </div>
-              <div class="cart-item-actions">
-                <span>${currency.format(entry.price * entry.qty)}</span>
-                <button class="ghost danger-link" onclick="removeFromCart(${index}); openCartReview();" title="Remover">×</button>
-              </div>
-            </article>
+              <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+            </div>
           `;
         })
         .join("")
-    : `<article class="cart-item"><strong>Carrinho vazio</strong></article>`;
+    : `<div class="ifood-item-row"><span class="ifood-item-info"><strong>Carrinho vazio</strong></span></div>`;
 
   const subtotal = cartTotal();
   byId("review-subtotal").textContent = currency.format(subtotal);
@@ -2660,17 +2656,41 @@ function openCheckoutDialog() {
   const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
   const address = byId("dialog-checkout-address")?.value || "";
   const fee = deliveryType === "Entrega" ? getDeliveryFee(address) : 0;
+
   byId("checkout-summary").innerHTML = cart
     .map((entry) => {
       if (entry.type === "pizza") {
         const crustText = entry.crust ? ` · ${entry.crust}` : "";
         const notesText = entry.notes ? ` · ${entry.notes}` : "";
-        return `<article class="cart-item"><strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong><p>${entry.flavors.map((f) => f.name).join(" + ")}${notesText}</p></article>`;
+        return `
+          <div class="ifood-item-row">
+            <span class="ifood-item-qty">${entry.qty}x</span>
+            <div class="ifood-item-info">
+              <strong>${escapeHtml(entry.sizeLabel)}${escapeHtml(crustText)}</strong>
+              <p>${entry.flavors.map((f) => escapeHtml(f.name)).join(" + ")}${escapeHtml(notesText)}</p>
+            </div>
+            <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+          </div>
+        `;
       }
-      return `<article class="cart-item"><strong>${entry.qty}x ${entry.name}</strong></article>`;
+      return `
+        <div class="ifood-item-row">
+          <span class="ifood-item-qty">${entry.qty}x</span>
+          <div class="ifood-item-info">
+            <strong>${escapeHtml(entry.name)}</strong>
+          </div>
+          <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+        </div>
+      `;
     })
     .join("");
-  byId("checkout-dialog-total").textContent = `Total: ${currency.format(subtotal + fee)}`;
+
+  byId("checkout-subtotal").textContent = currency.format(subtotal);
+  byId("checkout-fee").textContent = currency.format(fee);
+  byId("checkout-grand-total").textContent = currency.format(subtotal + fee);
+  byId("checkout-btn-total").textContent = `· ${currency.format(subtotal + fee)}`;
+  byId("checkout-eta").textContent = settings.prep_time || "35 min";
+
   byId("dialog-checkout-error").textContent = "";
   byId("dialog-checkout-name").value = "";
   byId("dialog-checkout-phone").value = "";
@@ -2678,7 +2698,6 @@ function openCheckoutDialog() {
   byId("dialog-checkout-address").value = "";
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
-  byId("dialog-address-label").style.display = "";
   byId("checkout-dialog").showModal();
 }
 
