@@ -177,10 +177,13 @@ button:disabled {
   grid-template-columns: 1fr;
 }
 
-.public-customer-mode #customer {
-  display: block !important;
+/* Esconder TODAS as views admin no modo público */
+.public-customer-mode .view {
+  display: none !important;
 }
 
+/* Mostrar apenas a loja pública */
+.public-customer-mode #customer,
 .public-customer-mode #customer.view {
   display: block !important;
 }
