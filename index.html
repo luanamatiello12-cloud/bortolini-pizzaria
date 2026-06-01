@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260601" />
+    <link rel="stylesheet" href="/styles.css?v=20260601a" />
   </head>
   <body>
     <section class="login-screen" id="login-screen">
@@ -607,7 +607,10 @@
               </label>
             </div>
             <p class="form-hint">O entregador acessa o link acima com o ID dele no final (ex: /entregador/123).</p>
-            <button class="primary" id="save-settings-btn">Salvar configurações</button>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="primary" id="save-settings-btn">Salvar configurações</button>
+              <button class="secondary" id="sync-menu-btn" type="button" onclick="syncMenuItems()">🔄 Sincronizar cardápio</button>
+            </div>
             <p class="form-error" id="settings-message"></p>
           </section>
         </section>
@@ -964,7 +967,7 @@
       </form>
     </dialog>
 
-    <script src="/app-v3.js?v=20260601"></script>
+    <script src="/app-v3.js?v=20260601a"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->

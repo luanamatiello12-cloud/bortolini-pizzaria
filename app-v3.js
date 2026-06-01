@@ -3190,6 +3190,21 @@ async function saveSettings() {
   }
 }
 
+async function syncMenuItems() {
+  if (!can("settings")) return;
+  try {
+    byId("settings-message").textContent = "Sincronizando cardápio...";
+    byId("settings-message").classList.remove("form-error");
+    const result = await api("/api/sync-menu", { method: "POST" });
+    byId("settings-message").textContent = `Cardápio sincronizado! ${result.synced || 0} itens.`;
+    showToast("Cardápio sincronizado com sucesso!");
+    loadData();
+  } catch (error) {
+    byId("settings-message").textContent = "Erro ao sincronizar cardápio.";
+    byId("settings-message").classList.add("form-error");
+  }
+}
+
 async function savePizzaSizePrices() {
   const pizzaSizes = PIZZA_SIZES.map((size) => ({
     key: size.key,
