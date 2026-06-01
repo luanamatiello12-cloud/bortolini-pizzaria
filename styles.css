@@ -2622,13 +2622,19 @@ dialog::backdrop {
   letter-spacing: 0.3px;
 }
 .ifood-address-info input {
-  background: transparent;
-  border: none;
-  padding: 0;
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
   font-size: 0.95rem;
   font-weight: 600;
   color: #1a1a1a;
   width: 100%;
+  margin-top: 2px;
+}
+.ifood-address-info input:focus {
+  border-color: #dc2626;
+  outline: none;
 }
 .ifood-address-info input::placeholder {
   color: #999;
