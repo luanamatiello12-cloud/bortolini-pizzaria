@@ -1139,10 +1139,16 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_json(self.get_public_settings())
             return
         if path == "/api/seed-info":
+            with connect() as conn:
+                db_items = conn.execute("SELECT name, category, active FROM menu_items ORDER BY id").fetchall()
             self.send_json({
                 "seed_count": len(SEED_MENU_ITEMS),
-                "categories": list(set(i["category"] for i in SEED_MENU_ITEMS)),
-                "drinks": [i["name"] for i in SEED_MENU_ITEMS if i["category"] == "Bebidas"],
+                "seed_categories": list(set(i["category"] for i in SEED_MENU_ITEMS)),
+                "seed_drinks": [i["name"] for i in SEED_MENU_ITEMS if i["category"] == "Bebidas"],
+                "db_count": len(db_items),
+                "db_categories": list(set(r[1] for r in db_items)),
+                "db_drinks": [r[0] for r in db_items if r[1] == "Bebidas"],
+                "db_all_names": [r[0] for r in db_items],
             })
             return
 
