@@ -2792,7 +2792,7 @@ async function checkoutCart() {
     renderAll();
 
     byId("checkout-dialog").close();
-    const trackLink = `${window.location.origin}${window.location.pathname}?pedido=${created.id}`;
+    const trackLink = `${window.location.origin}${window.location.pathname}#pedir?pedido=${created.id}`;
     const floatingBtn = byId("floating-cart-btn");
     if (floatingBtn) floatingBtn.classList.add("hidden");
     byId("track-order-result").innerHTML = `
@@ -4391,18 +4391,27 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
 
 // Modo público do cardápio (cliente acessa via link #pedir)
 function initCustomerPublicMode() {
-  // Não interferir com app do entregador ou acompanhamento de pedido
+  // Não interferir com app do entregador
   const path = window.location.pathname;
   const search = window.location.search;
-  if (path.startsWith("/entregador") || search.includes("driver_id=") || search.includes("pedido=")) return;
+  if (path.startsWith("/entregador") || search.includes("driver_id=")) return;
 
-  if (window.location.hash === "#pedir") {
+  const hash = window.location.hash;
+  const hashParams = new URLSearchParams(hash.replace(/^#pedir\?/, ""));
+  const trackId = hashParams.get("pedido");
+
+  if (hash.startsWith("#pedir")) {
     document.body.classList.add("public-customer-mode");
     byId("login-screen").classList.add("hidden");
     byId("app-shell").classList.remove("hidden");
     document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
     byId("customer").classList.add("active-view");
     renderCustomerStore();
+    // Se vier com pedido na URL, preenche e consulta automaticamente
+    if (trackId && byId("track-order-id")) {
+      byId("track-order-id").value = trackId;
+      setTimeout(() => trackOrderV2(), 500);
+    }
   }
 }
 
