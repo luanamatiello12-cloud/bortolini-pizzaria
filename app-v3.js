@@ -2778,11 +2778,14 @@ async function checkoutCart() {
       ? await api("/api/orders", { method: "POST", body: JSON.stringify(payload) })
       : { ...payload, id: Math.max(...orders.map((order) => order.id), 0) + 1 };
     orders = [created, ...orders];
-    customers = state.apiOnline ? await api("/api/customers") : [{ name: customer, phone: payload.customer_phone, address: payload.address, notes: payload.notes }, ...customers];
-    ingredients = state.apiOnline ? await api("/api/ingredients") : ingredients;
-    stockMovements = state.apiOnline ? await api("/api/stock-movements") : stockMovements;
-    profitReport = state.apiOnline ? await api("/api/profit-report") : profitReport;
-    notifyNewLowStock(stockBeforeCheckout, "pedido online");
+    // Só atualiza dados admin se o usuário estiver logado (evita erro 403 no checkout público)
+    if (state.apiOnline && state.currentUser) {
+      try { customers = await api("/api/customers"); } catch (e) {}
+      try { ingredients = await api("/api/ingredients"); } catch (e) {}
+      try { stockMovements = await api("/api/stock-movements"); } catch (e) {}
+      try { profitReport = await api("/api/profit-report"); } catch (e) {}
+      notifyNewLowStock(stockBeforeCheckout, "pedido online");
+    }
     cart = [];
     saveCart();
     pixReceiptData = "";
