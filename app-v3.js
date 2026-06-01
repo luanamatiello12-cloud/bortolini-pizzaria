@@ -1121,6 +1121,7 @@ function renderReports() {
 }
 
 function renderCustomerStore() {
+  console.log("[renderCustomerStore] menuItems:", menuItems.length, "apiOnline:", state.apiOnline);
   byId("store-hours").textContent = `${settings.opening_hours || "18:00 às 23:30"} · entrega ${currency.format(Number(settings.delivery_fee || 0))} · preparo ${settings.prep_time || "35 a 45 minutos"}`;
   renderQrPanel();
 
@@ -1141,6 +1142,7 @@ function renderCustomerStore() {
 
   // Bebidas (cards estilo iFood)
   const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
+  console.log("[renderCustomerStore] bebidas filtradas:", bebidas.length, "de", menuItems.length, "itens");
   byId("store-bebidas").innerHTML = bebidas.length
     ? bebidas.map((item) => `
         <article class="menu-card-ifood">
