@@ -3860,7 +3860,7 @@ document.querySelector(".store-tabs")?.addEventListener("click", (e) => {
   const tab = e.target.closest(".store-tab");
   if (!tab) return;
   document.querySelectorAll(".store-tab").forEach((t) => t.classList.remove("active"));
-  document.querySelectorAll(".store-tab-content").forEach((c) => c.classList.remove("active"));
+  document.querySelectorAll(".store-tab-content").forEach((c) => { c.classList.remove("active"); c.classList.remove("hidden"); });
   tab.classList.add("active");
   byId(`store-tab-${tab.dataset.tab}`)?.classList.add("active");
 });
