@@ -4194,7 +4194,7 @@ function toggleDriverLocation() {
       _driverCurrentOrderIds.forEach(orderId => {
         fetch(`/api/deliveries/${orderId}/location`, {
           method: "PATCH",
-          headers: {"Content-Type": "application/json"},
+          headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
           body: JSON.stringify({ lat, lng })
         }).catch(() => {});
       });

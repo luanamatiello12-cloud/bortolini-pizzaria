@@ -1618,8 +1618,12 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Erro interno no servidor")
 
     def require_permission(self, permission):
-        # Validar via token de sessão se presente
+        # Validar via token de sessão (X-Session-Token ou Authorization Bearer)
         token = self.headers.get("X-Session-Token", "")
+        if not token:
+            auth = self.headers.get("Authorization", "")
+            if auth.startswith("Bearer "):
+                token = auth[7:].strip()
         if token:
             session = validate_session(token)
             if session:
