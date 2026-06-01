@@ -2628,9 +2628,11 @@ function copyWhatsAppTemplate(type) {
 
 function selectPaymentCard(card) {
   if (!card) return;
-  const container = card.closest('.payment-cards');
+  // Suporta tanto o layout antigo (payment-cards) quanto o novo iFood (ifood-payment-list)
+  const container = card.closest('.payment-cards') || card.closest('.ifood-payment-list');
   if (container) {
-    container.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+    const selector = container.classList.contains('ifood-payment-list') ? '.ifood-pay-row' : '.payment-card';
+    container.querySelectorAll(selector).forEach(c => c.classList.remove('selected'));
   }
   card.classList.add('selected');
   const input = card.querySelector('input[type="radio"]');
