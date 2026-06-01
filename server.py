@@ -1138,6 +1138,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if path == "/api/public/settings":
             self.send_json(self.get_public_settings())
             return
+        if path == "/api/seed-info":
+            self.send_json({
+                "seed_count": len(SEED_MENU_ITEMS),
+                "categories": list(set(i["category"] for i in SEED_MENU_ITEMS)),
+                "drinks": [i["name"] for i in SEED_MENU_ITEMS if i["category"] == "Bebidas"],
+            })
+            return
 
         # Protected endpoints (require auth)
         if path == "/api/orders":
