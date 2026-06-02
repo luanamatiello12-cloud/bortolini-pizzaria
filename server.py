@@ -906,6 +906,7 @@ def ensure_order_delivery_columns(conn):
         "payment_receipt_note": "ALTER TABLE orders ADD COLUMN payment_receipt_note TEXT",
         "delivery_fee": "ALTER TABLE orders ADD COLUMN delivery_fee REAL DEFAULT 0",
         "discount": "ALTER TABLE orders ADD COLUMN discount REAL DEFAULT 0",
+        "delivered_at": "ALTER TABLE orders ADD COLUMN delivered_at TEXT",
     }
     for column, sql in migrations.items():
         if column not in columns:

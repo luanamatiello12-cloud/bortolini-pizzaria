@@ -1803,6 +1803,13 @@ dialog::backdrop {
   }
 }
 
+/* ── Mapa de acompanhamento do cliente ── */
+#track-map-area {
+  height: 100%;
+  width: 100%;
+  min-height: 260px;
+}
+
 @media (max-width: 620px) {
   .profile-grid {
     grid-template-columns: 1fr;
