@@ -3422,6 +3422,10 @@ function switchView(viewId) {
   byId(viewId).classList.add("active-view");
   document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
+  // Recalcular mapa quando aba Entregas for ativada
+  if (viewId === "delivery" && _deliveryMap) {
+    setTimeout(() => _deliveryMap.invalidateSize(), 200);
+  }
 }
 
 function firstAllowedView() {
@@ -4214,13 +4218,13 @@ async function loadDriverPublicOrders() {
         ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${escapeHtml(order.address)}</a>` : ""}
         <div class="driver-order-items">${escapeHtml(order.item)}</div>
         <div class="driver-order-total">${currency.format(Number(order.total || 0))}</div>
-        <div class="driver-order-links" style="display:flex;gap:8px;margin:8px 0;">
-          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Abrir mapa</a>` : ""}
-          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank">💬 WhatsApp cliente</a>` : ""}
+        <div class="driver-order-links" style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;">
+          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-align:center;padding:10px;background:#e8f4fd;color:#0066cc;border-radius:8px;text-decoration:none;font-weight:600;">📍 Abrir endereço no mapa</a>` : ""}
+          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-align:center;padding:10px;background:#e8f5e9;color:#2e7d32;border-radius:8px;text-decoration:none;font-weight:600;">💬 WhatsApp cliente</a>` : ""}
         </div>
-        <div class="driver-order-actions" style="margin-top:10px;">
-          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})" style="width:100%;min-height:48px;font-size:1.05rem;">🚀 Iniciar entrega</button>` : ""}
-          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})" style="width:100%;min-height:48px;font-size:1.05rem;">✅ Confirmar entrega realizada</button>` : ""}
+        <div class="driver-order-actions" style="margin-top:16px;padding-top:16px;border-top:2px dashed #ddd;">
+          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})" style="width:100%;min-height:52px;font-size:1.1rem;font-weight:700;background:#ff6b00;color:#fff;border:none;border-radius:10px;">🚀 Iniciar entrega</button>` : ""}
+          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="if(!confirm('Tem certeza que a entrega foi realizada?')){return;}driverMarkDelivered(${order.id})" style="width:100%;min-height:52px;font-size:1.1rem;font-weight:700;background:#00c853;color:#fff;border:none;border-radius:10px;">✅ Confirmar entrega realizada</button>` : ""}
         </div>
       </article>
     `;}).join("");
