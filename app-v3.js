@@ -853,15 +853,32 @@ function renderDelivery() {
 
     const bounds = [];
 
+    // Ícone customizado de moto
+    const motoIcon = L.divIcon({
+      className: "custom-moto-icon",
+      html: `<div style="font-size:28px;text-shadow:0 2px 4px rgba(0,0,0,0.3);">🛵</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
     // Marcadores de entregadores ativos
     drivers.filter((d) => d.active).forEach((driver) => {
       const lat = Number(driver.lat);
       const lng = Number(driver.lng);
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
         const inRoute = deliveries.some((d) => d.driver_name === driver.name);
-        const color = inRoute ? "red" : "blue";
-        const marker = L.marker([lat, lng]).addTo(_deliveryMap);
-        marker.bindPopup(`<strong>${escapeHtml(driver.name)}</strong><br>${inRoute ? "🛵 Em rota" : "📍 Disponível"}`);
+        // Círculo de destaque
+        const circle = L.circle([lat, lng], {
+          color: inRoute ? "#ff6b00" : "#2196f3",
+          fillColor: inRoute ? "#ff6b00" : "#2196f3",
+          fillOpacity: 0.15,
+          radius: 120,
+        }).addTo(_deliveryMap);
+        _deliveryMapMarkers.push(circle);
+
+        const marker = L.marker([lat, lng], { icon: motoIcon }).addTo(_deliveryMap);
+        marker.bindPopup(`<strong>${escapeHtml(driver.name)}</strong><br>${inRoute ? "🔥 Em rota agora" : "📍 Disponível"}<br><small>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</small>`);
+        if (inRoute) marker.openPopup();
         _deliveryMapMarkers.push(marker);
         bounds.push([lat, lng]);
       }
@@ -871,19 +888,22 @@ function renderDelivery() {
     deliveries.forEach((delivery) => {
       const lat = Number(delivery.driver_lat);
       const lng = Number(delivery.driver_lng);
-      // Destino simulado próximo ao entregador (sistema ainda não tem geocoding do endereço)
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
         const destLat = lat + 0.002;
         const destLng = lng + 0.002;
-        const destMarker = L.marker([destLat, destLng], { icon: L.divIcon({ className: "custom-dest-icon", html: "🏠", iconSize: [24, 24] }) }).addTo(_deliveryMap);
-        destMarker.bindPopup(`<strong>Destino</strong><br>${escapeHtml(delivery.customer)}<br>${escapeHtml(delivery.address || "")}`);
+        const destMarker = L.marker([destLat, destLng], { icon: L.divIcon({ className: "custom-dest-icon", html: `<div style="font-size:24px;">🏠</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }) }).addTo(_deliveryMap);
+        destMarker.bindPopup(`<strong>📦 Destino</strong><br>${escapeHtml(delivery.customer)}<br>${escapeHtml(delivery.address || "")}<br><small>Pedido #${delivery.id}</small>`);
         _deliveryMapMarkers.push(destMarker);
         bounds.push([destLat, destLng]);
+
+        // Linha ligando entregador ao destino
+        const polyline = L.polyline([[lat, lng], [destLat, destLng]], { color: "#ff6b00", weight: 3, dashArray: "8, 6", opacity: 0.8 }).addTo(_deliveryMap);
+        _deliveryMapMarkers.push(polyline);
       }
     });
 
     if (bounds.length > 0) {
-      _deliveryMap.fitBounds(bounds, { padding: [40, 40] });
+      _deliveryMap.fitBounds(bounds, { padding: [50, 50] });
     }
   }
 }
@@ -4218,13 +4238,13 @@ async function loadDriverPublicOrders() {
         ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${escapeHtml(order.address)}</a>` : ""}
         <div class="driver-order-items">${escapeHtml(order.item)}</div>
         <div class="driver-order-total">${currency.format(Number(order.total || 0))}</div>
-        <div class="driver-order-links" style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;">
-          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-align:center;padding:10px;background:#e8f4fd;color:#0066cc;border-radius:8px;text-decoration:none;font-weight:600;">📍 Abrir endereço no mapa</a>` : ""}
-          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-align:center;padding:10px;background:#e8f5e9;color:#2e7d32;border-radius:8px;text-decoration:none;font-weight:600;">💬 WhatsApp cliente</a>` : ""}
+        <div style="margin:12px 0;">
+          ${mapsLink ? `<div style="margin:6px 0;"><a href="${mapsLink}" target="_blank" rel="noopener noreferrer" style="color:#0066cc;text-decoration:underline;font-weight:600;">📍 Abrir endereço no Google Maps →</a></div>` : ""}
+          ${whatsappLink ? `<div style="margin:6px 0;"><a href="${whatsappLink}" target="_blank" rel="noopener noreferrer" style="color:#2e7d32;text-decoration:underline;font-weight:600;">💬 Falar com cliente no WhatsApp →</a></div>` : ""}
         </div>
-        <div class="driver-order-actions" style="margin-top:16px;padding-top:16px;border-top:2px dashed #ddd;">
-          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})" style="width:100%;min-height:52px;font-size:1.1rem;font-weight:700;background:#ff6b00;color:#fff;border:none;border-radius:10px;">🚀 Iniciar entrega</button>` : ""}
-          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="if(!confirm('Tem certeza que a entrega foi realizada?')){return;}driverMarkDelivered(${order.id})" style="width:100%;min-height:52px;font-size:1.1rem;font-weight:700;background:#00c853;color:#fff;border:none;border-radius:10px;">✅ Confirmar entrega realizada</button>` : ""}
+        <div style="margin-top:20px;padding-top:16px;border-top:2px solid #eee;">
+          ${order.status === "Entrega" ? `<button id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})" style="width:100%;min-height:56px;font-size:1.15rem;font-weight:700;background:#ff6b00;color:#fff;border:none;border-radius:12px;box-shadow:0 2px 8px rgba(255,107,0,0.3);">🚀 INICIAR ENTREGA</button>` : ""}
+          ${order.status === "Saiu para entrega" ? `<button id="driver-deliver-${order.id}" onclick="if(!confirm('Tem certeza que a entrega foi realizada?')){return;}driverMarkDelivered(${order.id})" style="width:100%;min-height:56px;font-size:1.15rem;font-weight:700;background:#00c853;color:#fff;border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,200,83,0.3);">✅ CONFIRMAR ENTREGA REALIZADA</button>` : ""}
         </div>
       </article>
     `;}).join("");
