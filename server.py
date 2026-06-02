@@ -1511,6 +1511,24 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data)
             return
+        if path.startswith("/api/public/driver/orders/") and path.endswith("/start"):
+            driver_id_from_token = self.require_driver_auth()
+            if driver_id_from_token is None:
+                return
+            order_id = int(path.split("/")[-2])
+            with connect() as conn:
+                user = conn.execute("SELECT name FROM users WHERE id = ? AND role = 'entregador'", (driver_id_from_token,)).fetchone()
+                order = conn.execute("SELECT id, status, driver_name FROM orders WHERE id = ?", (order_id,)).fetchone()
+            if not user or not order:
+                self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
+                return
+            if order["driver_name"] != user["name"]:
+                self.send_error(HTTPStatus.FORBIDDEN, "Pedido não atribuído a você")
+                return
+            with connect() as conn:
+                conn.execute("UPDATE orders SET status = 'Saiu para entrega' WHERE id = ?", (order_id,))
+                row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+            return self.send_json(dict(row))
         if path.startswith("/api/public/driver/orders/") and path.endswith("/deliver"):
             driver_id_from_token = self.require_driver_auth()
             if driver_id_from_token is None:

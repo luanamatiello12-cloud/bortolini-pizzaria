@@ -796,6 +796,9 @@ function renderInbox() {
   renderInboxQrPanel();
 }
 
+let _deliveryMap = null;
+let _deliveryMapMarkers = [];
+
 function renderDelivery() {
   byId("drivers").innerHTML = drivers
     .map(
@@ -827,36 +830,62 @@ function renderDelivery() {
       </article>
     `;
 
-  const activeDrivers = drivers.filter((d) => d.active);
-  const driverPins = activeDrivers.map((driver, index) => {
-    const point = mapPoint(driver.lat, driver.lng, index);
-    const inRoute = deliveries.some((d) => d.driver_name === driver.name);
-    return `
-      <div class="map-pin ${inRoute ? "driver-pin" : "driver-idle-pin"}" style="left:${point.left}%; top:${point.top}%">
-        <strong>${driver.name}</strong>
-        <small>${inRoute ? "Em rota" : "Disponível"}</small>
-      </div>
-    `;
-  }).join("");
+  // Leaflet mapa real
+  const mapContainer = byId("delivery-map");
+  if (!mapContainer) return;
 
-  const deliveryPins = deliveries
-    .map((delivery, index) => {
-      const driver = mapPoint(delivery.driver_lat, delivery.driver_lng, index);
-      const destination = destinationPoint(index);
-      return `
-        <div class="map-pin driver-pin" style="left:${driver.left}%; top:${driver.top}%">
-          <strong>${delivery.driver_name || "Entregador"}</strong>
-          <small>Pedido #${delivery.id}</small>
-        </div>
-        <div class="map-pin destination-pin" style="left:${destination.left}%; top:${destination.top}%">
-          <strong>Destino</strong>
-          <small>${delivery.customer}</small>
-        </div>
-      `;
-    })
-    .join("");
+  // Coordenadas padrão: Chapecó-SC
+  const defaultLat = -27.1009;
+  const defaultLng = -52.6157;
 
-  byId("delivery-map").innerHTML = driverPins + deliveryPins;
+  if (!_deliveryMap && typeof L !== "undefined") {
+    _deliveryMap = L.map(mapContainer).setView([defaultLat, defaultLng], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(_deliveryMap);
+  }
+
+  if (_deliveryMap) {
+    // Limpar marcadores antigos
+    _deliveryMapMarkers.forEach(m => _deliveryMap.removeLayer(m));
+    _deliveryMapMarkers = [];
+
+    const bounds = [];
+
+    // Marcadores de entregadores ativos
+    drivers.filter((d) => d.active).forEach((driver) => {
+      const lat = Number(driver.lat);
+      const lng = Number(driver.lng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        const inRoute = deliveries.some((d) => d.driver_name === driver.name);
+        const color = inRoute ? "red" : "blue";
+        const marker = L.marker([lat, lng]).addTo(_deliveryMap);
+        marker.bindPopup(`<strong>${escapeHtml(driver.name)}</strong><br>${inRoute ? "🛵 Em rota" : "📍 Disponível"}`);
+        _deliveryMapMarkers.push(marker);
+        bounds.push([lat, lng]);
+      }
+    });
+
+    // Marcadores de destinos (pedidos em entrega)
+    deliveries.forEach((delivery) => {
+      const lat = Number(delivery.driver_lat);
+      const lng = Number(delivery.driver_lng);
+      // Destino simulado próximo ao entregador (sistema ainda não tem geocoding do endereço)
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        const destLat = lat + 0.002;
+        const destLng = lng + 0.002;
+        const destMarker = L.marker([destLat, destLng], { icon: L.divIcon({ className: "custom-dest-icon", html: "🏠", iconSize: [24, 24] }) }).addTo(_deliveryMap);
+        destMarker.bindPopup(`<strong>Destino</strong><br>${escapeHtml(delivery.customer)}<br>${escapeHtml(delivery.address || "")}`);
+        _deliveryMapMarkers.push(destMarker);
+        bounds.push([destLat, destLng]);
+      }
+    });
+
+    if (bounds.length > 0) {
+      _deliveryMap.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }
 }
 
 function renderDeliveryManager() {
@@ -4188,7 +4217,8 @@ async function loadDriverPublicOrders() {
         <div class="driver-order-actions">
           ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Mapa</a>` : ""}
           ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank">💬 WhatsApp</a>` : ""}
-          <button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})">✅ Marcar como entregue</button>
+          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})">🚀 Iniciar entrega</button>` : ""}
+          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})">✅ Entrega realizada</button>` : ""}
         </div>
       </article>
     `;}).join("");
@@ -4212,7 +4242,24 @@ async function driverMarkDelivered(orderId) {
     loadDriverPublicOrders();
   } catch(e) {
     showToast("Erro ao atualizar pedido.");
-    if (btn) { btn.disabled = false; btn.textContent = "✅ Marcar como entregue"; }
+    if (btn) { btn.disabled = false; btn.textContent = "✅ Entrega realizada"; }
+  }
+}
+
+async function driverStartDelivery(orderId) {
+  const btn = byId(`driver-start-${orderId}`);
+  if (btn) { btn.disabled = true; btn.textContent = "Iniciando..."; }
+  try {
+    await fetch(`/api/public/driver/orders/${orderId}/start`, {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
+      body: JSON.stringify({ status: "Saiu para entrega" })
+    });
+    showToast("🚀 Entrega iniciada!");
+    loadDriverPublicOrders();
+  } catch(e) {
+    showToast("Erro ao iniciar entrega.");
+    if (btn) { btn.disabled = false; btn.textContent = "🚀 Iniciar entrega"; }
   }
 }
 
