@@ -4110,6 +4110,8 @@ function initDriverPublicPage() {
   const page = byId("driver-public-page");
   if (!page) return;
   page.classList.remove("hidden");
+  byId("login-screen")?.classList.add("hidden");
+  byId("app-shell")?.classList.add("hidden");
   document.querySelector(".app-layout") && document.querySelector(".app-layout").classList.add("hidden");
 
   // Verifica se ja tem sessao salva
