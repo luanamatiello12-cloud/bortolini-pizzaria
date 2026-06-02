@@ -1109,7 +1109,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_json(data)
             return
 
-        if path == "/entregador" or path == "/entregador/":
+        if path == "/entregador" or path == "/entregador/" or path.startswith("/entregador/"):
             # Serve SPA para o app do entregador
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
