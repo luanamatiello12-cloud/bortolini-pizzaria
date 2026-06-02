@@ -3626,7 +3626,7 @@ function isPublicPage() {
   const hash = window.location.hash;
   const path = window.location.pathname;
   const search = window.location.search;
-  if (hash === "#pedir") return true;
+  if (hash.startsWith("#pedir")) return true;
   if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
   const urlParams = new URLSearchParams(search);
   const trackId = urlParams.get("pedido") || urlParams.get("order_id");
