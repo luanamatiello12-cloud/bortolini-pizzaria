@@ -1781,7 +1781,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 return None
             orders = conn.execute(
                 """SELECT id, customer, status, item, total, address, driver_lat, driver_lng, last_location_at, eta
-                   FROM orders WHERE driver_name = ? AND status = 'Entrega' ORDER BY id DESC LIMIT 10""",
+                   FROM orders WHERE driver_name = ? AND status IN ('Entrega', 'Saiu para entrega') ORDER BY id DESC LIMIT 10""",
                 (user["name"],),
             ).fetchall()
         return {"driver_name": user["name"], "orders": rows_to_dicts(orders)}

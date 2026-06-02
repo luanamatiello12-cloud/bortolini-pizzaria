@@ -852,37 +852,49 @@ function renderDelivery() {
     _deliveryMapMarkers = [];
 
     const bounds = [];
+    console.log("[renderDelivery] drivers:", drivers.length, "active:", drivers.filter(d => d.active).length, "deliveries:", deliveries.length);
 
     // Ícone customizado de moto
     const motoIcon = L.divIcon({
       className: "custom-moto-icon",
-      html: `<div style="font-size:28px;text-shadow:0 2px 4px rgba(0,0,0,0.3);">🛵</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      html: `<div style="font-size:32px;text-shadow:0 2px 6px rgba(0,0,0,0.4);">🛵</div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
     });
 
-    // Marcadores de entregadores ativos
-    drivers.filter((d) => d.active).forEach((driver) => {
+    // Marcadores de entregadores ativos (sempre mostrar, mesmo sem entregas)
+    const activeDrivers = drivers.filter((d) => d.active);
+    activeDrivers.forEach((driver) => {
       const lat = Number(driver.lat);
       const lng = Number(driver.lng);
-      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== 0 && lng !== 0) {
         const inRoute = deliveries.some((d) => d.driver_name === driver.name);
         // Círculo de destaque
         const circle = L.circle([lat, lng], {
           color: inRoute ? "#ff6b00" : "#2196f3",
           fillColor: inRoute ? "#ff6b00" : "#2196f3",
-          fillOpacity: 0.15,
-          radius: 120,
+          fillOpacity: 0.2,
+          radius: 150,
         }).addTo(_deliveryMap);
         _deliveryMapMarkers.push(circle);
 
-        const marker = L.marker([lat, lng], { icon: motoIcon }).addTo(_deliveryMap);
-        marker.bindPopup(`<strong>${escapeHtml(driver.name)}</strong><br>${inRoute ? "🔥 Em rota agora" : "📍 Disponível"}<br><small>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</small>`);
-        if (inRoute) marker.openPopup();
+        const marker = L.marker([lat, lng], { icon: motoIcon, zIndexOffset: 1000 }).addTo(_deliveryMap);
+        marker.bindPopup(`<strong>${escapeHtml(driver.name)}</strong><br>${inRoute ? "🔥 Em rota agora" : "📍 Disponível"}<br><small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`);
+        marker.openPopup();
         _deliveryMapMarkers.push(marker);
         bounds.push([lat, lng]);
+      } else {
+        console.log("[renderDelivery] entregador sem coordenadas:", driver.name);
       }
     });
+
+    // Se não há entregadores com coordenadas, mostrar marcador no centro de Chapecó
+    if (bounds.length === 0) {
+      const fallbackMarker = L.marker([defaultLat, defaultLng], { icon: motoIcon }).addTo(_deliveryMap);
+      fallbackMarker.bindPopup("<strong>Centro de Chapecó</strong><br>Nenhum entregador com GPS ativo").openPopup();
+      _deliveryMapMarkers.push(fallbackMarker);
+      bounds.push([defaultLat, defaultLng]);
+    }
 
     // Marcadores de destinos (pedidos em entrega)
     deliveries.forEach((delivery) => {
@@ -891,7 +903,7 @@ function renderDelivery() {
       if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
         const destLat = lat + 0.002;
         const destLng = lng + 0.002;
-        const destMarker = L.marker([destLat, destLng], { icon: L.divIcon({ className: "custom-dest-icon", html: `<div style="font-size:24px;">🏠</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }) }).addTo(_deliveryMap);
+        const destMarker = L.marker([destLat, destLng], { icon: L.divIcon({ className: "custom-dest-icon", html: `<div style="font-size:26px;">🏠</div>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(_deliveryMap);
         destMarker.bindPopup(`<strong>📦 Destino</strong><br>${escapeHtml(delivery.customer)}<br>${escapeHtml(delivery.address || "")}<br><small>Pedido #${delivery.id}</small>`);
         _deliveryMapMarkers.push(destMarker);
         bounds.push([destLat, destLng]);
@@ -903,7 +915,7 @@ function renderDelivery() {
     });
 
     if (bounds.length > 0) {
-      _deliveryMap.fitBounds(bounds, { padding: [50, 50] });
+      _deliveryMap.fitBounds(bounds, { padding: [60, 60] });
     }
   }
 }
