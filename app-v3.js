@@ -3452,9 +3452,14 @@ function switchView(viewId) {
   byId(viewId).classList.add("active-view");
   document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
-  // Recalcular mapa quando aba Entregas for ativada
-  if (viewId === "delivery" && _deliveryMap) {
-    setTimeout(() => _deliveryMap.invalidateSize(), 200);
+  // Recriar mapa quando aba Entregas for ativada (garante que renderize correto)
+  if (viewId === "delivery") {
+    if (_deliveryMap) {
+      _deliveryMap.remove();
+      _deliveryMap = null;
+      _deliveryMapMarkers = [];
+    }
+    setTimeout(() => renderDelivery(), 100);
   }
 }
 
