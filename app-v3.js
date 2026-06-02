@@ -4363,17 +4363,25 @@ async function loadOrderTrack(orderId) {
       window._trackOrderId = orderId;
       window._trackPixData = "";
     }
-    if (order.status === "Entrega" && order.driver_lat && order.driver_lng) {
+    if ((order.status === "Entrega" || order.status === "Saiu para entrega") && order.driver_lat && order.driver_lng) {
       mapSection.classList.remove("hidden");
       byId("track-location-info").textContent = `Entregador: ${order.driver_name || "Em rota"} · atualizado ${order.last_location_at ? new Date(order.last_location_at).toLocaleTimeString("pt-BR") : "agora"}`;
       byId("track-map-link").href = `https://www.google.com/maps/search/?api=1&query=${order.driver_lat},${order.driver_lng}`;
-      const point = mapPoint(order.driver_lat, order.driver_lng, 0);
-      byId("track-map-area").innerHTML = `
-        <div class="map-pin driver-pin" style="left:${point.left}%; top:${point.top}%">
-          <strong>${order.driver_name || "Entregador"}</strong>
-          <small>Pedido #${order.id}</small>
-        </div>
-      `;
+      const mapContainer = byId("track-map-area");
+      if (typeof L !== "undefined" && mapContainer) {
+        if (!window._trackMap) {
+          window._trackMap = L.map(mapContainer).setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+          }).addTo(window._trackMap);
+        } else {
+          window._trackMap.setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
+        }
+        if (window._trackMarker) window._trackMap.removeLayer(window._trackMarker);
+        window._trackMarker = L.marker([Number(order.driver_lat), Number(order.driver_lng)]).addTo(window._trackMap);
+        window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
+      }
     }
   } catch(e) {
     details.innerHTML = `<p style="color:var(--danger)">Pedido não encontrado.</p>`;
