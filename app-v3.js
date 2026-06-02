@@ -4214,11 +4214,13 @@ async function loadDriverPublicOrders() {
         ${mapsLink ? `<a class="driver-order-address" href="${mapsLink}" target="_blank">📍 ${escapeHtml(order.address)}</a>` : ""}
         <div class="driver-order-items">${escapeHtml(order.item)}</div>
         <div class="driver-order-total">${currency.format(Number(order.total || 0))}</div>
-        <div class="driver-order-actions">
-          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Mapa</a>` : ""}
-          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank">💬 WhatsApp</a>` : ""}
-          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})">🚀 Iniciar entrega</button>` : ""}
-          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})">✅ Entrega realizada</button>` : ""}
+        <div class="driver-order-links" style="display:flex;gap:8px;margin:8px 0;">
+          ${mapsLink ? `<a class="driver-order-btn driver-order-btn-maps" href="${mapsLink}" target="_blank">📍 Abrir mapa</a>` : ""}
+          ${whatsappLink ? `<a class="driver-order-btn driver-order-btn-whatsapp" href="${whatsappLink}" target="_blank">💬 WhatsApp cliente</a>` : ""}
+        </div>
+        <div class="driver-order-actions" style="margin-top:10px;">
+          ${order.status === "Entrega" ? `<button class="driver-order-btn driver-order-btn-start" id="driver-start-${order.id}" onclick="driverStartDelivery(${order.id})" style="width:100%;min-height:48px;font-size:1.05rem;">🚀 Iniciar entrega</button>` : ""}
+          ${order.status === "Saiu para entrega" ? `<button class="driver-order-btn driver-order-btn-delivered" id="driver-deliver-${order.id}" onclick="driverMarkDelivered(${order.id})" style="width:100%;min-height:48px;font-size:1.05rem;">✅ Confirmar entrega realizada</button>` : ""}
         </div>
       </article>
     `;}).join("");
@@ -4381,6 +4383,7 @@ async function loadOrderTrack(orderId) {
         if (window._trackMarker) window._trackMap.removeLayer(window._trackMarker);
         window._trackMarker = L.marker([Number(order.driver_lat), Number(order.driver_lng)]).addTo(window._trackMap);
         window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
+        setTimeout(() => window._trackMap.invalidateSize(), 300);
       }
     }
   } catch(e) {
