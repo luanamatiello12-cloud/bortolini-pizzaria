@@ -3400,8 +3400,7 @@ async function shareRealLocation() {
     return;
   }
   if (!navigator.geolocation) {
-    simulateDriverMovement();
-    showToast("GPS indisponível neste navegador. Usei a simulação.");
+    showToast("GPS indisponível neste navegador.");
     return;
   }
   navigator.geolocation.getCurrentPosition(
@@ -3424,8 +3423,7 @@ async function shareRealLocation() {
       }
     },
     () => {
-      simulateDriverMovement();
-      showToast("Permissão de GPS negada. Usei a simulação.");
+      showToast("Permissão de GPS negada. Ative o GPS e tente novamente.");
     },
     { enableHighAccuracy: true, timeout: 8000 },
   );
@@ -4063,7 +4061,6 @@ loadData().then(() => {
   renderDemoUsers();
   restoreSession();
   renderCustomerStore();
-  setInterval(simulateDriverMovement, 7000);
 });
 
 byId("pix-receipt-input")?.addEventListener("change", (event) => {
