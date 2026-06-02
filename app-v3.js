@@ -3635,6 +3635,8 @@ function isPublicPage() {
 }
 
 function restoreSession() {
+  // Não restaurar sessão admin/financeiro na página do entregador
+  if (window.location.pathname.startsWith("/entregador")) return;
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
     if (saved?.role && saved?.username) {
