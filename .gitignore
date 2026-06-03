@@ -35,3 +35,7 @@ migration_data.sql
 # Backups automáticos do banco local
 bortolini.backup-*.db
 bortolini-before-*.db
+
+# Arquivos temporários de consultas
+contratos_*
+*.csv
