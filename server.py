@@ -129,19 +129,31 @@ WHATSAPP_PHONE_NUMBER_ID = ""  # Preencher via settings quando tiver API Meta ap
 
 # ── Seed de ingredientes e fichas técnicas ──
 SEED_INGREDIENTS = [
-    {"name": "Massa de pizza", "code": "MASSA-001", "unit": "g", "stock_qty": 200000, "min_qty": 50000, "unit_cost": 0.0},
-    {"name": "Molho de tomate", "code": "MOLHO-001", "unit": "g", "stock_qty": 30000, "min_qty": 5000, "unit_cost": 0.0},
-    {"name": "Muçarela", "code": "MUZ-001", "unit": "g", "stock_qty": 120000, "min_qty": 20000, "unit_cost": 0.0},
+    # Ingredientes do estoque original (com custos reais)
+    {"name": "Brownie da Casa", "code": "BROWNIE-001", "unit": "un", "stock_qty": 0, "min_qty": 8, "unit_cost": 9.0},
+    {"name": "Calabresa", "code": "CALAB-001", "unit": "kg", "stock_qty": 0, "min_qty": 4, "unit_cost": 28.0},
+    {"name": "Catupiry", "code": "CATU-001", "unit": "kg", "stock_qty": 0, "min_qty": 3, "unit_cost": 34.0},
+    {"name": "Cebola", "code": "CEBOLA-001", "unit": "kg", "stock_qty": 0, "min_qty": 3, "unit_cost": 5.0},
+    {"name": "Coca-Cola lata", "code": "COCA-LATA-001", "unit": "un", "stock_qty": 0, "min_qty": 12, "unit_cost": 4.2},
+    {"name": "Farinha", "code": "FARINHA-001", "unit": "kg", "stock_qty": 0, "min_qty": 10, "unit_cost": 4.8},
+    {"name": "Frango desfiado", "code": "FRANGD-001", "unit": "kg", "stock_qty": 0, "min_qty": 4, "unit_cost": 22.0},
+    {"name": "Guaraná lata", "code": "GUARA-LATA-001", "unit": "un", "stock_qty": 0, "min_qty": 12, "unit_cost": 4.0},
+    {"name": "Massa de pizza", "code": "MASSA-001", "unit": "un", "stock_qty": 0, "min_qty": 20, "unit_cost": 2.8},
+    {"name": "Molho de tomate", "code": "MOLHO-001", "unit": "kg", "stock_qty": 0, "min_qty": 5, "unit_cost": 9.5},
+    {"name": "Mussarela", "code": "MUZ-001", "unit": "kg", "stock_qty": 0, "min_qty": 6, "unit_cost": 32.0},
+    {"name": "Ovo", "code": "OVO-001", "unit": "un", "stock_qty": 0, "min_qty": 18, "unit_cost": 0.9},
+    {"name": "Presunto", "code": "PRES-001", "unit": "kg", "stock_qty": 0, "min_qty": 3, "unit_cost": 24.0},
+    {"name": "Refrigerante 2L", "code": "REFRI-2L-001", "unit": "un", "stock_qty": 0, "min_qty": 12, "unit_cost": 8.0},
+    {"name": "Água mineral", "code": "AGUA-001", "unit": "un", "stock_qty": 0, "min_qty": 15, "unit_cost": 2.0},
+    # Ingredientes adicionais das fichas técnicas
     {"name": "Orégano", "code": "OREG-001", "unit": "g", "stock_qty": 1000, "min_qty": 200, "unit_cost": 0.0},
-    {"name": "Calabresa fatiada", "code": "CALAB-001", "unit": "g", "stock_qty": 25000, "min_qty": 5000, "unit_cost": 0.0},
     {"name": "Queijo parmesão", "code": "PARM-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Cebola em rodelas", "code": "CEB-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.0},
+    {"name": "Cebola em rodelas", "code": "CEB-ROD-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.0},
     {"name": "Farofa de bacon", "code": "FARBAC-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
-    {"name": "Presunto", "code": "PRES-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.0},
-    {"name": "Ovo cozido", "code": "OVO-001", "unit": "g", "stock_qty": 3000, "min_qty": 600, "unit_cost": 0.0},
+    {"name": "Ovo cozido", "code": "OVO-COZ-001", "unit": "g", "stock_qty": 3000, "min_qty": 600, "unit_cost": 0.0},
     {"name": "Ervilha", "code": "ERV-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.0},
     {"name": "Azeitona", "code": "AZEIT-001", "unit": "g", "stock_qty": 3000, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Tomate em rodelas", "code": "TOM-001", "unit": "g", "stock_qty": 6000, "min_qty": 1000, "unit_cost": 0.0},
+    {"name": "Tomate em rodelas", "code": "TOM-ROD-001", "unit": "g", "stock_qty": 6000, "min_qty": 1000, "unit_cost": 0.0},
     {"name": "Manjericão fresco", "code": "MANJ-001", "unit": "g", "stock_qty": 500, "min_qty": 100, "unit_cost": 0.0},
     {"name": "Carne moída temperada", "code": "CARNEM-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.0},
     {"name": "Pimentão", "code": "PIMEN-001", "unit": "g", "stock_qty": 4000, "min_qty": 800, "unit_cost": 0.0},
@@ -155,8 +167,6 @@ SEED_INGREDIENTS = [
     {"name": "Coração em fatias", "code": "CORAC-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.0},
     {"name": "Filé ao molho mostarda", "code": "FILEM-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
     {"name": "Filé cremoso", "code": "FILEC-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
-    {"name": "Catupiry", "code": "CATU-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.0},
-    {"name": "Frango desfiado", "code": "FRANGD-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.0},
     {"name": "Frango cremoso", "code": "FRANGC-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.0},
     {"name": "Atum sólido em óleo", "code": "ATUM-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.0},
     {"name": "Requeijão cremoso", "code": "REQ-001", "unit": "g", "stock_qty": 10000, "min_qty": 2000, "unit_cost": 0.0},
@@ -1427,6 +1437,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 if data is not None:
                     self.send_json(data)
                 return
+            if path == "/api/sync-ingredients":
+                if not self.require_permission("settings"):
+                    return
+                data = self.sync_ingredients()
+                if data is not None:
+                    self.send_json(data)
+                return
             self.send_error(HTTPStatus.NOT_FOUND, "Rota não encontrada")
         except Exception as error:
             import traceback
@@ -2222,6 +2239,57 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             "inserted": inserted,
             "updated": updated,
             "message": f"Cardápio sincronizado: {inserted} novos, {updated} atualizados.",
+        }
+
+    def sync_ingredients(self):
+        """Sincroniza ingredientes do SEED sem apagar dados existentes (upsert)."""
+        inserted = 0
+        updated = 0
+        with connect() as conn:
+            for ingredient in SEED_INGREDIENTS:
+                row = conn.execute(
+                    "SELECT id FROM ingredients WHERE name = ?",
+                    (ingredient["name"],),
+                ).fetchone()
+                if row:
+                    conn.execute(
+                        """
+                        UPDATE ingredients
+                        SET code = ?, unit = ?, min_qty = ?, unit_cost = ?, supplier = ?
+                        WHERE name = ?
+                        """,
+                        (
+                            ingredient["code"],
+                            ingredient["unit"],
+                            ingredient["min_qty"],
+                            ingredient["unit_cost"],
+                            "Bortolini Fornecedor",
+                            ingredient["name"],
+                        ),
+                    )
+                    updated += 1
+                else:
+                    conn.execute(
+                        """
+                        INSERT INTO ingredients (name, code, unit, stock_qty, min_qty, supplier, unit_cost)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            ingredient["name"],
+                            ingredient["code"],
+                            ingredient["unit"],
+                            ingredient["stock_qty"],
+                            ingredient["min_qty"],
+                            "Bortolini Fornecedor",
+                            ingredient["unit_cost"],
+                        ),
+                    )
+                    inserted += 1
+        return {
+            "ok": True,
+            "inserted": inserted,
+            "updated": updated,
+            "message": f"Estoque sincronizado: {inserted} novos, {updated} atualizados.",
         }
 
     def get_settings(self):

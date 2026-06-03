@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260601z" />
+    <link rel="stylesheet" href="/styles.css?v=20260602a" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
@@ -614,6 +614,7 @@
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="primary" id="save-settings-btn">Salvar configurações</button>
               <button class="secondary" id="sync-menu-btn" type="button" onclick="syncMenuItems()">🔄 Sincronizar cardápio</button>
+              <button class="secondary" id="sync-ingredients-btn" type="button" onclick="syncIngredients()">🔄 Sincronizar estoque</button>
             </div>
             <p class="form-error" id="settings-message"></p>
           </section>
@@ -973,7 +974,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="/app-v3.js?v=20260601z"></script>
+    <script src="/app-v3.js?v=20260602a"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->

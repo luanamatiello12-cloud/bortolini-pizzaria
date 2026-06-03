@@ -3365,11 +3365,26 @@ async function syncMenuItems() {
     byId("settings-message").textContent = "Sincronizando cardápio...";
     byId("settings-message").classList.remove("form-error");
     const result = await api("/api/sync-menu", { method: "POST" });
-    byId("settings-message").textContent = `Cardápio sincronizado! ${result.synced || 0} itens.`;
+    byId("settings-message").textContent = `Cardápio sincronizado! ${result.inserted || 0} novos, ${result.updated || 0} atualizados.`;
     showToast("Cardápio sincronizado com sucesso!");
     loadData();
   } catch (error) {
     byId("settings-message").textContent = "Erro ao sincronizar cardápio.";
+    byId("settings-message").classList.add("form-error");
+  }
+}
+
+async function syncIngredients() {
+  if (!can("settings")) return;
+  try {
+    byId("settings-message").textContent = "Sincronizando estoque...";
+    byId("settings-message").classList.remove("form-error");
+    const result = await api("/api/sync-ingredients", { method: "POST" });
+    byId("settings-message").textContent = `${result.message || "Estoque sincronizado!"}`;
+    showToast("Estoque sincronizado com sucesso!");
+    loadData();
+  } catch (error) {
+    byId("settings-message").textContent = "Erro ao sincronizar estoque.";
     byId("settings-message").classList.add("form-error");
   }
 }
