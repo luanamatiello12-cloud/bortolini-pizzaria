@@ -457,7 +457,8 @@ function renderMenu() {
   byId("menu-items").innerHTML = filteredItems
     .map(
       (item, index) => `
-        <article class="menu-card" data-menu-item-id="${item.id}">
+        <article class="menu-card${showSort ? " draggable-card" : ""}" data-menu-item-id="${item.id}"${showSort ? ' draggable="true"' : ""}>
+          ${showSort ? '<div class="drag-handle" title="Arraste para reordenar">⋮⋮</div>' : ""}
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
           <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
@@ -530,6 +531,12 @@ function renderMenu() {
   document.querySelectorAll("[data-toggle-promotion]").forEach((button) => {
     button.addEventListener("click", () => togglePromotion(Number(button.dataset.togglePromotion)));
   });
+
+  // Drag and drop para reordenar cardapio
+  if (showSort) {
+    setupMenuDragAndDrop();
+  }
+
   renderInventory();
 }
 
@@ -3052,6 +3059,90 @@ async function moveMenuItem(itemId, direction) {
 
   renderMenu();
   renderCustomerStore();
+}
+
+// Drag and drop para reordenar cardapio
+let _draggedMenuItemId = null;
+
+function setupMenuDragAndDrop() {
+  const container = byId("menu-items");
+  if (!container) return;
+
+  container.querySelectorAll(".draggable-card").forEach((card) => {
+    card.addEventListener("dragstart", (e) => {
+      _draggedMenuItemId = Number(card.dataset.menuItemId);
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      _draggedMenuItemId = null;
+      container.querySelectorAll(".drop-indicator").forEach((el) => el.remove());
+    });
+  });
+
+  container.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(container, e.clientY);
+    let indicator = container.querySelector(".drop-indicator");
+    if (!indicator) {
+      indicator = document.createElement("div");
+      indicator.className = "drop-indicator";
+      container.appendChild(indicator);
+    }
+    if (afterElement == null) {
+      container.appendChild(indicator);
+    } else {
+      container.insertBefore(indicator, afterElement);
+    }
+  });
+
+  container.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    const afterElement = getDragAfterElement(container, e.clientY);
+    const draggedId = _draggedMenuItemId;
+    if (!draggedId) return;
+
+    // Reconstruir array na nova ordem
+    const cards = [...container.querySelectorAll(".draggable-card")];
+    const newOrderIds = cards.map((c) => Number(c.dataset.menuItemId));
+    // Reordenar menuItems de acordo com a nova ordem
+    const newMenuItems = [];
+    for (const id of newOrderIds) {
+      const item = menuItems.find((m) => m.id === id);
+      if (item) newMenuItems.push(item);
+    }
+    // Adicionar itens que nao estao na lista filtrada (nao deveria acontecer quando categoria=Todos)
+    for (const item of menuItems) {
+      if (!newOrderIds.includes(item.id)) newMenuItems.push(item);
+    }
+    menuItems = newMenuItems;
+
+    if (state.apiOnline) {
+      try {
+        await api("/api/menu/sort", { method: "PATCH", body: JSON.stringify({ items: menuItems.map((item) => item.id) }) });
+      } catch (error) {
+        showToast("Nao foi possivel salvar a ordenacao.");
+        return;
+      }
+    }
+
+    renderMenu();
+    renderCustomerStore();
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll(".draggable-card:not(.dragging)")];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child };
+    }
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 function openPromotionEditor(promotionId) {

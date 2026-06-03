@@ -1144,6 +1144,41 @@ tr:last-child td {
   transition: all 0.3s ease;
 }
 
+.drag-handle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: grab;
+  user-select: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.draggable-card {
+  position: relative;
+  cursor: grab;
+}
+
+.draggable-card.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.drop-indicator {
+  height: 4px;
+  background: #f59e0b;
+  border-radius: 2px;
+  margin: 4px 0;
+  pointer-events: none;
+}
+
 .customer-store .menu-grid {
   gap: 18px;
 }
