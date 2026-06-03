@@ -457,7 +457,7 @@ function renderMenu() {
   byId("menu-items").innerHTML = filteredItems
     .map(
       (item, index) => `
-        <article class="menu-card${showSort ? " draggable-card" : ""}" data-menu-item-id="${item.id}"${showSort ? ' draggable="true"' : ""}>
+        <article class="menu-card${showSort ? " draggable-card" : ""}" data-menu-item-id="${item.id}">
           ${showSort ? '<div class="drag-handle" title="Arraste para reordenar">⋮⋮</div>' : ""}
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
@@ -3080,6 +3080,9 @@ function setupMenuSortable() {
     ghostClass: "sortable-ghost",
     chosenClass: "sortable-chosen",
     dragClass: "sortable-drag",
+    delay: 0,
+    delayOnTouchOnly: true,
+    touchStartThreshold: 5,
     onEnd: async (evt) => {
       // Reconstruir menuItems na nova ordem
       const cards = [...container.querySelectorAll("[data-menu-item-id]")];
