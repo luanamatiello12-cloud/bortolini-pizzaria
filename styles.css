@@ -1136,6 +1136,14 @@ tr:last-child td {
   align-items: center;
 }
 
+.inventory-form.editing-zone {
+  background: #fff7ed;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  padding: 14px;
+  transition: all 0.3s ease;
+}
+
 .customer-store .menu-grid {
   gap: 18px;
 }
