@@ -1110,6 +1110,32 @@ tr:last-child td {
   gap: 12px;
 }
 
+.menu-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.menu-card-actions .sort-btn {
+  font-weight: 700;
+  padding: 4px 10px;
+  min-width: 32px;
+}
+
+.zone-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.zone-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .customer-store .menu-grid {
   gap: 18px;
 }

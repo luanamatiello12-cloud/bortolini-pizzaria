@@ -25,6 +25,7 @@ let settings = {};
 let cart = [];
 let editingProductId = null;
 let editingPromotionId = null;
+let editingZoneId = null;
 let cancelOrderId = null;
 let closeout = null;
 let ingredients = [];
@@ -451,19 +452,24 @@ function renderMenu() {
     categoryFilter.innerHTML = categories.map((category) => `<option value="${category}" ${category === current ? "selected" : ""}>${category}</option>`).join("");
   }
 
-  byId("menu-items").innerHTML = menuItems
-    .filter((item) => state.menuCategory === "Todos" || item.category === state.menuCategory)
+  const filteredItems = menuItems.filter((item) => state.menuCategory === "Todos" || item.category === state.menuCategory);
+  const showSort = state.menuCategory === "Todos" && can("menu");
+  byId("menu-items").innerHTML = filteredItems
     .map(
-      (item) => `
-        <article class="menu-card">
+      (item, index) => `
+        <article class="menu-card" data-menu-item-id="${item.id}">
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
           <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
           ${item.description ? `<p>${item.description}</p>` : ""}
           <p>${item.prep_time ? `Preparo: ${item.prep_time}` : "Preparo nao informado"}${item.addons ? ` - Adicionais: ${item.addons}` : ""}</p>
           ${Number(item.cost) > 0 ? `<p style="color:var(--accent);font-weight:600;">Custo: ${currency.format(item.cost)} · Margem: ${item.margin_percent || 0}%</p>` : ""}
-          <button class="ghost" data-edit-product="${item.id}">Editar</button>
-          <button class="ghost" data-toggle-product="${item.id}">${item.active ? "Pausar" : "Ativar"}</button>
+          <div class="menu-card-actions">
+            ${showSort ? `<button class="ghost sort-btn" data-sort-up="${item.id}" title="Mover para cima" ${index === 0 ? "disabled" : ""}>↑</button>` : ""}
+            ${showSort ? `<button class="ghost sort-btn" data-sort-down="${item.id}" title="Mover para baixo" ${index === filteredItems.length - 1 ? "disabled" : ""}>↓</button>` : ""}
+            <button class="ghost" data-edit-product="${item.id}">Editar</button>
+            <button class="ghost" data-toggle-product="${item.id}">${item.active ? "Pausar" : "Ativar"}</button>
+          </div>
         </article>
       `,
     )
@@ -511,6 +517,12 @@ function renderMenu() {
   });
   document.querySelectorAll("[data-toggle-product]").forEach((button) => {
     button.addEventListener("click", () => toggleProduct(Number(button.dataset.toggleProduct)));
+  });
+  document.querySelectorAll("[data-sort-up]").forEach((button) => {
+    button.addEventListener("click", () => moveMenuItem(Number(button.dataset.sortUp), -1));
+  });
+  document.querySelectorAll("[data-sort-down]").forEach((button) => {
+    button.addEventListener("click", () => moveMenuItem(Number(button.dataset.sortDown), 1));
   });
   document.querySelectorAll("[data-edit-promotion]").forEach((button) => {
     button.addEventListener("click", () => openPromotionEditor(Number(button.dataset.editPromotion)));
@@ -2110,7 +2122,10 @@ function renderDeliveryZones() {
             <article class="ingredient-card">
               <strong>${zone.neighborhood}<span>${currency.format(zone.fee)}</span></strong>
               <p>${zone.eta} · ${zone.active ? "Ativo" : "Pausado"}</p>
-              <button class="ghost" data-toggle-zone="${zone.id}">${zone.active ? "Pausar" : "Ativar"}</button>
+              <div class="zone-actions">
+                <button class="ghost" data-edit-zone="${zone.id}">Editar</button>
+                <button class="ghost" data-toggle-zone="${zone.id}">${zone.active ? "Pausar" : "Ativar"}</button>
+              </div>
             </article>
           `,
         )
@@ -2118,6 +2133,9 @@ function renderDeliveryZones() {
     : `<article class="ingredient-card"><strong>Sem bairros</strong><p>Cadastre taxas por região.</p></article>`;
   document.querySelectorAll("[data-toggle-zone]").forEach((button) => {
     button.addEventListener("click", () => toggleDeliveryZone(Number(button.dataset.toggleZone)));
+  });
+  document.querySelectorAll("[data-edit-zone]").forEach((button) => {
+    button.addEventListener("click", () => openZoneEditor(Number(button.dataset.editZone)));
   });
 }
 
@@ -2560,25 +2578,57 @@ async function updateStock(ingredientId) {
   }
 }
 
-async function createDeliveryZone() {
+function openZoneEditor(zoneId) {
+  const zone = deliveryZones.find((z) => z.id === zoneId);
+  if (!zone) return;
+  editingZoneId = zoneId;
+  byId("zone-neighborhood").value = zone.neighborhood || "";
+  byId("zone-fee").value = zone.fee || "";
+  byId("zone-eta").value = zone.eta || "";
+  byId("create-zone-btn").textContent = "Salvar bairro";
+  const cancelBtn = byId("cancel-zone-btn");
+  if (cancelBtn) cancelBtn.classList.remove("hidden");
+}
+
+function cancelZoneEdit() {
+  editingZoneId = null;
+  byId("zone-neighborhood").value = "";
+  byId("zone-fee").value = "";
+  byId("zone-eta").value = "";
+  byId("create-zone-btn").textContent = "Adicionar bairro";
+  const cancelBtn = byId("cancel-zone-btn");
+  if (cancelBtn) cancelBtn.classList.add("hidden");
+}
+
+async function saveDeliveryZone() {
   const payload = {
     neighborhood: byId("zone-neighborhood").value.trim(),
     fee: Number(byId("zone-fee").value || 0),
     eta: byId("zone-eta").value.trim() || "35 a 45 minutos",
-    active: 1,
   };
   if (!payload.neighborhood) return;
   try {
-    const created = state.apiOnline
-      ? await api("/api/delivery-zones", { method: "POST", body: JSON.stringify(payload) })
-      : { ...payload, id: Date.now() };
-    deliveryZones = [...deliveryZones, created];
+    if (editingZoneId) {
+      const updated = state.apiOnline
+        ? await api(`/api/delivery-zones/${editingZoneId}`, { method: "PATCH", body: JSON.stringify(payload) })
+        : { ...deliveryZones.find((z) => z.id === editingZoneId), ...payload };
+      deliveryZones = deliveryZones.map((z) => (z.id === editingZoneId ? updated : z));
+      editingZoneId = null;
+    } else {
+      const created = state.apiOnline
+        ? await api("/api/delivery-zones", { method: "POST", body: JSON.stringify({ ...payload, active: 1 }) })
+        : { ...payload, active: 1, id: Date.now() };
+      deliveryZones = [...deliveryZones, created];
+    }
     byId("zone-neighborhood").value = "";
     byId("zone-fee").value = "";
     byId("zone-eta").value = "";
+    byId("create-zone-btn").textContent = "Adicionar bairro";
+    const cancelBtn = byId("cancel-zone-btn");
+    if (cancelBtn) cancelBtn.classList.add("hidden");
     renderDeliveryZones();
   } catch (error) {
-    showToast("Nao foi possivel cadastrar o bairro.");
+    showToast(editingZoneId ? "Nao foi possivel atualizar o bairro." : "Nao foi possivel cadastrar o bairro.");
   }
 }
 
@@ -2965,6 +3015,32 @@ async function toggleProduct(itemId) {
   } catch (error) {
     return;
   }
+}
+
+async function moveMenuItem(itemId, direction) {
+  const idx = menuItems.findIndex((item) => item.id === itemId);
+  if (idx === -1) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= menuItems.length) return;
+
+  // Swap local
+  const temp = menuItems[idx];
+  menuItems[idx] = menuItems[newIdx];
+  menuItems[newIdx] = temp;
+
+  // Persist new order
+  if (state.apiOnline) {
+    try {
+      const payload = { items: menuItems.map((item) => item.id) };
+      await api("/api/menu/sort", { method: "PATCH", body: JSON.stringify(payload) });
+    } catch (error) {
+      showToast("Nao foi possivel salvar a ordenacao.");
+      return;
+    }
+  }
+
+  renderMenu();
+  renderCustomerStore();
 }
 
 function openPromotionEditor(promotionId) {
@@ -3880,7 +3956,8 @@ byId("close-pin-dialog")?.addEventListener("click", () => byId("pin-dialog")?.cl
 byId("close-recover-admin-dialog")?.addEventListener("click", () => byId("recover-admin-dialog")?.close());
 byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-dialog")?.close());
 byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
-byId("create-zone-btn")?.addEventListener("click", createDeliveryZone);
+byId("create-zone-btn")?.addEventListener("click", saveDeliveryZone);
+byId("cancel-zone-btn")?.addEventListener("click", cancelZoneEdit);
 byId("pizza-flavors-dialog-add")?.addEventListener("click", addPizzaFromFlavorsDialog);
 byId("pizza-flavors-dialog-crust")?.addEventListener("change", updatePizzaFlavorsDialogPrice);
 

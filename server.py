@@ -921,6 +921,7 @@ def ensure_menu_item_columns(conn):
         "size": "ALTER TABLE menu_items ADD COLUMN size TEXT",
         "prep_time": "ALTER TABLE menu_items ADD COLUMN prep_time TEXT",
         "addons": "ALTER TABLE menu_items ADD COLUMN addons TEXT",
+        "sort_order": "ALTER TABLE menu_items ADD COLUMN sort_order INTEGER DEFAULT 0",
     }
     for column, sql in migrations.items():
         if column not in columns:
@@ -1449,6 +1450,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             if data is not None:
                 self.send_json(data)
             return
+        if path == "/api/menu/sort":
+            if not self.require_permission("menu"):
+                return
+            payload = self.read_json()
+            data = self.update_menu_sort_order(payload)
+            if data is not None:
+                self.send_json(data)
+            return
         if path.startswith("/api/menu/") and path.endswith("/ingredients"):
             if not self.require_permission("inventory"):
                 return
@@ -1943,7 +1952,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 LEFT JOIN menu_ingredients mi ON mi.menu_item_id = m.id
                 LEFT JOIN ingredients i ON i.id = mi.ingredient_id
                 GROUP BY m.id
-                ORDER BY m.id
+                ORDER BY COALESCE(m.sort_order, 999999) ASC, m.id ASC
                 """
             ).fetchall()
         result = rows_to_dicts(rows)
@@ -2170,11 +2179,11 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if menu_count == 0:
             items = SEED_MENU_ITEMS
             with connect() as conn:
-                for item in items:
+                for i, item in enumerate(items):
                     try:
                         conn.execute(
-                            "INSERT INTO menu_items (name, category, price, description, size) VALUES (?, ?, 0, ?, ?)",
-                            (item["name"], item["category"], item.get("description", ""), item.get("size", "")),
+                            "INSERT INTO menu_items (name, category, price, description, size, sort_order) VALUES (?, ?, 0, ?, ?, ?)",
+                            (item["name"], item["category"], item.get("description", ""), item.get("size", ""), i + 1),
                         )
                         inserted_menu += 1
                     except DB_INTEGRITY_ERROR:
@@ -2202,9 +2211,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     )
                     updated += 1
                 else:
+                    next_sort = conn.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM menu_items").fetchone()[0] or 1
                     conn.execute(
-                        "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
-                        (item["name"], item["category"], item.get("description", "")),
+                        "INSERT INTO menu_items (name, category, price, description, active, sort_order) VALUES (?, ?, 0, ?, 1, ?)",
+                        (item["name"], item["category"], item.get("description", ""), next_sort),
                     )
                     inserted += 1
         return {
@@ -2808,11 +2818,12 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return
 
         with connect() as conn:
+            max_sort = conn.execute("SELECT COALESCE(MAX(sort_order), 0) FROM menu_items").fetchone()[0] or 0
             try:
                 cursor = conn.execute(
                     """
-                    INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO menu_items (name, category, price, sales, active, description, size, prep_time, addons, sort_order)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     RETURNING *
                     """,
                     (
@@ -2825,6 +2836,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                         payload.get("size", "").strip(),
                         payload.get("prep_time", "").strip(),
                         payload.get("addons", "").strip(),
+                        max_sort + 1,
                     ),
                 )
             except DB_INTEGRITY_ERROR:
@@ -2878,6 +2890,19 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 except DB_INTEGRITY_ERROR:
                     skipped += 1
         return {"inserted": inserted, "skipped": skipped, "total": len(items)}
+
+    def update_menu_sort_order(self, payload):
+        items = payload.get("items", [])
+        if not items:
+            self.send_error(HTTPStatus.BAD_REQUEST, "Nenhum item enviado")
+            return None
+        with connect() as conn:
+            for i, item_id in enumerate(items):
+                conn.execute(
+                    "UPDATE menu_items SET sort_order = ? WHERE id = ?",
+                    (i + 1, item_id),
+                )
+        return {"ok": True, "updated": len(items)}
 
     def update_menu_item(self, item_id, payload):
         fields = []
