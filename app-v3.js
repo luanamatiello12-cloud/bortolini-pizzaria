@@ -532,9 +532,9 @@ function renderMenu() {
     button.addEventListener("click", () => togglePromotion(Number(button.dataset.togglePromotion)));
   });
 
-  // Drag and drop para reordenar cardapio
-  if (showSort) {
-    setupMenuDragAndDrop();
+  // Drag and drop com SortableJS para reordenar cardapio
+  if (showSort && typeof Sortable !== "undefined") {
+    setupMenuSortable();
   }
 
   renderInventory();
@@ -3061,88 +3061,52 @@ async function moveMenuItem(itemId, direction) {
   renderCustomerStore();
 }
 
-// Drag and drop para reordenar cardapio
-let _draggedMenuItemId = null;
+// SortableJS para reordenar cardapio
+let _menuSortableInstance = null;
 
-function setupMenuDragAndDrop() {
+function setupMenuSortable() {
   const container = byId("menu-items");
   if (!container) return;
 
-  container.querySelectorAll(".draggable-card").forEach((card) => {
-    card.addEventListener("dragstart", (e) => {
-      _draggedMenuItemId = Number(card.dataset.menuItemId);
-      card.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-    });
+  // Destruir instancia anterior se existir
+  if (_menuSortableInstance) {
+    _menuSortableInstance.destroy();
+    _menuSortableInstance = null;
+  }
 
-    card.addEventListener("dragend", () => {
-      card.classList.remove("dragging");
-      _draggedMenuItemId = null;
-      container.querySelectorAll(".drop-indicator").forEach((el) => el.remove());
-    });
-  });
-
-  container.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    const afterElement = getDragAfterElement(container, e.clientY);
-    let indicator = container.querySelector(".drop-indicator");
-    if (!indicator) {
-      indicator = document.createElement("div");
-      indicator.className = "drop-indicator";
-      container.appendChild(indicator);
-    }
-    if (afterElement == null) {
-      container.appendChild(indicator);
-    } else {
-      container.insertBefore(indicator, afterElement);
-    }
-  });
-
-  container.addEventListener("drop", async (e) => {
-    e.preventDefault();
-    const afterElement = getDragAfterElement(container, e.clientY);
-    const draggedId = _draggedMenuItemId;
-    if (!draggedId) return;
-
-    // Reconstruir array na nova ordem
-    const cards = [...container.querySelectorAll(".draggable-card")];
-    const newOrderIds = cards.map((c) => Number(c.dataset.menuItemId));
-    // Reordenar menuItems de acordo com a nova ordem
-    const newMenuItems = [];
-    for (const id of newOrderIds) {
-      const item = menuItems.find((m) => m.id === id);
-      if (item) newMenuItems.push(item);
-    }
-    // Adicionar itens que nao estao na lista filtrada (nao deveria acontecer quando categoria=Todos)
-    for (const item of menuItems) {
-      if (!newOrderIds.includes(item.id)) newMenuItems.push(item);
-    }
-    menuItems = newMenuItems;
-
-    if (state.apiOnline) {
-      try {
-        await api("/api/menu/sort", { method: "PATCH", body: JSON.stringify({ items: menuItems.map((item) => item.id) }) });
-      } catch (error) {
-        showToast("Nao foi possivel salvar a ordenacao.");
-        return;
+  _menuSortableInstance = Sortable.create(container, {
+    animation: 200,
+    handle: ".drag-handle",
+    ghostClass: "sortable-ghost",
+    chosenClass: "sortable-chosen",
+    dragClass: "sortable-drag",
+    onEnd: async (evt) => {
+      // Reconstruir menuItems na nova ordem
+      const cards = [...container.querySelectorAll("[data-menu-item-id]")];
+      const newOrderIds = cards.map((c) => Number(c.dataset.menuItemId));
+      const newMenuItems = [];
+      for (const id of newOrderIds) {
+        const item = menuItems.find((m) => m.id === id);
+        if (item) newMenuItems.push(item);
       }
-    }
+      // Preservar itens nao visiveis (nao deveria acontecer com categoria=Todos)
+      for (const item of menuItems) {
+        if (!newOrderIds.includes(item.id)) newMenuItems.push(item);
+      }
+      menuItems = newMenuItems;
 
-    renderMenu();
-    renderCustomerStore();
+      if (state.apiOnline) {
+        try {
+          await api("/api/menu/sort", { method: "PATCH", body: JSON.stringify({ items: menuItems.map((item) => item.id) }) });
+        } catch (error) {
+          showToast("Nao foi possivel salvar a ordenacao.");
+          return;
+        }
+      }
+
+      renderCustomerStore();
+    },
   });
-}
-
-function getDragAfterElement(container, y) {
-  const draggableElements = [...container.querySelectorAll(".draggable-card:not(.dragging)")];
-  return draggableElements.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset, element: child };
-    }
-    return closest;
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
 function openPromotionEditor(promotionId) {
