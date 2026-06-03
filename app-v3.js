@@ -2135,6 +2135,7 @@ function renderDeliveryZones() {
     button.addEventListener("click", () => toggleDeliveryZone(Number(button.dataset.toggleZone)));
   });
   document.querySelectorAll("[data-edit-zone]").forEach((button) => {
+    console.log("[renderDeliveryZones] attaching edit listener to zone", button.dataset.editZone);
     button.addEventListener("click", () => openZoneEditor(Number(button.dataset.editZone)));
   });
 }
@@ -2579,15 +2580,22 @@ async function updateStock(ingredientId) {
 }
 
 function openZoneEditor(zoneId) {
+  console.log("[openZoneEditor] clicked, zoneId:", zoneId, "deliveryZones:", deliveryZones);
   const zone = deliveryZones.find((z) => z.id === zoneId);
-  if (!zone) return;
+  if (!zone) {
+    console.warn("[openZoneEditor] zone not found for id:", zoneId);
+    return;
+  }
   editingZoneId = zoneId;
   byId("zone-neighborhood").value = zone.neighborhood || "";
-  byId("zone-fee").value = zone.fee || "";
+  byId("zone-fee").value = zone.fee ?? "";
   byId("zone-eta").value = zone.eta || "";
   byId("create-zone-btn").textContent = "Salvar bairro";
   const cancelBtn = byId("cancel-zone-btn");
-  if (cancelBtn) cancelBtn.classList.remove("hidden");
+  if (cancelBtn) {
+    cancelBtn.classList.remove("hidden");
+    console.log("[openZoneEditor] filled form for", zone.neighborhood);
+  }
 }
 
 function cancelZoneEdit() {
