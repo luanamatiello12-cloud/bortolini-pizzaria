@@ -24,7 +24,7 @@ itens = [
   {"name":"Milho com Bacon","category":"Pizza","description":"Molho de tomate, muçarela, milho verde, bacon em cubos, orégano"},
   {"name":"Vegetariana","category":"Pizza","description":"Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano"},
   {"name":"Coração","category":"Pizza","description":"Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano"},
-  {"name":"Filé ao Molho Mostarda","category":"Pizza","description":"Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano"},
+  {"name":"Filé ao molho conhaque","category":"Pizza","description":"Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano"},
   {"name":"Filé Cremoso","category":"Pizza","description":"Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano"},
   {"name":"Frango com Catupiry","category":"Pizza","description":"Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano"},
   {"name":"Frango Cremoso","category":"Pizza","description":"Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano"},

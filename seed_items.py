@@ -12,7 +12,7 @@ SEED_MENU_ITEMS = [
     {"name": "Milho com Bacon", "category": "Pizza", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "Grande"},
     {"name": "Vegetariana", "category": "Pizza", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "Grande"},
     {"name": "Coração", "category": "Pizza", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "Grande"},
-    {"name": "Filé ao Molho Mostarda", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "size": "Grande"},
+    {"name": "Filé ao molho conhaque", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano", "size": "Grande"},
     {"name": "Filé Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "Grande"},
     {"name": "Frango com Catupiry", "category": "Pizza", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "Grande"},
     {"name": "Frango Cremoso", "category": "Pizza", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "Grande"},

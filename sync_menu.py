@@ -22,7 +22,7 @@ MENU_ITEMS = [
     {"name": "Milho com Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "price": 0, "active": 1},
     {"name": "Vegetariana", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "price": 0, "active": 1},
     {"name": "Coração", "category": "Pizzas", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "price": 0, "active": 1},
-    {"name": "Filé ao Molho Mostarda", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "price": 0, "active": 1},
+    {"name": "Filé ao molho conhaque", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano", "price": 0, "active": 1},
     {"name": "Filé Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "price": 0, "active": 1},
     {"name": "Frango com Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "price": 0, "active": 1},
     {"name": "Frango Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "price": 0, "active": 1},

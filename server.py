@@ -92,7 +92,7 @@ SEED_MENU_ITEMS = [
     {"name": "Milho com Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Vegetariana", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Coração", "category": "Pizzas", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
-    {"name": "Filé ao Molho Mostarda", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho mostarda, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Filé ao molho conhaque", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Filé Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Frango com Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Frango Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
@@ -165,7 +165,7 @@ SEED_INGREDIENTS = [
     {"name": "Milho verde", "code": "MILHO-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
     {"name": "Palmito", "code": "PALM-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
     {"name": "Coração em fatias", "code": "CORAC-001", "unit": "g", "stock_qty": 12000, "min_qty": 2500, "unit_cost": 0.0},
-    {"name": "Filé ao molho mostarda", "code": "FILEM-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
+    {"name": "Filé ao molho conhaque", "code": "FILEM-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
     {"name": "Filé cremoso", "code": "FILEC-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
     {"name": "Frango cremoso", "code": "FRANGC-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.0},
     {"name": "Atum sólido em óleo", "code": "ATUM-001", "unit": "g", "stock_qty": 20000, "min_qty": 4000, "unit_cost": 0.0},
@@ -269,9 +269,9 @@ SEED_RECIPES = {
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Coração em fatias", 230), ("Queijo parmesão", 22),
     ],
-    "Filé ao Molho Mostarda": [
+    "Filé ao molho conhaque": [
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
-        ("Filé ao molho mostarda", 230), ("Queijo parmesão", 22),
+        ("Filé ao molho conhaque", 230), ("Queijo parmesão", 22),
     ],
     "Filé Cremoso": [
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
