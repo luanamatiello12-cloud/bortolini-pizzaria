@@ -1165,14 +1165,14 @@ function renderCustomerStore() {
   byId("store-hours").textContent = `${settings.opening_hours || "18:00 às 23:30"} · entrega ${currency.format(Number(settings.delivery_fee || 0))} · preparo ${settings.prep_time || "35 a 45 minutos"}`;
   renderQrPanel();
 
-  // Pizzas — lista de tamanhos clicáveis (estilo vídeo)
+  // Pizzas — lista de tamanhos clicáveis
   const pizzaSizesList = byId("store-pizza-sizes-list");
   if (pizzaSizesList) {
     pizzaSizesList.innerHTML = PIZZA_SIZES.map((size) => `
       <article class="pizza-size-store-card" onclick="openPizzaSizeSelector('${size.key}')">
         <div class="size-text">
-          <strong>${size.label}: ${size.cm} (${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"})</strong>
-          <span>${size.slices}</span>
+          <strong>${size.label}</strong>
+          <span>${size.cm} · ${size.slices} · ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}</span>
           <span class="size-price-store">${currency.format(size.price)}</span>
         </div>
         <img class="size-photo" src="assets/logo.png" alt="${size.label}" />
@@ -4512,15 +4512,41 @@ async function loadOrderTrack(orderId) {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
     statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" ? "success" : ""}`;
+
+    const itemList = order.items && order.items.length
+      ? order.items.map((it) => `
+          <div class="track-item-row">
+            <span class="track-item-qty">${it.qty}x</span>
+            <span class="track-item-name">${escapeHtml(it.name)}</span>
+            <span class="track-item-price">${currency.format(it.price * it.qty)}</span>
+          </div>
+        `).join("")
+      : `<div class="track-item-row"><span class="track-item-name">${escapeHtml(order.item)}</span></div>`;
+
     details.innerHTML = `
-      <article class="cart-item">
-        <strong>Pedido #${order.id}</strong>
-        <p>${order.item}</p>
-        <p>Total: ${currency.format(order.total)} · Pagamento: ${order.payment}</p>
-        <p>Previsão: ${order.eta}</p>
-        ${order.notes ? `<p>Obs: ${order.notes}</p>` : ""}
-      </article>
-      <div class="status-timeline" style="margin:12px 0;">${renderOrderTimeline(order.status)}</div>
+      <div class="track-header">
+        <h1 class="track-title">Pedido #${order.id}</h1>
+        <p class="track-customer">${escapeHtml(order.customer)}</p>
+        <div class="track-meta">
+          <span class="track-meta-item">📅 ${new Date(order.created_at).toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"})}</span>
+          ${order.address ? `<span class="track-meta-item">📍 ${escapeHtml(order.address)}</span>` : ""}
+        </div>
+      </div>
+      <div class="track-items-box">
+        <h3>Itens do pedido</h3>
+        ${itemList}
+        <div class="track-divider"></div>
+        <div class="track-total-row">
+          <span>Total</span>
+          <strong>${currency.format(order.total)}</strong>
+        </div>
+        <div class="track-payment-row">
+          <span>Pagamento: ${order.payment}</span>
+          <span>Previsão: ${order.eta}</span>
+        </div>
+      </div>
+      <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
+      ${order.notes ? `<div class="track-notes"><strong>Observações:</strong> ${escapeHtml(order.notes)}</div>` : ""}
     `;
     if (order.payment === "PIX" && order.payment_receipt_status !== "Enviado") {
       pixSection.classList.remove("hidden");
