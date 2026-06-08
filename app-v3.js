@@ -41,10 +41,18 @@ let conversations = [];
 let drivers = [];
 
 const PIZZA_SIZES = [
-  { key: "p", label: "Pizza P", cm: "25 cm", slices: "6 fatias", flavors: 2, price: 45 },
-  { key: "m", label: "Pizza M", cm: "30 cm", slices: "8 fatias", flavors: 2, price: 55 },
-  { key: "g", label: "Pizza G", cm: "35 cm", slices: "12 fatias", flavors: 3, price: 70 },
-  { key: "gg", label: "Pizza GG", cm: "40 cm", slices: "16 fatias", flavors: 4, price: 85 },
+  { key: "broto", label: "Pizza Broto", cm: "25 cm", slices: "4 fatias", flavors: 1, price: 35.99 },
+  { key: "p", label: "Pizza P", cm: "30 cm", slices: "6 fatias", flavors: 2, price: 45.99 },
+  { key: "m", label: "Pizza M", cm: "35 cm", slices: "8 fatias", flavors: 2, price: 59.99 },
+  { key: "g", label: "Pizza G", cm: "40 cm", slices: "12 fatias", flavors: 3, price: 69.99 },
+  { key: "gg", label: "Pizza GG", cm: "45 cm", slices: "16 fatias", flavors: 4, price: 89.99 },
+];
+
+const PIZZA_PREMIUM_TOPPINGS = [
+  { name: "Atum Premium", extra: 5.00 },
+  { name: "Filé ao molho conhaque", extra: 5.00 },
+  { name: "Doritos", extra: 3.00 },
+  { name: "Bortolini Campeira", extra: 5.00 },
 ];
 
 function updatePizzaSizesFromSettings() {
