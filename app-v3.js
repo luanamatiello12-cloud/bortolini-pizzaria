@@ -41,7 +41,6 @@ let conversations = [];
 let drivers = [];
 
 const PIZZA_SIZES = [
-  { key: "broto", label: "Pizza Broto", cm: "20 cm", slices: "4 fatias", flavors: 1, price: 35 },
   { key: "p", label: "Pizza P", cm: "25 cm", slices: "6 fatias", flavors: 2, price: 45 },
   { key: "m", label: "Pizza M", cm: "30 cm", slices: "8 fatias", flavors: 2, price: 55 },
   { key: "g", label: "Pizza G", cm: "35 cm", slices: "12 fatias", flavors: 3, price: 70 },
