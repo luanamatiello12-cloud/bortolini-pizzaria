@@ -903,6 +903,18 @@ def init_db():
                 )
 
 
+def ensure_order_item_columns(conn):
+    columns = table_columns(conn, "order_items")
+    migrations = {
+        "extras": "ALTER TABLE order_items ADD COLUMN extras TEXT",
+    }
+    for column, sql in migrations.items():
+        if column not in columns:
+            try:
+                conn.execute(sql)
+            except Exception:
+                pass
+
 def ensure_order_delivery_columns(conn):
     columns = table_columns(conn, "orders")
     migrations = {
