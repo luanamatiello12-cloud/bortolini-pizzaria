@@ -1180,7 +1180,7 @@ function renderCustomerStore() {
     `).join("");
   }
 
-  // Bebidas (cards estilo iFood)
+  // Bebidas (cards estilo iFood com foto)
   const bebidas = menuItems.filter((item) => item.active && item.category === "Bebidas");
   console.log("[renderCustomerStore] bebidas filtradas:", bebidas.length, "de", menuItems.length, "itens");
   byId("store-bebidas").innerHTML = bebidas.length
@@ -1191,7 +1191,10 @@ function renderCustomerStore() {
             <p>${escapeHtml(item.description) || "Bebida"}</p>
             <span class="ifood-price">${currency.format(item.price)}</span>
           </div>
-          <button class="add-btn-round" id="add-btn-${item.id}" onclick="addBebidaToCartAnimated(${item.id})">+</button>
+          <div class="ifood-right">
+            ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
+            <button class="add-btn-round" id="add-btn-${item.id}" onclick="addBebidaToCartAnimated(${item.id})">+</button>
+          </div>
         </article>
       `).join("")
     : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
