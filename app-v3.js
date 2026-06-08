@@ -310,7 +310,7 @@ function renderOrders() {
           <td>
             <div class="order-cell">
               ${renderPhoto(getItemImage(order.item), "order-photo", escapeHtml(order.item))}
-              <div>${escapeHtml(order.customer)}<br><small>${escapeHtml(order.item)}${order.driver_name ? ` · ${escapeHtml(order.driver_name)} em rota` : ""}${order.payment_receipt_url ? " · comprovante anexado" : ""}</small></div>
+              <div>${escapeHtml(order.customer)}<br><small>${formatOrderItemsSummary(order)}${order.driver_name ? ` · ${escapeHtml(order.driver_name)} em rota` : ""}${order.payment_receipt_url ? " · comprovante anexado" : ""}</small></div>
             </div>
           </td>
           <td>${escapeHtml(order.channel)}<br><small>${escapeHtml(order.delivery_type) || "Entrega"}</small></td>
@@ -367,7 +367,7 @@ function renderLiveOrders() {
         <article class="order-card">
           <div>
             <strong>#${order.id} · ${escapeHtml(order.customer)}</strong>
-            <p>${escapeHtml(order.item)} via ${escapeHtml(order.channel)}</p>
+            <p>${formatOrderItemsSummary(order)} via ${escapeHtml(order.channel)}</p>
           </div>
           <span class="status-pill">${escapeHtml(order.status)}</span>
         </article>
@@ -1448,11 +1448,13 @@ function renderCart() {
             const flavorsText = entry.flavors.map((f) => f.name).join(" + ");
             const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` <small>(${entry.notes})</small>` : "";
+            const premiumBadges = renderPremiumExtrasBadges(entry.flavors);
             return `
               <article class="cart-item">
                 <div class="cart-item-info">
                   <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
                   <p>${flavorsText}${notesText}</p>
+                  ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
                 <div class="cart-item-actions">
                   <span>${currency.format(entry.price * entry.qty)}</span>
@@ -1499,12 +1501,14 @@ function openCartReview() {
           if (entry.type === "pizza") {
             const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` · ${entry.notes}` : "";
+            const premiumBadges = renderPremiumExtrasBadges(entry.flavors);
             return `
               <div class="ifood-item-row">
                 <span class="ifood-item-qty">${entry.qty}x</span>
                 <div class="ifood-item-info">
                   <strong>${escapeHtml(entry.sizeLabel)}${escapeHtml(crustText)}</strong>
                   <p>${entry.flavors.map((f) => escapeHtml(f.name)).join(" + ")}${escapeHtml(notesText)}</p>
+                  ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
                 <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
               </div>
@@ -1565,6 +1569,38 @@ function getPremiumExtra(flavors) {
   const flavorNames = flavors.map((f) => f.name);
   const premium = PIZZA_PREMIUM_TOPPINGS.find((pt) => flavorNames.some((fn) => fn.toLowerCase().includes(pt.name.toLowerCase())));
   return premium ? premium.extra : 0;
+}
+
+function getPremiumExtrasList(flavors) {
+  if (!flavors || flavors.length === 0) return [];
+  const flavorNames = flavors.map((f) => f.name);
+  return PIZZA_PREMIUM_TOPPINGS.filter((pt) =>
+    flavorNames.some((fn) => fn.toLowerCase().includes(pt.name.toLowerCase()))
+  );
+}
+
+function formatPremiumExtras(flavors) {
+  const extras = getPremiumExtrasList(flavors);
+  if (!extras.length) return "";
+  return extras.map((e) => `${e.name} +${currency.format(e.extra)}`).join(" + ");
+}
+
+function renderPremiumExtrasBadges(flavors) {
+  const extras = getPremiumExtrasList(flavors);
+  if (!extras.length) return "";
+  return extras.map((e) => `<span class="premium-extra-badge">${e.name} +${currency.format(e.extra)}</span>`).join("");
+}
+
+function formatOrderItemLine(item) {
+  const extras = item.extras ? ` <span class="premium-extra-badge-inline">+ ${escapeHtml(item.extras)}</span>` : "";
+  return `${item.qty}x ${escapeHtml(item.name)}${extras}`;
+}
+
+function formatOrderItemsSummary(order) {
+  if (order.items && order.items.length) {
+    return order.items.map((it) => formatOrderItemLine(it)).join("<br>");
+  }
+  return escapeHtml(order.item || "");
 }
 
 function updatePizzaBuilderPrice(basePrice) {
@@ -2027,7 +2063,7 @@ async function showCustomerHistory(customerId) {
           (order) => `
             <article class="customer-card">
               <strong>#${order.id} - ${currency.format(order.total)}</strong>
-              <p>${order.item} - ${order.payment || "Nao informado"} - ${order.status}</p>
+              <p>${formatOrderItemsSummary(order)} - ${order.payment || "Nao informado"} - ${order.status}</p>
               <p>${order.created_at || ""}${order.cancel_reason ? ` - Cancelado: ${order.cancel_reason}` : ""}</p>
             </article>
           `,
@@ -2891,6 +2927,7 @@ async function checkoutCart() {
       name: entry.type === "pizza" ? `${entry.sizeLabel} (${entry.flavors.map((f) => f.name).join(" + ")})` : entry.name,
       qty: entry.qty,
       price: entry.price,
+      extras: entry.type === "pizza" ? formatPremiumExtras(entry.flavors) : "",
     })),
     total,
     payment: document.querySelector('input[name="checkout-payment"]:checked')?.value || "PIX",
@@ -2998,7 +3035,7 @@ async function trackOrder() {
     result.innerHTML = `
       <article class="cart-item">
         <strong>Pedido #${order.id} · ${order.status}</strong>
-        <p>${order.item} · previsão ${order.eta}</p>
+        <p>${formatOrderItemsSummary(order)} · previsão ${order.eta}</p>
         <p>${order.driver_name ? `Entregador: ${order.driver_name} · ${formatLocation(order)}` : "Ainda sem entregador em rota."}</p>
       </article>
     `;
@@ -3020,7 +3057,7 @@ async function trackOrderV2() {
       <article class="cart-item">
         <strong>Pedido #${order.id} - ${order.status}</strong>
         <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
-        <p>${order.item} - previsao ${order.eta}</p>
+        <p>${formatOrderItemsSummary(order)} - previsao ${order.eta}</p>
         <p>${order.status === "Cancelado" ? `Cancelado: ${order.cancel_reason || "motivo nao informado"}` : order.driver_name ? `Entregador: ${order.driver_name} - ${formatLocation(order)}` : "Ainda sem entregador em rota."}</p>
       </article>
     `;
@@ -3318,7 +3355,10 @@ function copyWhatsAppMessage(orderId) {
     Finalizado: `seu pedido foi finalizado. Obrigado pela preferência`,
     Cancelado: `seu pedido foi cancelado${order.cancel_reason ? `: ${order.cancel_reason}` : ""}`,
   };
-  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${order.item}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}`;
+  const itemSummary = order.items && order.items.length
+    ? order.items.map((it) => `${it.qty}x ${it.name}${it.extras ? ` (+${it.extras})` : ""}`).join(", ")
+    : (order.item || "");
+  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${itemSummary}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}`;
   navigator.clipboard?.writeText(message);
   const phone = String(order.customer_phone || settings.whatsapp_number || "").replace(/\D/g, "");
   if (phone) {
@@ -3339,7 +3379,10 @@ function printOrder(orderId) {
       <h1>Bortolini Pizzaria e delivery</h1>
       <h2>Pedido #${order.id}</h2>
       <p><strong>Cliente:</strong> ${order.customer}</p>
-      <p><strong>Item:</strong> ${order.item}</p>
+      <p><strong>Itens:</strong></p>
+      <ul>
+        ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x - ${currency.format(it.total)}</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+      </ul>
       <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
       <p><strong>Endereço:</strong> ${order.address || "Retirada/balcão"}</p>
       <p><strong>Taxa:</strong> ${currency.format(order.delivery_fee || 0)}</p>
@@ -3366,7 +3409,10 @@ function printKitchenTickets() {
           (order) => `
             <section style="border-bottom:1px solid #ddd;padding:12px 0">
               <h2>Pedido #${order.id}</h2>
-              <p><strong>Item:</strong> ${order.item}</p>
+              <p><strong>Itens:</strong></p>
+              <ul>
+                ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+              </ul>
               <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
               <p><strong>Status:</strong> ${order.status} · ${orderAge(order)} min</p>
             </section>
@@ -4407,7 +4453,11 @@ async function loadDriverPublicOrders() {
         </div>
         <div style="font-weight:600;margin-bottom:4px;">${escapeHtml(order.customer)}</div>
         <div style="color:#666;font-size:0.9rem;margin-bottom:8px;">${escapeHtml(order.address || "Sem endereço")}</div>
-        <div style="color:#333;font-size:0.9rem;margin-bottom:8px;">${escapeHtml(order.item)}</div>
+        <div style="color:#333;font-size:0.9rem;margin-bottom:8px;">
+          ${order.items && order.items.length
+            ? order.items.map((it) => `${escapeHtml(it.name)}${it.extras ? ` <span style="color:#dc2626;font-size:0.75rem;">(+${escapeHtml(it.extras)})</span>` : ""} - ${it.qty}x`).join("<br>")
+            : escapeHtml(order.item || "")}
+        </div>
         <div style="font-weight:700;color:#1a1a1a;font-size:1.1rem;margin-bottom:12px;">${currency.format(Number(order.total || 0))}</div>
         
         <div style="margin-bottom:12px;">
@@ -4550,8 +4600,11 @@ async function loadOrderTrack(orderId) {
     const itemList = order.items && order.items.length
       ? order.items.map((it) => `
           <div class="track-item-row">
-            <span class="track-item-qty">${it.qty}x</span>
-            <span class="track-item-name">${escapeHtml(it.name)}</span>
+            <div class="track-item-info">
+              <span class="track-item-qty">${it.qty}x</span>
+              <span class="track-item-name">${escapeHtml(it.name)}</span>
+              ${it.extras ? `<span class="track-item-extras">${escapeHtml(it.extras)}</span>` : ""}
+            </div>
             <span class="track-item-price">${currency.format(it.price * it.qty)}</span>
           </div>
         `).join("")

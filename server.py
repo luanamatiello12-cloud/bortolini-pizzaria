@@ -804,6 +804,7 @@ def init_db():
         ensure_ai_conversation_columns(conn)
         ensure_ai_message_system_author(conn)
         ensure_sessions_table(conn)
+        ensure_order_item_columns(conn)
 
         if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             conn.executemany(
@@ -1737,7 +1738,29 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def get_orders(self):
         with connect() as conn:
             rows = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
-        return rows_to_dicts(rows)
+            orders = rows_to_dicts(rows)
+            if orders:
+                order_ids = [o["id"] for o in orders]
+                placeholders = ",".join("?" for _ in order_ids)
+                items_rows = conn.execute(
+                    f"SELECT order_id, item_name, quantity, unit_price, total, extras FROM order_items WHERE order_id IN ({placeholders})",
+                    tuple(order_ids),
+                ).fetchall()
+                items_by_order = {}
+                for row in items_rows:
+                    oid = row["order_id"]
+                    if oid not in items_by_order:
+                        items_by_order[oid] = []
+                    items_by_order[oid].append({
+                        "name": row["item_name"],
+                        "qty": row["quantity"],
+                        "price": row["unit_price"],
+                        "total": row["total"],
+                        "extras": row["extras"] or "",
+                    })
+                for o in orders:
+                    o["items"] = items_by_order.get(o["id"], [])
+        return orders
 
     def get_public_order(self, order_id):
         """Retorna apenas campos públicos de um pedido (para acompanhamento do cliente)."""
@@ -1755,7 +1778,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
                 return
             items = conn.execute(
-                "SELECT item_name, quantity, unit_price, total FROM order_items WHERE order_id = ?",
+                "SELECT item_name, quantity, unit_price, total, extras FROM order_items WHERE order_id = ?",
                 (order_id,),
             ).fetchall()
         data = dict(row)
@@ -2720,21 +2743,22 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         if not items:
             conn.execute(
                 """
-                INSERT INTO order_items (order_id, item_name, quantity, unit_price, total)
-                VALUES (?, ?, 1, ?, ?)
+                INSERT INTO order_items (order_id, item_name, quantity, unit_price, total, extras)
+                VALUES (?, ?, 1, ?, ?, ?)
                 """,
-                (order_id, payload["item"], float(payload["total"]), float(payload["total"])),
+                (order_id, payload["item"], float(payload["total"]), float(payload["total"]), ""),
             )
             return
         for item in items:
             quantity = int(item.get("qty", item.get("quantity", 1)))
             unit_price = float(item.get("price", item.get("unit_price", 0)))
+            extras = item.get("extras", "")
             conn.execute(
                 """
-                INSERT INTO order_items (order_id, item_name, quantity, unit_price, total)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO order_items (order_id, item_name, quantity, unit_price, total, extras)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (order_id, item.get("name", item.get("item_name", "")), quantity, unit_price, quantity * unit_price),
+                (order_id, item.get("name", item.get("item_name", "")), quantity, unit_price, quantity * unit_price, extras),
             )
 
     def order_items_from_payload(self, payload):
