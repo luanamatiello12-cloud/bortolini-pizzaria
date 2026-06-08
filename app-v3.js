@@ -4611,7 +4611,7 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
 }
 
 // Modo público do cardápio (cliente acessa via link #pedir)
-function initCustomerPublicMode() {
+async function initCustomerPublicMode() {
   // Não interferir com app do entregador
   const path = window.location.pathname;
   const search = window.location.search;
@@ -4627,6 +4627,23 @@ function initCustomerPublicMode() {
     byId("app-shell").classList.remove("hidden");
     document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
     byId("customer").classList.add("active-view");
+
+    // Carregar dados públicos necessários para a loja funcionar corretamente
+    try {
+      const [menuData, zonesData, settingsData, promosData] = await Promise.all([
+        fetch("/api/menu").then((r) => r.ok ? r.json() : []),
+        fetch("/api/delivery-zones").then((r) => r.ok ? r.json() : []),
+        fetch("/api/public/settings").then((r) => r.ok ? r.json() : {}),
+        fetch("/api/promotions").then((r) => r.ok ? r.json() : []),
+      ]);
+      menuItems = menuData || [];
+      deliveryZones = zonesData || [];
+      settings = settingsData || {};
+      promotions = promosData || [];
+    } catch (error) {
+      console.warn("[initCustomerPublicMode] Falha ao carregar dados públicos:", error);
+    }
+
     renderCustomerStore();
     // Se vier com pedido na URL, preenche e consulta automaticamente
     if (trackId && byId("track-order-id")) {
