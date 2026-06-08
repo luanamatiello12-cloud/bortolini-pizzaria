@@ -1264,11 +1264,12 @@ function renderPizzaFlavorsDialog() {
 
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
+    const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
         <div class="flavor-check">✓</div>
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}</strong>
+        <strong>${item.name}${isPremium ? ' <span class="premium-badge">+R$</span>' : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
       </article>
     `;
@@ -1298,8 +1299,14 @@ function togglePizzaFlavorDialog(flavorId) {
 function updatePizzaFlavorsDialogPrice() {
   const crust = byId("pizza-flavors-dialog-crust")?.value || "";
   const crustPrice = CRUST_PRICES[crust] || 0;
-  const price = pizzaFlavorsDialogState.basePrice + crustPrice;
+  const premiumExtra = getPremiumExtra(pizzaFlavorsDialogState.flavors);
+  const price = pizzaFlavorsDialogState.basePrice + crustPrice + premiumExtra;
   byId("pizza-flavors-dialog-price").textContent = currency.format(price);
+  const premiumHint = byId("pizza-flavors-dialog-premium");
+  if (premiumHint) {
+    premiumHint.textContent = premiumExtra > 0 ? `+ ${currency.format(premiumExtra)} acréscimo premium` : "";
+    premiumHint.style.display = premiumExtra > 0 ? "block" : "none";
+  }
 }
 
 function addPizzaFromFlavorsDialog() {
@@ -1314,7 +1321,8 @@ function addPizzaFromFlavorsDialog() {
   const crust = byId("pizza-flavors-dialog-crust")?.value || "";
   const notes = byId("pizza-flavors-dialog-notes")?.value.trim() || "";
   const crustPrice = CRUST_PRICES[crust] || 0;
-  const price = size.price + crustPrice;
+  const premiumExtra = getPremiumExtra(pizzaFlavorsDialogState.flavors);
+  const price = size.price + crustPrice + premiumExtra;
 
   const existing = cart.find((entry) => {
     if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;
@@ -1400,6 +1408,14 @@ function renderPizzaBuilderArea() {
   selectedFlavorsBox.innerHTML = pizzaBuilderState.flavors.map((f) => `
     <span class="status-pill success">${f.name}</span>
   `).join("");
+
+  // Mostrar aviso de acréscimo premium
+  const premiumExtra = getPremiumExtra(pizzaBuilderState.flavors);
+  const premiumHint = byId("pizza-builder-premium-hint");
+  if (premiumHint) {
+    premiumHint.textContent = premiumExtra > 0 ? `+ ${currency.format(premiumExtra)} de acréscimo premium` : "";
+    premiumHint.style.display = premiumExtra > 0 ? "block" : "none";
+  }
 
   updatePizzaBuilderPrice(pizzaBuilderState.basePrice);
 }
@@ -1544,10 +1560,18 @@ function addBebidaToCartAnimated(itemId) {
   addBebidaToCart(itemId);
 }
 
+function getPremiumExtra(flavors) {
+  if (!flavors || flavors.length === 0) return 0;
+  const flavorNames = flavors.map((f) => f.name);
+  const premium = PIZZA_PREMIUM_TOPPINGS.find((pt) => flavorNames.some((fn) => fn.toLowerCase().includes(pt.name.toLowerCase())));
+  return premium ? premium.extra : 0;
+}
+
 function updatePizzaBuilderPrice(basePrice) {
   const crust = byId("pizza-builder-crust").value;
   const crustPrice = CRUST_PRICES[crust] || 0;
-  byId("pizza-builder-price-display").textContent = currency.format(basePrice + crustPrice);
+  const premiumExtra = getPremiumExtra(pizzaBuilderState.flavors);
+  byId("pizza-builder-price-display").textContent = currency.format(basePrice + crustPrice + premiumExtra);
 }
 
 function addPizzaToCart() {
@@ -1569,7 +1593,8 @@ function addPizzaToCart() {
   const crust = byId("pizza-builder-crust").value;
   const notes = byId("pizza-builder-notes").value.trim();
   const crustPrice = CRUST_PRICES[crust] || 0;
-  const price = size.price + crustPrice;
+  const premiumExtra = getPremiumExtra(pizzaBuilderState.flavors);
+  const price = size.price + crustPrice + premiumExtra;
 
   // Verificar se já existe pizza idêntica no carrinho
   const existing = cart.find((entry) => {
@@ -1783,7 +1808,8 @@ function addInlinePizzaToCart(itemId) {
   const crust = byId(`inline-crust-${itemId}`)?.value || "";
   const notes = byId(`inline-notes-${itemId}`)?.value.trim() || "";
   const crustPrice = CRUST_PRICES[crust] || 0;
-  const price = size.price + crustPrice;
+  const premiumExtra = getPremiumExtra(builder.flavors);
+  const price = size.price + crustPrice + premiumExtra;
 
   const existing = cart.find((entry) => {
     if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;

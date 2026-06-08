@@ -3737,3 +3737,16 @@ dialog::backdrop {
   font-size: 0.9rem;
   color: #92400e;
 }
+
+/* Badge premium nos sabores de pizza */
+.premium-badge {
+  display: inline-block;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
