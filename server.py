@@ -206,6 +206,10 @@ SEED_INGREDIENTS = [
     {"name": "Banana fatiada", "code": "BANAN-001", "unit": "g", "stock_qty": 15000, "min_qty": 3000, "unit_cost": 0.0},
     {"name": "Mel", "code": "MEL-001", "unit": "g", "stock_qty": 2000, "min_qty": 400, "unit_cost": 0.0},
     {"name": "Açúcar com canela", "code": "ACUCAN-001", "unit": "g", "stock_qty": 2000, "min_qty": 400, "unit_cost": 0.0},
+    # Ingredientes adicionais da lista completa
+    {"name": "Bacon crocante", "code": "BACON-CROC-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.0},
+    {"name": "Catupiry em espirais", "code": "CATU-ESPI-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
+    {"name": "Catupiry em filetes", "code": "CATU-FILE-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
 ]
 
 # Mapeamento de pizzas para ingredientes (fichas técnicas)
