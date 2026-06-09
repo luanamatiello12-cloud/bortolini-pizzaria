@@ -214,8 +214,8 @@ async function loadData() {
     }
   });
 
-  // Se TODAS as falhas foram de autenticação, sessão expirou
-  if (!anySuccess && authFailures === results.length) {
+  // Se o usuário tinha token e ALGUMA API falhou por autenticação, sessão expirou
+  if (state.currentUser?.token && authFailures > 0) {
     handleSessionExpired();
     return;
   }
