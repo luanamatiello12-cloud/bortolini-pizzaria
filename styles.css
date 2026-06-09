@@ -169,7 +169,9 @@ button:disabled {
 .public-customer-mode .nav-list,
 .public-customer-mode .trial-box,
 .public-customer-mode .brand,
-.public-customer-mode #logout-btn {
+.public-customer-mode #logout-btn,
+.public-customer-mode .topbar,
+.public-customer-mode .menu-toggle {
   display: none !important;
 }
 

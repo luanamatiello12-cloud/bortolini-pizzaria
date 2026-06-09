@@ -97,7 +97,7 @@ const state = {
   customerNameFilter: "",
   customerPhoneFilter: "",
   customerAddressFilter: "",
-  customerMinOrders: 5,
+  customerMinOrders: "",
   menuCategory: "Todos",
   orderCategory: "Todos",
   conversation: 0,
@@ -159,6 +159,17 @@ async function api(path, options = {}) {
       message = match ? match[1].trim() : text || message;
     } catch (error) {
       message = `Erro na API: ${response.status}`;
+    }
+    if (response.status === 401 || response.status === 403) {
+      showToast("Sessão expirada. Faça login novamente.", "error");
+      state.currentUser = null;
+      localStorage.removeItem("bortolini_session");
+      document.body.classList.remove("public-customer-mode");
+      byId("login-screen").classList.remove("hidden");
+      byId("app-shell").classList.add("hidden");
+      const apiError = new Error("Sessão expirada");
+      apiError.status = response.status;
+      throw apiError;
     }
     const apiError = new Error(message);
     apiError.status = response.status;
@@ -464,8 +475,8 @@ function renderMenu() {
           <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
           <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
           ${item.description ? `<p>${item.description}</p>` : ""}
-          <p>${item.prep_time ? `Preparo: ${item.prep_time}` : "Preparo nao informado"}${item.addons ? ` - Adicionais: ${item.addons}` : ""}</p>
-          ${Number(item.cost) > 0 ? `<p style="color:var(--accent);font-weight:600;">Custo: ${currency.format(item.cost)} · Margem: ${item.margin_percent || 0}%</p>` : ""}
+          <p>${item.prep_time ? `Preparo: ${item.prep_time}` : ""}${item.addons ? (item.prep_time ? ` - ` : ``) + `Adicionais: ${item.addons}` : ""}</p>
+          ${Number(item.cost) > 0 ? `<p style="color:var(--accent);font-weight:600;">Custo: ${currency.format(item.cost)} · Margem: ${item.margin_percent || 0}%${(item.margin_percent || 0) < -100 || (item.margin_percent || 0) > 500 ? ' <span style="color:#b45309;">⚠️ Revise custo</span>' : ''}</p>` : ""}
           <div class="menu-card-actions">
             ${showSort ? `<button class="ghost sort-btn" data-sort-up="${item.id}" title="Mover para cima" ${index === 0 ? "disabled" : ""}>↑</button>` : ""}
             ${showSort ? `<button class="ghost sort-btn" data-sort-down="${item.id}" title="Mover para baixo" ${index === filteredItems.length - 1 ? "disabled" : ""}>↓</button>` : ""}
@@ -788,12 +799,14 @@ function renderIngredientCalculator() {
         const price = Number(item?.price || 0);
         const profit = price * qty - totalCost;
         const margin = price > 0 ? ((price - totalCost / qty) / price * 100).toFixed(1) : 0;
+        const marginWarning = margin < -100 || margin > 500 ? `<p style="color:#b45309;background:#fef3c7;padding:8px 12px;border-radius:8px;margin-top:8px;">⚠️ Atenção: margem de ${margin}% está fora do esperado. Revise o custo unitário na ficha técnica.</p>` : "";
         return `
         <article class="ingredient-card stock-summary-card">
           <div>
             <small>Custo estimado da producao</small>
             <strong>${currency.format(totalCost)}</strong>
             <p>${qty} unidade(s) · Venda: ${currency.format(price * qty)} · Lucro: ${currency.format(profit)} · Margem: ${margin}%</p>
+            ${marginWarning}
           </div>
         </article>`;
       })()}
@@ -1154,7 +1167,7 @@ function renderReports() {
     operationBox.innerHTML = [
       ["Pedidos em aberto", open],
       ["Cancelados", canceled],
-      ["Ticket medio", currency.format(averageTicket)],
+      ["Ticket médio", currency.format(averageTicket)],
       ["Ingredientes no minimo", lowStock],
     ]
       .map(([label, value]) => `<article class="best-item"><strong>${label}</strong><span>${value}</span></article>`)
@@ -1228,6 +1241,7 @@ function openPizzaSizeSelector(sizeKey) {
   const size = PIZZA_SIZES.find((s) => s.key === sizeKey);
   if (!size) return;
 
+  // Garantir reset completo do estado de sabores
   pizzaFlavorsDialogState = {
     sizeKey,
     flavors: [],
@@ -1257,7 +1271,7 @@ function renderPizzaFlavorsDialog() {
   }
 
   container.innerHTML = pizzaItems.map((item) => {
-    const isSelected = pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
+    const isSelected = Array.isArray(pizzaFlavorsDialogState.flavors) && pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
     const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
@@ -1926,8 +1940,9 @@ function addInternalOrderItem() {
   const existing = internalOrderItems.find((entry) => entry.id === item.id);
   const addon = byId("order-addon").value;
   const name = item.name;
+  const addonPriceValue = addon ? (addon.includes("R$") ? Number(addon.replace(/[^0-9,]/g, "").replace(",", ".")) || 0 : 0) : 0;
   if (existing && !addon) existing.qty += qty;
-  else internalOrderItems.push({ id: item.id, name, addon, qty, price: Number(item.price) + addonPrice(addon) });
+  else internalOrderItems.push({ id: item.id, name, addon, qty, price: Number(item.price) + addonPriceValue });
   renderInternalOrderItems();
 }
 
@@ -2328,21 +2343,28 @@ async function createOrder() {
     discount,
   };
 
+  let createdOrder = null;
   if (state.apiOnline) {
     try {
-      const created = await api("/api/orders", {
+      createdOrder = await api("/api/orders", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      orders = [created, ...orders];
+      orders = [createdOrder, ...orders];
+      showToast(`Pedido #${createdOrder.id} criado com sucesso!`, "success");
     } catch (error) {
-      showToast(error.message || "Nao foi possivel criar o pedido.");
+      showToast(error.message || "Erro ao criar pedido. Tente novamente.", "error");
+      if (error.status === 401 || error.status === 403) return;
       if (error.status === 409) return;
       state.apiOnline = false;
-      orders = [{ ...payload, id: Math.max(...orders.map((order) => order.id)) + 1 }, ...orders];
+      createdOrder = { ...payload, id: Math.max(...orders.map((order) => order.id)) + 1 };
+      orders = [createdOrder, ...orders];
+      showToast(`Pedido criado offline #${createdOrder.id}. Sincronize quando possível.`, "success");
     }
   } else {
-    orders = [{ ...payload, id: Math.max(...orders.map((order) => order.id)) + 1 }, ...orders];
+    createdOrder = { ...payload, id: Math.max(...orders.map((order) => order.id)) + 1 };
+    orders = [createdOrder, ...orders];
+    showToast(`Pedido criado offline #${createdOrder.id}. Sincronize quando possível.`, "success");
   }
 
   byId("customer-name").value = "";
@@ -2382,9 +2404,12 @@ async function createProduct() {
   };
 
   byId("product-error").textContent = "";
-  if (!payload.name || !payload.category || !payload.price) {
+  if (!payload.name || !payload.category || payload.price === undefined || payload.price === null || payload.price === "") {
     byId("product-error").textContent = "Preencha nome, categoria e preço.";
     return;
+  }
+  if (payload.price <= 0) {
+    payload.active = 0;
   }
 
   try {
@@ -2405,6 +2430,7 @@ async function createProduct() {
         { ...payload, id: Math.max(...menuItems.map((item) => item.id)) + 1, sales: 0, active: 1 },
       ];
     }
+    showToast(editingProductId ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!", "success");
     byId("product-name").value = "";
     byId("product-category").value = "";
     byId("product-description").value = "";
@@ -2424,6 +2450,7 @@ async function createProduct() {
     renderMenu();
   } catch (error) {
     byId("product-error").textContent = "Não foi possível criar. Verifique se o produto já existe.";
+    showToast(error.message || "Erro ao salvar produto. Tente novamente.", "error");
   }
 }
 
@@ -3432,6 +3459,7 @@ async function saveSettings() {
     renderCustomerStore();
   } catch (error) {
     byId("settings-message").textContent = "Não foi possível salvar.";
+    showToast("Erro ao salvar configurações: " + (error.message || "tente novamente"), "error");
   }
 }
 
@@ -3623,12 +3651,29 @@ async function shareRealLocation() {
   );
 }
 
-function showToast(message) {
+function showToast(message, type) {
   const toast = byId("toast");
   toast.textContent = message;
   toast.classList.remove("hidden");
+  toast.style.background = type === "error" ? "#dc2626" : type === "success" ? "#16a34a" : "#1a1a1a";
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.add("hidden"), 4200);
+  showToast.timer = setTimeout(() => {
+    toast.classList.add("hidden");
+    toast.style.background = "#1a1a1a";
+  }, 4200);
+}
+
+function dismissTrialBox() {
+  localStorage.setItem("bortolini_trial_dismissed", "1");
+  const box = byId("trial-box");
+  if (box) box.style.display = "none";
+}
+
+function checkTrialBox() {
+  if (localStorage.getItem("bortolini_trial_dismissed") === "1") {
+    const box = byId("trial-box");
+    if (box) box.style.display = "none";
+  }
 }
 
 function switchView(viewId) {
@@ -4256,6 +4301,7 @@ loadData().then(() => {
   renderDemoUsers();
   restoreSession();
   renderCustomerStore();
+  checkTrialBox();
 });
 
 byId("pix-receipt-input")?.addEventListener("change", (event) => {
