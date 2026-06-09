@@ -1874,6 +1874,10 @@ function cartTotal() {
   return cart.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
 }
 
+function normalizeText(text) {
+  return String(text || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function getDeliveryFee(address) {
   const zone = zoneForAddress(address);
   const fee = zone?.fee != null ? Number(zone.fee) : Number(settings.delivery_fee || 0);
@@ -1881,24 +1885,38 @@ function getDeliveryFee(address) {
 }
 
 function zoneForAddress(address) {
-  const text = String(address || "").toLowerCase().trim();
+  const text = normalizeText(address);
   if (!text || !deliveryZones.length) return null;
   const match = deliveryZones.find((zone) => {
     if (!zone.active) return false;
-    const neighborhood = String(zone.neighborhood || "").toLowerCase().trim();
+    const neighborhood = normalizeText(zone.neighborhood);
     return neighborhood && text.includes(neighborhood);
   });
   if (match) {
     console.log("[zoneForAddress] Bairro encontrado:", match.neighborhood, "Taxa:", match.fee);
+  } else if (text.length > 3) {
+    console.log("[zoneForAddress] Bairro NAO encontrado para:", address, "Bairros cadastrados:", deliveryZones.map((z) => z.neighborhood));
   }
   return match || null;
 }
 
-function updateCheckoutTotals(subtotal, fee) {
+function updateCheckoutTotals(subtotal, fee, address) {
   byId("checkout-subtotal") && (byId("checkout-subtotal").textContent = currency.format(subtotal));
   byId("checkout-fee") && (byId("checkout-fee").textContent = currency.format(fee));
   byId("checkout-grand-total") && (byId("checkout-grand-total").textContent = currency.format(subtotal + fee));
   byId("checkout-btn-total") && (byId("checkout-btn-total").textContent = `· ${currency.format(subtotal + fee)}`);
+  const zone = address ? zoneForAddress(address) : null;
+  const zoneInfo = byId("checkout-zone-info");
+  const zoneName = byId("checkout-zone-name");
+  if (zoneInfo && zoneName) {
+    if (zone) {
+      zoneInfo.style.display = "flex";
+      zoneName.textContent = `${zone.neighborhood} · ${currency.format(zone.fee)}`;
+    } else {
+      zoneInfo.style.display = "none";
+      zoneName.textContent = "";
+    }
+  }
 }
 
 function addInternalOrderItem() {
@@ -2828,7 +2846,7 @@ function openCheckoutDialog() {
     })
     .join("");
 
-  updateCheckoutTotals(subtotal, fee);
+  updateCheckoutTotals(subtotal, fee, address);
   byId("checkout-eta").textContent = settings.prep_time || "35 min";
 
   byId("dialog-checkout-error").textContent = "";
@@ -4062,7 +4080,7 @@ byId("dialog-checkout-type")?.addEventListener("change", (event) => {
 byId("dialog-checkout-address")?.addEventListener("input", (event) => {
   if (byId("dialog-checkout-type")?.value === "Entrega") {
     const fee = getDeliveryFee(event.target.value);
-    updateCheckoutTotals(cartTotal(), fee);
+    updateCheckoutTotals(cartTotal(), fee, event.target.value);
   }
 });
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);
