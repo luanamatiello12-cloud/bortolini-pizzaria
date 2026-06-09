@@ -3947,19 +3947,28 @@ function isPublicPage() {
   return false;
 }
 
-function restoreSession() {
+async function restoreSession() {
   // Não restaurar sessão admin/financeiro na página do entregador
   if (window.location.pathname.startsWith("/entregador")) return;
   try {
     const saved = JSON.parse(localStorage.getItem("bortoliniUser"));
-    if (saved?.role && saved?.username) {
+    if (saved?.role && saved?.username && saved?.token) {
       if (!["admin", "financeiro", "entregador"].includes(saved.role)) {
         localStorage.removeItem("bortoliniUser");
         return;
       }
-      state.currentUser = saved;
-      showApp();
-      return;
+      // Validar token no servidor antes de restaurar sessão
+      try {
+        const session = await api("/api/session");
+        if (session && session.role === saved.role) {
+          state.currentUser = saved;
+          showApp();
+          return;
+        }
+      } catch (error) {
+        console.warn("[restoreSession] Token inválido ou expirado:", error.message);
+      }
+      localStorage.removeItem("bortoliniUser");
     }
   } catch (error) {
     localStorage.removeItem("bortoliniUser");
@@ -4308,9 +4317,9 @@ if (byId("send-reply")) byId("send-reply")?.addEventListener("click", async () =
   }
 });
 
-loadData().then(() => {
+loadData().then(async () => {
   renderDemoUsers();
-  restoreSession();
+  await restoreSession();
   renderCustomerStore();
   checkTrialBox();
 });

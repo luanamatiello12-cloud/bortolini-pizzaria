@@ -414,9 +414,9 @@ def validate_session(token):
         return None
     with connect() as conn:
         if USE_POSTGRES:
-            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at IS NOT NULL AND created_at::timestamp > CURRENT_TIMESTAMP - INTERVAL '7 days'"
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at IS NOT NULL AND created_at::timestamp > CURRENT_TIMESTAMP - INTERVAL '30 days'"
         else:
-            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > datetime('now', '-7 days')"
+            sql = "SELECT user_id, role, name FROM sessions WHERE token = ? AND created_at > datetime('now', '-30 days')"
         row = conn.execute(sql, (token,)).fetchone()
     if row:
         return {"user_id": row["user_id"], "role": row["role"], "name": row["name"]}
@@ -1166,6 +1166,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/public/settings":
             self.send_json(self.get_public_settings())
+            return
+        if path == "/api/session":
+            token = self.headers.get("X-Session-Token") or ""
+            session = validate_session(token)
+            if session:
+                self.send_json({"user_id": session["user_id"], "role": session["role"], "name": session["name"]})
+            else:
+                self.send_error(HTTPStatus.UNAUTHORIZED, "Sessao invalida")
             return
         if path == "/api/seed-info":
             with connect() as conn:
