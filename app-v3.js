@@ -142,6 +142,15 @@ function canAdvanceOrder(order) {
   return false;
 }
 
+function handleSessionExpired() {
+  showToast("Sessão expirada. Faça login novamente.", "error");
+  state.currentUser = null;
+  localStorage.removeItem("bortolini_session");
+  document.body.classList.remove("public-customer-mode");
+  byId("login-screen").classList.remove("hidden");
+  byId("app-shell").classList.add("hidden");
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -159,17 +168,6 @@ async function api(path, options = {}) {
       message = match ? match[1].trim() : text || message;
     } catch (error) {
       message = `Erro na API: ${response.status}`;
-    }
-    if (response.status === 401 || response.status === 403) {
-      showToast("Sessão expirada. Faça login novamente.", "error");
-      state.currentUser = null;
-      localStorage.removeItem("bortolini_session");
-      document.body.classList.remove("public-customer-mode");
-      byId("login-screen").classList.remove("hidden");
-      byId("app-shell").classList.add("hidden");
-      const apiError = new Error("Sessão expirada");
-      apiError.status = response.status;
-      throw apiError;
     }
     const apiError = new Error(message);
     apiError.status = response.status;
@@ -201,6 +199,7 @@ async function loadData() {
   const results = await Promise.allSettled(endpoints.map(([path]) => api(path)));
   let anySuccess = false;
   const failed = [];
+  let authFailures = 0;
 
   results.forEach((result, index) => {
     const [path, setter] = endpoints[index];
@@ -209,8 +208,17 @@ async function loadData() {
       anySuccess = true;
     } else {
       failed.push(path);
+      if (result.reason?.status === 401 || result.reason?.status === 403) {
+        authFailures++;
+      }
     }
   });
+
+  // Se TODAS as falhas foram de autenticação, sessão expirou
+  if (!anySuccess && authFailures === results.length) {
+    handleSessionExpired();
+    return;
+  }
 
   if (anySuccess) {
     state.apiOnline = true;
@@ -2354,7 +2362,10 @@ async function createOrder() {
       showToast(`Pedido #${createdOrder.id} criado com sucesso!`, "success");
     } catch (error) {
       showToast(error.message || "Erro ao criar pedido. Tente novamente.", "error");
-      if (error.status === 401 || error.status === 403) return;
+      if (error.status === 401 || error.status === 403) {
+        handleSessionExpired();
+        return;
+      }
       if (error.status === 409) return;
       state.apiOnline = false;
       createdOrder = { ...payload, id: Math.max(...orders.map((order) => order.id)) + 1 };
