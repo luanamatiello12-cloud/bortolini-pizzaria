@@ -71,13 +71,7 @@ function updatePizzaSizesFromSettings() {
   }
 }
 
-const CRUST_PRICES = {
-  "": 0,
-  "Borda recheada catupiry": 10,
-  "Borda recheada cheddar": 10,
-  "Borda recheada chocolate": 8,
-  "Borda de cream cheese": 8,
-};
+// Bordas removidas - nao trabalhamos com borda recheada
 
 const fallbackMenu = [];
 
@@ -1243,7 +1237,7 @@ function openPizzaSizeSelector(sizeKey) {
 
   byId("pizza-flavors-dialog-title").textContent = `${size.label}: ${size.cm}`;
   byId("pizza-flavors-dialog-hint").textContent = `Selecione até ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}`;
-  byId("pizza-flavors-dialog-crust").value = "";
+  // bordas removidas
   byId("pizza-flavors-dialog-notes").value = "";
   byId("pizza-flavors-dialog-error").textContent = "";
 
@@ -1297,10 +1291,9 @@ function togglePizzaFlavorDialog(flavorId) {
 }
 
 function updatePizzaFlavorsDialogPrice() {
-  const crust = byId("pizza-flavors-dialog-crust")?.value || "";
-  const crustPrice = CRUST_PRICES[crust] || 0;
+  // bordas removidas
   const premiumExtra = getPremiumExtra(pizzaFlavorsDialogState.flavors);
-  const price = pizzaFlavorsDialogState.basePrice + crustPrice + premiumExtra;
+  const price = pizzaFlavorsDialogState.basePrice + premiumExtra;
   byId("pizza-flavors-dialog-price").textContent = currency.format(price);
   const premiumHint = byId("pizza-flavors-dialog-premium");
   if (premiumHint) {
@@ -1318,15 +1311,13 @@ function addPizzaFromFlavorsDialog() {
     return;
   }
 
-  const crust = byId("pizza-flavors-dialog-crust")?.value || "";
   const notes = byId("pizza-flavors-dialog-notes")?.value.trim() || "";
-  const crustPrice = CRUST_PRICES[crust] || 0;
   const premiumExtra = getPremiumExtra(pizzaFlavorsDialogState.flavors);
-  const price = size.price + crustPrice + premiumExtra;
+  const price = size.price + premiumExtra;
 
   const existing = cart.find((entry) => {
     if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;
-    if (entry.crust !== crust) return false;
+    // bordas removidas - nao compara crust
     if (entry.notes !== notes) return false;
     if (entry.flavors.length !== pizzaFlavorsDialogState.flavors.length) return false;
     return entry.flavors.every((f, i) => f.id === pizzaFlavorsDialogState.flavors[i].id);
@@ -1340,7 +1331,7 @@ function addPizzaFromFlavorsDialog() {
       sizeKey: size.key,
       sizeLabel: size.label,
       flavors: [...pizzaFlavorsDialogState.flavors],
-      crust,
+      // crust removido
       notes,
       price,
       qty: 1,
@@ -1372,7 +1363,7 @@ function selectPizzaSize(sizeKey) {
     maxFlavors: size.flavors,
     basePrice: size.price,
   };
-  byId("pizza-builder-crust").value = "";
+  // bordas removidas
   byId("pizza-builder-notes").value = "";
   renderCustomerStore();
   if (existingFlavors.length > 0) {
@@ -1446,13 +1437,12 @@ function renderCart() {
         .map((entry, index) => {
           if (entry.type === "pizza") {
             const flavorsText = entry.flavors.map((f) => f.name).join(" + ");
-            const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` <small>(${entry.notes})</small>` : "";
             const premiumBadges = renderPremiumExtrasBadges(entry.flavors);
             return `
               <article class="cart-item">
                 <div class="cart-item-info">
-                  <strong>${entry.qty}x ${entry.sizeLabel}${crustText}</strong>
+                  <strong>${entry.qty}x ${entry.sizeLabel}</strong>
                   <p>${flavorsText}${notesText}</p>
                   ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
@@ -1499,14 +1489,13 @@ function openCartReview() {
     ? cart
         .map((entry, index) => {
           if (entry.type === "pizza") {
-            const crustText = entry.crust ? ` · ${entry.crust}` : "";
             const notesText = entry.notes ? ` · ${entry.notes}` : "";
             const premiumBadges = renderPremiumExtrasBadges(entry.flavors);
             return `
               <div class="ifood-item-row">
                 <span class="ifood-item-qty">${entry.qty}x</span>
                 <div class="ifood-item-info">
-                  <strong>${escapeHtml(entry.sizeLabel)}${escapeHtml(crustText)}</strong>
+                  <strong>${escapeHtml(entry.sizeLabel)}</strong>
                   <p>${entry.flavors.map((f) => escapeHtml(f.name)).join(" + ")}${escapeHtml(notesText)}</p>
                   ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
@@ -1604,10 +1593,8 @@ function formatOrderItemsSummary(order) {
 }
 
 function updatePizzaBuilderPrice(basePrice) {
-  const crust = byId("pizza-builder-crust").value;
-  const crustPrice = CRUST_PRICES[crust] || 0;
   const premiumExtra = getPremiumExtra(pizzaBuilderState.flavors);
-  byId("pizza-builder-price-display").textContent = currency.format(basePrice + crustPrice + premiumExtra);
+  byId("pizza-builder-price-display").textContent = currency.format(basePrice + premiumExtra);
 }
 
 function addPizzaToCart() {
@@ -1626,16 +1613,14 @@ function addPizzaToCart() {
     return;
   }
 
-  const crust = byId("pizza-builder-crust").value;
   const notes = byId("pizza-builder-notes").value.trim();
-  const crustPrice = CRUST_PRICES[crust] || 0;
   const premiumExtra = getPremiumExtra(pizzaBuilderState.flavors);
-  const price = size.price + crustPrice + premiumExtra;
+  const price = size.price + premiumExtra;
 
   // Verificar se já existe pizza idêntica no carrinho
   const existing = cart.find((entry) => {
     if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;
-    if (entry.crust !== crust) return false;
+    // bordas removidas - nao compara crust
     if (entry.notes !== notes) return false;
     if (entry.flavors.length !== pizzaBuilderState.flavors.length) return false;
     return entry.flavors.every((f, i) => f.id === pizzaBuilderState.flavors[i].id);
@@ -1649,7 +1634,7 @@ function addPizzaToCart() {
       sizeKey: size.key,
       sizeLabel: size.label,
       flavors: [...pizzaBuilderState.flavors],
-      crust,
+      // crust removido
       notes,
       price,
       qty: 1,
@@ -1718,26 +1703,11 @@ function renderInlineBuilder(itemId) {
     extraFlavorsHtml = `<p class="form-hint">Sabor único</p>`;
   }
 
-  const crustValue = builder.crust || "";
-  const crustSelect = `
-    <label>Tipo de borda
-      <select id="inline-crust-${itemId}" onchange="updateInlinePrice(${itemId})">
-        <option value="" ${crustValue === "" ? "selected" : ""}>Sem borda recheada</option>
-        <option value="Borda recheada catupiry" ${crustValue === "Borda recheada catupiry" ? "selected" : ""}>Borda recheada de catupiry (+ R$ 10,00)</option>
-        <option value="Borda recheada cheddar" ${crustValue === "Borda recheada cheddar" ? "selected" : ""}>Borda recheada de cheddar (+ R$ 10,00)</option>
-        <option value="Borda recheada chocolate" ${crustValue === "Borda recheada chocolate" ? "selected" : ""}>Borda recheada de chocolate (+ R$ 8,00)</option>
-        <option value="Borda de cream cheese" ${crustValue === "Borda de cream cheese" ? "selected" : ""}>Borda de cream cheese (+ R$ 8,00)</option>
-      </select>
-    </label>
-  `;
-
-  const crustPrice = CRUST_PRICES[builder.crust || ""] || 0;
-  const price = builder.basePrice + crustPrice;
+  const price = builder.basePrice;
 
   container.innerHTML = `
     <div class="inline-size-list pizza-size-list">${sizeButtons}</div>
     ${extraFlavorsHtml}
-    ${builder.sizeKey ? crustSelect : ""}
     ${builder.sizeKey ? `
       <label>Observações
         <textarea id="inline-notes-${itemId}" placeholder="Ex: sem cebola, bem passada, pouco queijo..."></textarea>
@@ -1781,9 +1751,6 @@ function selectInlineSize(itemId, sizeKey) {
   const builder = inlineBuilders[itemId];
   if (!builder) return;
 
-  const currentCrust = byId(`inline-crust-${itemId}`)?.value || "";
-  builder.crust = currentCrust;
-
   builder.sizeKey = sizeKey;
   builder.maxFlavors = size.flavors;
   builder.basePrice = size.price;
@@ -1795,9 +1762,6 @@ function selectInlineSize(itemId, sizeKey) {
 function toggleInlineFlavor(itemId, flavorItemId) {
   const builder = inlineBuilders[itemId];
   if (!builder) return;
-
-  const currentCrust = byId(`inline-crust-${itemId}`)?.value || "";
-  builder.crust = currentCrust;
 
   const idx = builder.flavors.findIndex((f) => f.id === flavorItemId);
   if (idx >= 0) {
@@ -1821,10 +1785,8 @@ function toggleInlineFlavor(itemId, flavorItemId) {
 function updateInlinePrice(itemId) {
   const builder = inlineBuilders[itemId];
   if (!builder) return;
-  const crust = byId(`inline-crust-${itemId}`)?.value || "";
-  const price = builder.basePrice + (CRUST_PRICES[crust] || 0);
   const priceDisplay = byId(`inline-price-${itemId}`);
-  if (priceDisplay) priceDisplay.textContent = currency.format(price);
+  if (priceDisplay) priceDisplay.textContent = currency.format(builder.basePrice);
 }
 
 function addInlinePizzaToCart(itemId) {
@@ -1841,15 +1803,13 @@ function addInlinePizzaToCart(itemId) {
   }
 
   const size = PIZZA_SIZES.find((s) => s.key === builder.sizeKey);
-  const crust = byId(`inline-crust-${itemId}`)?.value || "";
   const notes = byId(`inline-notes-${itemId}`)?.value.trim() || "";
-  const crustPrice = CRUST_PRICES[crust] || 0;
   const premiumExtra = getPremiumExtra(builder.flavors);
-  const price = size.price + crustPrice + premiumExtra;
+  const price = size.price + premiumExtra;
 
   const existing = cart.find((entry) => {
     if (entry.type !== "pizza" || entry.sizeKey !== size.key) return false;
-    if (entry.crust !== crust) return false;
+    // bordas removidas - nao compara crust
     if (entry.notes !== notes) return false;
     if (entry.flavors.length !== builder.flavors.length) return false;
     return entry.flavors.every((f, i) => f.id === builder.flavors[i].id);
@@ -1863,7 +1823,7 @@ function addInlinePizzaToCart(itemId) {
       sizeKey: size.key,
       sizeLabel: size.label,
       flavors: [...builder.flavors],
-      crust,
+      // crust removido
       notes,
       price,
       qty: 1,
@@ -1915,12 +1875,30 @@ function cartTotal() {
 }
 
 function getDeliveryFee(address) {
-  return Number(zoneForAddress(address)?.fee || settings.delivery_fee || 0);
+  const zone = zoneForAddress(address);
+  const fee = zone?.fee != null ? Number(zone.fee) : Number(settings.delivery_fee || 0);
+  return isNaN(fee) ? 0 : fee;
 }
 
 function zoneForAddress(address) {
-  const text = String(address || "").toLowerCase();
-  return deliveryZones.find((zone) => zone.active && text.includes(String(zone.neighborhood || "").toLowerCase()));
+  const text = String(address || "").toLowerCase().trim();
+  if (!text || !deliveryZones.length) return null;
+  const match = deliveryZones.find((zone) => {
+    if (!zone.active) return false;
+    const neighborhood = String(zone.neighborhood || "").toLowerCase().trim();
+    return neighborhood && text.includes(neighborhood);
+  });
+  if (match) {
+    console.log("[zoneForAddress] Bairro encontrado:", match.neighborhood, "Taxa:", match.fee);
+  }
+  return match || null;
+}
+
+function updateCheckoutTotals(subtotal, fee) {
+  byId("checkout-subtotal") && (byId("checkout-subtotal").textContent = currency.format(subtotal));
+  byId("checkout-fee") && (byId("checkout-fee").textContent = currency.format(fee));
+  byId("checkout-grand-total") && (byId("checkout-grand-total").textContent = currency.format(subtotal + fee));
+  byId("checkout-btn-total") && (byId("checkout-btn-total").textContent = `· ${currency.format(subtotal + fee)}`);
 }
 
 function addInternalOrderItem() {
@@ -2826,13 +2804,12 @@ function openCheckoutDialog() {
   byId("checkout-summary").innerHTML = cart
     .map((entry) => {
       if (entry.type === "pizza") {
-        const crustText = entry.crust ? ` · ${entry.crust}` : "";
         const notesText = entry.notes ? ` · ${entry.notes}` : "";
         return `
           <div class="ifood-item-row">
             <span class="ifood-item-qty">${entry.qty}x</span>
             <div class="ifood-item-info">
-              <strong>${escapeHtml(entry.sizeLabel)}${escapeHtml(crustText)}</strong>
+              <strong>${escapeHtml(entry.sizeLabel)}</strong>
               <p>${entry.flavors.map((f) => escapeHtml(f.name)).join(" + ")}${escapeHtml(notesText)}</p>
             </div>
             <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
@@ -2851,10 +2828,7 @@ function openCheckoutDialog() {
     })
     .join("");
 
-  byId("checkout-subtotal").textContent = currency.format(subtotal);
-  byId("checkout-fee").textContent = currency.format(fee);
-  byId("checkout-grand-total").textContent = currency.format(subtotal + fee);
-  byId("checkout-btn-total").textContent = `· ${currency.format(subtotal + fee)}`;
+  updateCheckoutTotals(subtotal, fee);
   byId("checkout-eta").textContent = settings.prep_time || "35 min";
 
   byId("dialog-checkout-error").textContent = "";
@@ -2888,8 +2862,7 @@ async function checkoutCart() {
   const itemLines = cart.map((entry) => {
     if (entry.type === "pizza") {
       const flavors = entry.flavors.map((f) => f.name).join(" + ");
-      const crust = entry.crust ? ` · ${entry.crust}` : "";
-      return `${entry.qty}x ${entry.sizeLabel}${crust} (${flavors})`;
+      return `${entry.qty}x ${entry.sizeLabel} (${flavors})`;
     }
     return `${entry.qty}x ${entry.name}`;
   });
@@ -4084,12 +4057,12 @@ byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   }
   const subtotal = cartTotal();
   const fee = event.target.value === "Entrega" ? getDeliveryFee(byId("dialog-checkout-address")?.value) : 0;
-  byId("checkout-dialog-total").textContent = `Total: ${currency.format(subtotal + fee)}`;
+  updateCheckoutTotals(subtotal, fee);
 });
 byId("dialog-checkout-address")?.addEventListener("input", (event) => {
   if (byId("dialog-checkout-type")?.value === "Entrega") {
     const fee = getDeliveryFee(event.target.value);
-    byId("checkout-dialog-total").textContent = `Total: ${currency.format(cartTotal() + fee)}`;
+    updateCheckoutTotals(cartTotal(), fee);
   }
 });
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);
@@ -4125,7 +4098,7 @@ byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog
 byId("create-zone-btn")?.addEventListener("click", saveDeliveryZone);
 byId("cancel-zone-btn")?.addEventListener("click", cancelZoneEdit);
 byId("pizza-flavors-dialog-add")?.addEventListener("click", addPizzaFromFlavorsDialog);
-byId("pizza-flavors-dialog-crust")?.addEventListener("change", updatePizzaFlavorsDialogPrice);
+// bordas removidas - event listener de borda removido
 
 // Event delegation para tabs da loja pública (evita listeners duplicados)
 document.querySelector(".store-tabs")?.addEventListener("click", (e) => {
