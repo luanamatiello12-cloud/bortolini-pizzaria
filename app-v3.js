@@ -3372,7 +3372,7 @@ async function createDriver() {
       showToast(`Entregador criado! PIN inicial: ${created.default_pin}`);
     }
   } catch (error) {
-    showToast("Nao foi possivel criar o entregador.");
+    showToast(error.message || "Nao foi possivel criar o entregador.");
   }
 }
 
