@@ -333,6 +333,7 @@ function renderOrders() {
           <td>
             <span class="status-pill">${order.payment_status || "Aguardando pagamento"}</span>
             ${order.payment_receipt_url && can("finance") ? `<button class="ghost" data-approve-payment="${order.id}">Aprovar PIX</button><button class="ghost danger-link" data-reject-payment="${order.id}">Recusar PIX</button>` : ""}
+            ${order.payment_receipt_url ? `<button class="ghost" data-view-receipt="${order.id}">Ver comprovante</button>` : ""}
             <button class="secondary" data-advance="${order.id}" ${!canAdvanceOrder(order) ? "disabled" : ""}>
               ${order.status === "Finalizado" ? "Concluído" : "Avançar"}
             </button>
@@ -363,6 +364,15 @@ function renderOrders() {
   });
   document.querySelectorAll("[data-reject-payment]").forEach((button) => {
     button.addEventListener("click", () => updatePaymentStatus(Number(button.dataset.rejectPayment), "Pagamento recusado", "Recusado"));
+  });
+  document.querySelectorAll("[data-view-receipt]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const orderId = Number(button.dataset.viewReceipt);
+      const order = orders.find((o) => o.id === orderId);
+      if (order?.payment_receipt_url) {
+        window.open(order.payment_receipt_url, "_blank");
+      }
+    });
   });
 }
 
@@ -2856,7 +2866,7 @@ function populateCheckoutNeighborhoods() {
   if (!select) return;
   const activeZones = deliveryZones.filter((z) => z.active);
   select.innerHTML = `<option value="">Selecione o bairro</option>` +
-    activeZones.map((z) => `<option value="${escapeHtml(z.neighborhood)}" data-fee="${z.fee}">${escapeHtml(z.neighborhood)} — ${currency.format(z.fee)}</option>`).join("");
+    activeZones.map((z) => `<option value="${escapeHtml(z.neighborhood)}" data-fee="${z.fee}">${escapeHtml(z.neighborhood)}</option>`).join("");
 }
 
 function getFeeFromNeighborhood() {
@@ -2911,7 +2921,10 @@ function openCheckoutDialog() {
   byId("dialog-checkout-name").value = "";
   byId("dialog-checkout-phone").value = "";
   byId("dialog-checkout-type").value = "Entrega";
-  byId("dialog-checkout-address").value = "";
+  byId("dialog-checkout-street").value = "";
+  byId("dialog-checkout-number").value = "";
+  byId("dialog-checkout-complement").value = "";
+  byId("dialog-checkout-reference").value = "";
   byId("dialog-checkout-neighborhood").value = "";
   byId("checkout-neighborhood-label")?.classList.remove("hidden");
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
@@ -2932,12 +2945,25 @@ async function checkoutCart() {
     return;
   }
   const deliveryType = byId("dialog-checkout-type").value;
-  const address = byId("dialog-checkout-address").value.trim();
+  const street = byId("dialog-checkout-street").value.trim();
+  const number = byId("dialog-checkout-number").value.trim();
+  const complement = byId("dialog-checkout-complement").value.trim();
+  const reference = byId("dialog-checkout-reference").value.trim();
   const neighborhood = byId("dialog-checkout-neighborhood")?.value || "";
-  if (deliveryType === "Entrega" && !address) {
-    byId("dialog-checkout-error").textContent = "Informe o endereço para entrega.";
+  if (deliveryType === "Entrega" && !street) {
+    byId("dialog-checkout-error").textContent = "Informe a rua para entrega.";
     return;
   }
+  if (deliveryType === "Entrega" && !number) {
+    byId("dialog-checkout-error").textContent = "Informe o número do endereço.";
+    return;
+  }
+  const addressParts = [street];
+  if (number) addressParts.push(number);
+  if (complement) addressParts.push(complement);
+  if (neighborhood) addressParts.push(neighborhood);
+  if (reference) addressParts.push(`Ref: ${reference}`);
+  const address = addressParts.join(", ");
   if (deliveryType === "Entrega" && !neighborhood) {
     byId("dialog-checkout-error").textContent = "Selecione o bairro para calcular a entrega.";
     return;
@@ -3446,7 +3472,7 @@ function printOrder(orderId) {
       <p><strong>Desconto:</strong> ${currency.format(order.discount || 0)}</p>
       <p><strong>Pagamento:</strong> ${order.payment || "Não informado"}</p>
       <p><strong>Status pagamento:</strong> ${order.payment_status || "Aguardando pagamento"}</p>
-      ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong> anexado no pedido</p>` : ""}
+      ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong> <a href="${order.payment_receipt_url}" target="_blank">Ver comprovante</a></p><img src="${order.payment_receipt_url}" style="max-width:300px;margin-top:8px;border:1px solid #ddd;border-radius:8px;" />` : ""}
       <p><strong>Total:</strong> ${currency.format(order.total)}</p>
     </body>
   `);
@@ -4155,11 +4181,12 @@ byId("dialog-checkout-neighborhood")?.addEventListener("change", (event) => {
     }
   }
 });
-byId("dialog-checkout-address")?.addEventListener("input", (event) => {
+byId("dialog-checkout-street")?.addEventListener("input", () => {
   if (byId("dialog-checkout-type")?.value === "Entrega") {
     const neighborhoodFee = getFeeFromNeighborhood();
-    const fee = neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(event.target.value);
-    updateCheckoutTotals(cartTotal(), fee, null);
+    if (neighborhoodFee !== null) {
+      updateCheckoutTotals(cartTotal(), neighborhoodFee, null);
+    }
   }
 });
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);

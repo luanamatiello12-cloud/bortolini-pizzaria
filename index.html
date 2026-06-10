@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260603d" />
+    <link rel="stylesheet" href="/styles.css?v=20260603e" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
@@ -975,7 +975,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="/app-v3.js?v=20260603d"></script>
+    <script src="/app-v3.js?v=20260603e"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1137,7 +1137,10 @@
           <div class="ifood-address-icon">📍</div>
           <div class="ifood-address-info">
             <small>Entregar em</small>
-            <input id="dialog-checkout-address" placeholder="Rua, número, bairro" />
+            <input id="dialog-checkout-street" placeholder="Rua / Avenida" />
+            <input id="dialog-checkout-number" placeholder="Número" style="margin-top:6px;" />
+            <input id="dialog-checkout-complement" placeholder="Complemento (apto, bloco)" style="margin-top:6px;" />
+            <input id="dialog-checkout-reference" placeholder="Ponto de referência" style="margin-top:6px;" />
             <span class="ifood-eta">🕐 <span id="checkout-eta">35 min</span></span>
           </div>
         </div>
