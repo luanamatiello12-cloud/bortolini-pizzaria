@@ -4086,14 +4086,16 @@ function startPolling() {
   _pollingInterval = setInterval(async () => {
     if (!state.currentUser || !state.apiOnline) return;
     try {
-      const [newOrders, newDeliveries] = await Promise.all([
+      const [newOrders, newDeliveries, newDrivers] = await Promise.all([
         api("/api/orders"),
         api("/api/deliveries"),
+        api("/api/drivers"),
       ]);
       const hasNewOrder = newOrders.length > orders.length ||
         newOrders.some((o, i) => o.status !== orders[i]?.status);
       orders = newOrders;
       deliveries = newDeliveries;
+      drivers = newDrivers;
       state.apiOnline = true;
       updateConnectionBadge();
       renderOrders();
@@ -4799,18 +4801,22 @@ async function loadOrderTrack(orderId, silent = false) {
       byId("track-map-link").href = `https://www.google.com/maps/search/?api=1&query=${order.driver_lat},${order.driver_lng}`;
       const mapContainer = byId("track-map-area");
       if (typeof L !== "undefined" && mapContainer) {
+        let firstRender = false;
         if (!window._trackMap) {
+          firstRender = true;
           window._trackMap = L.map(mapContainer).setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
           }).addTo(window._trackMap);
         } else {
-          window._trackMap.setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
+          // Acompanha o entregador sem resetar o zoom escolhido pelo cliente
+          window._trackMap.panTo([Number(order.driver_lat), Number(order.driver_lng)]);
         }
         if (window._trackMarker) window._trackMap.removeLayer(window._trackMarker);
         window._trackMarker = L.marker([Number(order.driver_lat), Number(order.driver_lng)]).addTo(window._trackMap);
-        window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
+        window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`);
+        if (firstRender) window._trackMarker.openPopup();
         setTimeout(() => window._trackMap.invalidateSize(), 300);
       }
     } else {
