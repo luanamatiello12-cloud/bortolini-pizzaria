@@ -184,9 +184,9 @@ button:disabled {
   display: none !important;
 }
 
-/* Mostrar apenas a loja pública */
-.public-customer-mode #customer,
-.public-customer-mode #customer.view {
+/* Mostrar apenas a tela ativa do cliente (loja ou acompanhamento de pedido) */
+.public-customer-mode #customer.active-view,
+.public-customer-mode #order-track.active-view {
   display: block !important;
 }
 
