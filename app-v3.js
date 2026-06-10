@@ -177,23 +177,27 @@ async function api(path, options = {}) {
 }
 
 async function loadData() {
+  // Em página pública, só carrega dados públicos para evitar erros 403 no console
+  const isPublic = isPublicPage();
   const endpoints = [
     ["/api/menu",           (v) => { menuItems = v; }],
-    ["/api/orders",         (v) => { orders = v; }],
-    ["/api/users",          (v) => { demoUsers = v; }],
-    ["/api/deliveries",     (v) => { deliveries = v; }],
-    ["/api/promotions",     (v) => { promotions = v; }],
-    ["/api/customers",      (v) => { customers = v; }],
-    ["/api/settings",       (v) => { settings = v; }],
     ["/api/public/settings",(v) => { if (!settings.restaurant_name) settings = v; }],
-    ["/api/inbox",          (v) => { conversations = v; }],
-    ["/api/drivers",        (v) => { drivers = v; }],
-    ["/api/closeout",       (v) => { closeout = v; }],
-    ["/api/ingredients",    (v) => { ingredients = v; }],
-    ["/api/recipes",        (v) => { recipes = v; }],
-    ["/api/stock-movements",(v) => { stockMovements = v; }],
-    ["/api/delivery-zones", (v) => { deliveryZones = v; }],
-    ["/api/profit-report",  (v) => { profitReport = v; }],
+    ...(isPublic ? [] : [
+      ["/api/orders",         (v) => { orders = v; }],
+      ["/api/users",          (v) => { demoUsers = v; }],
+      ["/api/deliveries",     (v) => { deliveries = v; }],
+      ["/api/promotions",     (v) => { promotions = v; }],
+      ["/api/customers",      (v) => { customers = v; }],
+      ["/api/settings",       (v) => { settings = v; }],
+      ["/api/inbox",          (v) => { conversations = v; }],
+      ["/api/drivers",        (v) => { drivers = v; }],
+      ["/api/closeout",       (v) => { closeout = v; }],
+      ["/api/ingredients",    (v) => { ingredients = v; }],
+      ["/api/recipes",        (v) => { recipes = v; }],
+      ["/api/stock-movements",(v) => { stockMovements = v; }],
+      ["/api/delivery-zones", (v) => { deliveryZones = v; }],
+      ["/api/profit-report",  (v) => { profitReport = v; }],
+    ]),
   ];
 
   const results = await Promise.allSettled(endpoints.map(([path]) => api(path)));
@@ -3140,6 +3144,7 @@ async function trackOrderV2() {
     // Navega para a tela completa de acompanhamento (com mapa e polling)
     document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
     byId("order-track").classList.add("active-view");
+    document.querySelector(".app-layout")?.classList.add("hidden");
     loadOrderTrack(Number(id));
     startTrackPolling(Number(id));
   } catch (error) {
