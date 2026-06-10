@@ -2014,7 +2014,7 @@ function renderCustomers() {
 function customerOrderUrl() {
   const configuredDomain = String(settings.domain || "").trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
   const base = configuredDomain ? `https://${configuredDomain}` : window.location.origin;
-  return `${base}${window.location.pathname}#pedir`;
+  return `${base}/pedir`;
 }
 
 function renderInboxQrPanel() {
@@ -2161,7 +2161,7 @@ function renderSettings() {
   byId("setting-prep").value = settings.prep_time || "";
   byId("setting-areas").value = settings.delivery_areas || "";
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  byId("settings-menu-link").value = baseUrl + "#pedir";
+  byId("settings-menu-link").value = `${window.location.origin}/pedir`;
   byId("settings-driver-link").value = baseUrl + "entregador/";
   renderDeliveryZones();
   renderTeamUsers();
@@ -3038,7 +3038,7 @@ async function checkoutCart() {
     renderAll();
 
     byId("checkout-dialog").close();
-    const trackLink = `${window.location.origin}${window.location.pathname}#pedir?pedido=${created.id}`;
+    const trackLink = `${window.location.origin}/pedir/${created.id}`;
     const floatingBtn = byId("floating-cart-btn");
     if (floatingBtn) floatingBtn.classList.add("hidden");
     byId("track-order-result").innerHTML = `
@@ -3441,7 +3441,8 @@ function copyWhatsAppMessage(orderId) {
   const itemSummary = order.items && order.items.length
     ? order.items.map((it) => `${it.qty}x ${it.name}${it.extras ? ` (+${it.extras})` : ""}`).join(", ")
     : (order.item || "");
-  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${itemSummary}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}`;
+  const trackUrl = `${customerOrderUrl()}/${order.id}`;
+  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${itemSummary}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}\nAcompanhe seu pedido em tempo real: ${trackUrl}`;
   navigator.clipboard?.writeText(message);
   const phone = String(order.customer_phone || settings.whatsapp_number || "").replace(/\D/g, "");
   if (phone) {
@@ -3973,6 +3974,7 @@ function isPublicPage() {
   const path = window.location.pathname;
   const search = window.location.search;
   if (hash.startsWith("#pedir")) return true;
+  if (path === "/pedir" || path.startsWith("/pedir/")) return true;
   if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
   const urlParams = new URLSearchParams(search);
   const trackId = urlParams.get("pedido") || urlParams.get("order_id");
@@ -3981,6 +3983,11 @@ function isPublicPage() {
 }
 
 async function restoreSession() {
+  // CORREÇÃO: em qualquer página pública (loja /pedir, #pedir, acompanhamento,
+  // app do entregador) NUNCA restaurar/mostrar o painel admin. Era isso que
+  // fazia a tela de admin aparecer no link do cliente quando havia uma
+  // sessão salva no aparelho.
+  if (isPublicPage()) return;
   // Não restaurar sessão admin/financeiro na página do entregador
   if (window.location.pathname.startsWith("/entregador")) return;
   try {
@@ -4012,6 +4019,8 @@ async function restoreSession() {
 }
 
 function showApp() {
+  // Segurança extra: nunca abrir o painel interno em página pública do cliente/entregador.
+  if (isPublicPage()) return;
   byId("login-screen").classList.add("hidden");
   byId("app-shell").classList.remove("hidden");
   renderAll();
@@ -4569,6 +4578,19 @@ async function loadDriverPublicOrders() {
     `;}).join("");
 
     _driverCurrentOrderIds = data.orders.map(o => o.id);
+
+    // GPS automático: se há entrega em rota e a localização não está ativa
+    // (e o entregador não pausou manualmente), liga o rastreamento sozinho.
+    const hasActiveRoute = data.orders.some(o => o.status === "Saiu para entrega");
+    if (hasActiveRoute && _driverLocationInterval === null && !window._driverGpsManualOff) {
+      toggleDriverLocation();
+    }
+    // Sem entregas em rota: desliga o GPS para poupar bateria
+    if (!hasActiveRoute && _driverLocationInterval !== null) {
+      driverStopLocation();
+      const gpsIcon = byId("driver-bar-gps-icon");
+      if (gpsIcon) gpsIcon.textContent = "📍";
+    }
   } catch(e) {
     console.error("[loadDriverPublicOrders] erro", e);
     byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Erro ao carregar pedidos. Tente recarregar.</p>';
@@ -4611,7 +4633,8 @@ async function driverStartDelivery(orderId) {
 
 function toggleDriverLocation() {
   if (_driverLocationInterval !== null) {
-    // Parar
+    // Parar (pausa manual — não religar automaticamente)
+    window._driverGpsManualOff = true;
     navigator.geolocation.clearWatch(_driverLocationInterval);
     _driverLocationInterval = null;
     const icon = byId("driver-bar-gps-icon");
@@ -4622,6 +4645,7 @@ function toggleDriverLocation() {
   } else {
     // Iniciar
     if (!navigator.geolocation) { showToast("GPS não disponível."); return; }
+    window._driverGpsManualOff = false;
     const icon = byId("driver-bar-gps-icon");
     if (icon) icon.textContent = "📡";
     const status = byId("driver-header-status");
@@ -4647,10 +4671,16 @@ function toggleDriverLocation() {
 
     _driverLocationInterval = navigator.geolocation.watchPosition(
       sendLocation,
-      () => { showToast("⚠️ Erro ao obter GPS."); },
+      (err) => {
+        if (err && err.code === 1) {
+          showToast("⚠️ Permissão de localização negada. Ative a localização do navegador para o cliente acompanhar a entrega.");
+        } else {
+          showToast("⚠️ Erro ao obter GPS. Verifique se a localização está ativa.");
+        }
+      },
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
     );
-    showToast("Localização ativa");
+    showToast("📡 Localização ativa — o cliente já pode acompanhar você no mapa.");
   }
 }
 
@@ -4682,14 +4712,16 @@ async function registerDriver() {
   }
 }
 
-async function loadOrderTrack(orderId) {
+async function loadOrderTrack(orderId, silent = false) {
   const details = byId("track-order-details");
   const pixSection = byId("track-pix-section");
   const mapSection = byId("track-map-section");
   const statusPill = byId("track-status-pill");
-  details.innerHTML = "<p>Carregando dados do pedido...</p>";
-  pixSection.classList.add("hidden");
-  mapSection.classList.add("hidden");
+  if (!silent) {
+    details.innerHTML = "<p>Carregando dados do pedido...</p>";
+    pixSection.classList.add("hidden");
+    mapSection.classList.add("hidden");
+  }
   try {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
@@ -4758,9 +4790,32 @@ async function loadOrderTrack(orderId) {
         window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
         setTimeout(() => window._trackMap.invalidateSize(), 300);
       }
+    } else {
+      mapSection.classList.add("hidden");
+    }
+    // Pedido encerrado: para de atualizar automaticamente
+    if (order.status === "Finalizado" || order.status === "Cancelado") {
+      stopTrackPolling();
     }
   } catch(e) {
+    if (silent) return; // não apagar a tela por falha momentânea de rede
     details.innerHTML = `<p style="color:var(--danger)">Pedido não encontrado.</p>`;
+  }
+}
+
+// ===== Atualização automática do acompanhamento (status + GPS do entregador) =====
+let _trackPollInterval = null;
+function startTrackPolling(orderId) {
+  stopTrackPolling();
+  _trackPollInterval = setInterval(() => {
+    if (document.hidden) return; // economiza dados com a aba em segundo plano
+    loadOrderTrack(orderId, true);
+  }, 12000);
+}
+function stopTrackPolling() {
+  if (_trackPollInterval) {
+    clearInterval(_trackPollInterval);
+    _trackPollInterval = null;
   }
 }
 
@@ -4784,9 +4839,16 @@ async function sendTrackPixComprovante() {
 }
 
 byId("track-back-btn")?.addEventListener("click", () => {
+  stopTrackPolling();
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
   byId("customer").classList.add("active-view");
   document.querySelector(".app-layout")?.classList.remove("hidden");
+  // Se estava em /pedir/<n>, volta para a loja /pedir mantendo o modo cliente
+  if (/^\/pedir\/\d+\/?$/.test(window.location.pathname)) {
+    history.replaceState(null, "", "/pedir");
+    initCustomerPublicMode();
+    return;
+  }
   history.replaceState(null, "", window.location.pathname);
 });
 
@@ -4821,10 +4883,11 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
     byId("order-track").classList.add("active-view");
     document.querySelector(".app-layout")?.classList.add("hidden");
     loadOrderTrack(Number(trackOrderId));
+    startTrackPolling(Number(trackOrderId));
   });
 }
 
-// Modo público do cardápio (cliente acessa via link #pedir)
+// Modo público do cardápio (cliente acessa via /pedir ou link antigo #pedir)
 async function initCustomerPublicMode() {
   // Não interferir com app do entregador
   const path = window.location.pathname;
@@ -4833,12 +4896,26 @@ async function initCustomerPublicMode() {
 
   const hash = window.location.hash;
   const hashParams = new URLSearchParams(hash.replace(/^#pedir\?/, ""));
-  const trackId = hashParams.get("pedido");
+  const isPedirPath = path === "/pedir" || path === "/pedir/" || path.startsWith("/pedir/");
+  const pathTrackMatch = path.match(/^\/pedir\/(\d+)\/?$/);
+  const trackId = (pathTrackMatch && pathTrackMatch[1]) || hashParams.get("pedido");
 
-  if (hash.startsWith("#pedir")) {
+  if (hash.startsWith("#pedir") || isPedirPath) {
     document.body.classList.add("public-customer-mode");
     byId("login-screen").classList.add("hidden");
     byId("app-shell").classList.remove("hidden");
+
+    // Se vier com número de pedido (/pedir/13 ou #pedir?pedido=13),
+    // abre direto a tela de acompanhamento (com linha do tempo e mapa do entregador)
+    if (trackId && !isNaN(Number(trackId))) {
+      document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
+      byId("order-track").classList.add("active-view");
+      document.querySelector(".app-layout")?.classList.add("hidden");
+      loadOrderTrack(Number(trackId));
+      startTrackPolling(Number(trackId));
+      return;
+    }
+
     document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
     byId("customer").classList.add("active-view");
 
@@ -4859,11 +4936,6 @@ async function initCustomerPublicMode() {
     }
 
     renderCustomerStore();
-    // Se vier com pedido na URL, preenche e consulta automaticamente
-    if (trackId && byId("track-order-id")) {
-      byId("track-order-id").value = trackId;
-      setTimeout(() => trackOrderV2(), 500);
-    }
   }
 }
 
