@@ -490,7 +490,7 @@ function renderMenu() {
         <article class="menu-card${showSort ? " draggable-card" : ""}" data-menu-item-id="${item.id}">
           ${showSort ? '<div class="drag-handle" title="Arraste para reordenar">⋮⋮</div>' : ""}
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
-          <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
+          <strong>${item.name}${Number(item.price) > 0 ? `<span>${currency.format(item.price)}</span>` : ""}</strong>
           <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
           ${item.description ? `<p>${item.description}</p>` : ""}
           <p>${item.prep_time ? `Preparo: ${item.prep_time}` : ""}${item.addons ? (item.prep_time ? ` - ` : ``) + `Adicionais: ${item.addons}` : ""}</p>
@@ -583,7 +583,7 @@ function renderOrderProductOptions() {
 
   const filtered = menuItems.filter((item) => state.orderCategory === "Todos" || item.category === state.orderCategory);
   itemSelect.innerHTML = filtered.length
-    ? filtered.map((item) => `<option value="${item.name}">${item.name} · ${currency.format(item.price)}</option>`).join("")
+    ? filtered.map((item) => `<option value="${item.name}">${item.name}${Number(item.price) > 0 ? ` · ${currency.format(item.price)}` : ""}</option>`).join("")
     : `<option value="">Nenhum produto nesta categoria</option>`;
 }
 
@@ -1206,7 +1206,7 @@ function renderCustomerStore() {
         <div class="size-text">
           <strong>${size.label}</strong>
           <span>${size.cm} · ${size.slices} · ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}</span>
-          <span class="size-price-store">${currency.format(size.price)}</span>
+          ${Number(size.price) > 0 ? `<span class="size-price-store">${currency.format(size.price)}</span>` : ""}
         </div>
         <img class="size-photo" src="assets/logo.png" alt="${size.label}" />
       </article>
@@ -1222,7 +1222,7 @@ function renderCustomerStore() {
           <div class="ifood-info">
             <strong>${escapeHtml(item.name)}</strong>
             <p>${escapeHtml(item.description) || "Bebida"}</p>
-            <span class="ifood-price">${currency.format(item.price)}</span>
+            ${Number(item.price) > 0 ? `<span class="ifood-price">${currency.format(item.price)}</span>` : ""}
           </div>
           <div class="ifood-right">
             ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
@@ -3335,18 +3335,22 @@ async function toggleDriver(driverId) {
 }
 
 async function createDriver() {
+  const cpfDigits = (byId("driver-cpf")?.value || "").replace(/\D/g, "");
   const payload = {
     name: byId("driver-name").value.trim(),
+    cpf: cpfDigits,
     area: byId("driver-area").value.trim(),
     status: "Disponivel",
   };
   if (!payload.name) { showToast("Informe o nome do entregador."); return; }
+  if (!cpfDigits || cpfDigits.length < 4) { showToast("Informe o CPF do entregador (ele usa o CPF para entrar no app)."); return; }
   try {
     const created = state.apiOnline
       ? await api("/api/drivers", { method: "POST", body: JSON.stringify(payload) })
       : { ...payload, id: Math.max(...drivers.map((driver) => driver.id), 0) + 1, active: 1, orders: 0 };
     drivers = [...drivers, created];
     byId("driver-name").value = "";
+    if (byId("driver-cpf")) byId("driver-cpf").value = "";
     byId("driver-area").value = "";
     renderDelivery();
     renderDeliveryManager();
