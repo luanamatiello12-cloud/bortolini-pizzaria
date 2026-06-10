@@ -490,7 +490,7 @@ function renderMenu() {
         <article class="menu-card${showSort ? " draggable-card" : ""}" data-menu-item-id="${item.id}">
           ${showSort ? '<div class="drag-handle" title="Arraste para reordenar">⋮⋮</div>' : ""}
           ${renderPhoto(item.image_url, "menu-photo", item.name)}
-          <strong>${item.name}<span>${currency.format(item.price)}</span></strong>
+          <strong>${item.name}${Number(item.price) > 0 ? `<span>${currency.format(item.price)}</span>` : ""}</strong>
           <p>${item.category}${item.size ? ` - ${item.size}` : ""} - ${item.sales} vendas</p>
           ${item.description ? `<p>${item.description}</p>` : ""}
           <p>${item.prep_time ? `Preparo: ${item.prep_time}` : ""}${item.addons ? (item.prep_time ? ` - ` : ``) + `Adicionais: ${item.addons}` : ""}</p>
@@ -583,7 +583,7 @@ function renderOrderProductOptions() {
 
   const filtered = menuItems.filter((item) => state.orderCategory === "Todos" || item.category === state.orderCategory);
   itemSelect.innerHTML = filtered.length
-    ? filtered.map((item) => `<option value="${item.name}">${item.name} · ${currency.format(item.price)}</option>`).join("")
+    ? filtered.map((item) => `<option value="${item.name}">${item.name}${Number(item.price) > 0 ? ` · ${currency.format(item.price)}` : ""}</option>`).join("")
     : `<option value="">Nenhum produto nesta categoria</option>`;
 }
 
@@ -1206,7 +1206,7 @@ function renderCustomerStore() {
         <div class="size-text">
           <strong>${size.label}</strong>
           <span>${size.cm} · ${size.slices} · ${size.flavors} ${size.flavors === 1 ? "sabor" : "sabores"}</span>
-          <span class="size-price-store">${currency.format(size.price)}</span>
+          ${Number(size.price) > 0 ? `<span class="size-price-store">${currency.format(size.price)}</span>` : ""}
         </div>
         <img class="size-photo" src="assets/logo.png" alt="${size.label}" />
       </article>
@@ -1222,7 +1222,7 @@ function renderCustomerStore() {
           <div class="ifood-info">
             <strong>${escapeHtml(item.name)}</strong>
             <p>${escapeHtml(item.description) || "Bebida"}</p>
-            <span class="ifood-price">${currency.format(item.price)}</span>
+            ${Number(item.price) > 0 ? `<span class="ifood-price">${currency.format(item.price)}</span>` : ""}
           </div>
           <div class="ifood-right">
             ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
@@ -2015,7 +2015,7 @@ function renderCustomers() {
 function customerOrderUrl() {
   const configuredDomain = String(settings.domain || "").trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
   const base = configuredDomain ? `https://${configuredDomain}` : window.location.origin;
-  return `${base}${window.location.pathname}#pedir`;
+  return `${base}/pedir`;
 }
 
 function renderInboxQrPanel() {
@@ -2162,7 +2162,7 @@ function renderSettings() {
   byId("setting-prep").value = settings.prep_time || "";
   byId("setting-areas").value = settings.delivery_areas || "";
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
-  byId("settings-menu-link").value = baseUrl + "#pedir";
+  byId("settings-menu-link").value = `${window.location.origin}/pedir`;
   byId("settings-driver-link").value = baseUrl + "entregador/";
   renderDeliveryZones();
   renderTeamUsers();
@@ -3039,7 +3039,7 @@ async function checkoutCart() {
     renderAll();
 
     byId("checkout-dialog").close();
-    const trackLink = `${window.location.origin}${window.location.pathname}#pedir?pedido=${created.id}`;
+    const trackLink = `${window.location.origin}/pedir/${created.id}`;
     const floatingBtn = byId("floating-cart-btn");
     if (floatingBtn) floatingBtn.classList.add("hidden");
     byId("track-order-result").innerHTML = `
@@ -3336,21 +3336,22 @@ async function toggleDriver(driverId) {
 }
 
 async function createDriver() {
+  const cpfDigits = (byId("driver-cpf")?.value || "").replace(/\D/g, "");
   const payload = {
     name: byId("driver-name").value.trim(),
-    cpf: byId("driver-cpf").value.trim(),
+    cpf: cpfDigits,
     area: byId("driver-area").value.trim(),
     status: "Disponivel",
   };
   if (!payload.name) { showToast("Informe o nome do entregador."); return; }
-  if (!payload.cpf) { showToast("Informe o CPF do entregador."); return; }
+  if (!cpfDigits || cpfDigits.length < 4) { showToast("Informe o CPF do entregador (ele usa o CPF para entrar no app)."); return; }
   try {
     const created = state.apiOnline
       ? await api("/api/drivers", { method: "POST", body: JSON.stringify(payload) })
       : { ...payload, id: Math.max(...drivers.map((driver) => driver.id), 0) + 1, active: 1, orders: 0 };
     drivers = [...drivers, created];
     byId("driver-name").value = "";
-    byId("driver-cpf").value = "";
+    if (byId("driver-cpf")) byId("driver-cpf").value = "";
     byId("driver-area").value = "";
     renderDelivery();
     renderDeliveryManager();
@@ -3445,7 +3446,8 @@ function copyWhatsAppMessage(orderId) {
   const itemSummary = order.items && order.items.length
     ? order.items.map((it) => `${it.qty}x ${it.name}${it.extras ? ` (+${it.extras})` : ""}`).join(", ")
     : (order.item || "");
-  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${itemSummary}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}`;
+  const trackUrl = `${customerOrderUrl()}/${order.id}`;
+  const message = `Olá, ${order.customer}! Pedido #${order.id}: ${statusMessages[order.status] || `status ${order.status}`}. Itens: ${itemSummary}. Total: ${currency.format(order.total)}. Pagamento: ${order.payment || "Não informado"}. Previsão: ${order.eta}.${locationLine}\nAcompanhe seu pedido em tempo real: ${trackUrl}`;
   navigator.clipboard?.writeText(message);
   const phone = String(order.customer_phone || settings.whatsapp_number || "").replace(/\D/g, "");
   if (phone) {
@@ -3977,6 +3979,7 @@ function isPublicPage() {
   const path = window.location.pathname;
   const search = window.location.search;
   if (hash.startsWith("#pedir")) return true;
+  if (path === "/pedir" || path.startsWith("/pedir/")) return true;
   if (search.includes("driver_id=") || path.startsWith("/entregador")) return true;
   const urlParams = new URLSearchParams(search);
   const trackId = urlParams.get("pedido") || urlParams.get("order_id");
@@ -3985,6 +3988,11 @@ function isPublicPage() {
 }
 
 async function restoreSession() {
+  // CORREÇÃO: em qualquer página pública (loja /pedir, #pedir, acompanhamento,
+  // app do entregador) NUNCA restaurar/mostrar o painel admin. Era isso que
+  // fazia a tela de admin aparecer no link do cliente quando havia uma
+  // sessão salva no aparelho.
+  if (isPublicPage()) return;
   // Não restaurar sessão admin/financeiro na página do entregador
   if (window.location.pathname.startsWith("/entregador")) return;
   try {
@@ -4016,6 +4024,8 @@ async function restoreSession() {
 }
 
 function showApp() {
+  // Segurança extra: nunca abrir o painel interno em página pública do cliente/entregador.
+  if (isPublicPage()) return;
   byId("login-screen").classList.add("hidden");
   byId("app-shell").classList.remove("hidden");
   renderAll();
@@ -4573,6 +4583,19 @@ async function loadDriverPublicOrders() {
     `;}).join("");
 
     _driverCurrentOrderIds = data.orders.map(o => o.id);
+
+    // GPS automático: se há entrega em rota e a localização não está ativa
+    // (e o entregador não pausou manualmente), liga o rastreamento sozinho.
+    const hasActiveRoute = data.orders.some(o => o.status === "Saiu para entrega");
+    if (hasActiveRoute && _driverLocationInterval === null && !window._driverGpsManualOff) {
+      toggleDriverLocation();
+    }
+    // Sem entregas em rota: desliga o GPS para poupar bateria
+    if (!hasActiveRoute && _driverLocationInterval !== null) {
+      driverStopLocation();
+      const gpsIcon = byId("driver-bar-gps-icon");
+      if (gpsIcon) gpsIcon.textContent = "📍";
+    }
   } catch(e) {
     console.error("[loadDriverPublicOrders] erro", e);
     byId("driver-public-orders").innerHTML = '<p style="padding:1rem;color:#dc2626;text-align:center;">Erro ao carregar pedidos. Tente recarregar.</p>';
@@ -4615,7 +4638,8 @@ async function driverStartDelivery(orderId) {
 
 function toggleDriverLocation() {
   if (_driverLocationInterval !== null) {
-    // Parar
+    // Parar (pausa manual — não religar automaticamente)
+    window._driverGpsManualOff = true;
     navigator.geolocation.clearWatch(_driverLocationInterval);
     _driverLocationInterval = null;
     const icon = byId("driver-bar-gps-icon");
@@ -4626,6 +4650,7 @@ function toggleDriverLocation() {
   } else {
     // Iniciar
     if (!navigator.geolocation) { showToast("GPS não disponível."); return; }
+    window._driverGpsManualOff = false;
     const icon = byId("driver-bar-gps-icon");
     if (icon) icon.textContent = "📡";
     const status = byId("driver-header-status");
@@ -4651,10 +4676,16 @@ function toggleDriverLocation() {
 
     _driverLocationInterval = navigator.geolocation.watchPosition(
       sendLocation,
-      () => { showToast("⚠️ Erro ao obter GPS."); },
+      (err) => {
+        if (err && err.code === 1) {
+          showToast("⚠️ Permissão de localização negada. Ative a localização do navegador para o cliente acompanhar a entrega.");
+        } else {
+          showToast("⚠️ Erro ao obter GPS. Verifique se a localização está ativa.");
+        }
+      },
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
     );
-    showToast("Localização ativa");
+    showToast("📡 Localização ativa — o cliente já pode acompanhar você no mapa.");
   }
 }
 
@@ -4686,14 +4717,16 @@ async function registerDriver() {
   }
 }
 
-async function loadOrderTrack(orderId) {
+async function loadOrderTrack(orderId, silent = false) {
   const details = byId("track-order-details");
   const pixSection = byId("track-pix-section");
   const mapSection = byId("track-map-section");
   const statusPill = byId("track-status-pill");
-  details.innerHTML = "<p>Carregando dados do pedido...</p>";
-  pixSection.classList.add("hidden");
-  mapSection.classList.add("hidden");
+  if (!silent) {
+    details.innerHTML = "<p>Carregando dados do pedido...</p>";
+    pixSection.classList.add("hidden");
+    mapSection.classList.add("hidden");
+  }
   try {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
@@ -4762,9 +4795,32 @@ async function loadOrderTrack(orderId) {
         window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
         setTimeout(() => window._trackMap.invalidateSize(), 300);
       }
+    } else {
+      mapSection.classList.add("hidden");
+    }
+    // Pedido encerrado: para de atualizar automaticamente
+    if (order.status === "Finalizado" || order.status === "Cancelado") {
+      stopTrackPolling();
     }
   } catch(e) {
+    if (silent) return; // não apagar a tela por falha momentânea de rede
     details.innerHTML = `<p style="color:var(--danger)">Pedido não encontrado.</p>`;
+  }
+}
+
+// ===== Atualização automática do acompanhamento (status + GPS do entregador) =====
+let _trackPollInterval = null;
+function startTrackPolling(orderId) {
+  stopTrackPolling();
+  _trackPollInterval = setInterval(() => {
+    if (document.hidden) return; // economiza dados com a aba em segundo plano
+    loadOrderTrack(orderId, true);
+  }, 12000);
+}
+function stopTrackPolling() {
+  if (_trackPollInterval) {
+    clearInterval(_trackPollInterval);
+    _trackPollInterval = null;
   }
 }
 
@@ -4788,9 +4844,16 @@ async function sendTrackPixComprovante() {
 }
 
 byId("track-back-btn")?.addEventListener("click", () => {
+  stopTrackPolling();
   document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
   byId("customer").classList.add("active-view");
   document.querySelector(".app-layout")?.classList.remove("hidden");
+  // Se estava em /pedir/<n>, volta para a loja /pedir mantendo o modo cliente
+  if (/^\/pedir\/\d+\/?$/.test(window.location.pathname)) {
+    history.replaceState(null, "", "/pedir");
+    initCustomerPublicMode();
+    return;
+  }
   history.replaceState(null, "", window.location.pathname);
 });
 
@@ -4825,10 +4888,11 @@ if (trackOrderId && !isNaN(Number(trackOrderId))) {
     byId("order-track").classList.add("active-view");
     document.querySelector(".app-layout")?.classList.add("hidden");
     loadOrderTrack(Number(trackOrderId));
+    startTrackPolling(Number(trackOrderId));
   });
 }
 
-// Modo público do cardápio (cliente acessa via link #pedir)
+// Modo público do cardápio (cliente acessa via /pedir ou link antigo #pedir)
 async function initCustomerPublicMode() {
   // Não interferir com app do entregador
   const path = window.location.pathname;
@@ -4837,12 +4901,26 @@ async function initCustomerPublicMode() {
 
   const hash = window.location.hash;
   const hashParams = new URLSearchParams(hash.replace(/^#pedir\?/, ""));
-  const trackId = hashParams.get("pedido");
+  const isPedirPath = path === "/pedir" || path === "/pedir/" || path.startsWith("/pedir/");
+  const pathTrackMatch = path.match(/^\/pedir\/(\d+)\/?$/);
+  const trackId = (pathTrackMatch && pathTrackMatch[1]) || hashParams.get("pedido");
 
-  if (hash.startsWith("#pedir")) {
+  if (hash.startsWith("#pedir") || isPedirPath) {
     document.body.classList.add("public-customer-mode");
     byId("login-screen").classList.add("hidden");
     byId("app-shell").classList.remove("hidden");
+
+    // Se vier com número de pedido (/pedir/13 ou #pedir?pedido=13),
+    // abre direto a tela de acompanhamento (com linha do tempo e mapa do entregador)
+    if (trackId && !isNaN(Number(trackId))) {
+      document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
+      byId("order-track").classList.add("active-view");
+      document.querySelector(".app-layout")?.classList.add("hidden");
+      loadOrderTrack(Number(trackId));
+      startTrackPolling(Number(trackId));
+      return;
+    }
+
     document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
     byId("customer").classList.add("active-view");
 
@@ -4863,11 +4941,6 @@ async function initCustomerPublicMode() {
     }
 
     renderCustomerStore();
-    // Se vier com pedido na URL, preenche e consulta automaticamente
-    if (trackId && byId("track-order-id")) {
-      byId("track-order-id").value = trackId;
-      setTimeout(() => trackOrderV2(), 500);
-    }
   }
 }
 

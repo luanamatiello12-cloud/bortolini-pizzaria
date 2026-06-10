@@ -13,6 +13,8 @@ services:
         value: 10000
       - key: UPLOADS_PATH
         value: /var/data/uploads
+      - key: DATABASE_PATH
+        value: /var/data/bortolini.db
       - key: APP_SECRET
         generateValue: true
       - key: DEPLOY_CHECK
