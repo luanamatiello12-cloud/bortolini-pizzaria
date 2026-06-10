@@ -2209,7 +2209,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 SELECT id, customer, customer_phone, address, notes, channel, status, item, total, eta,
                        driver_name, driver_lat, driver_lng, last_location_at
                 FROM orders
-                WHERE status = 'Entrega'
+                WHERE status IN ('Entrega', 'Saiu para entrega')
                 ORDER BY id DESC
                 """
             ).fetchall()
