@@ -45,7 +45,55 @@ APP_ENV = os.environ.get("APP_ENV", "local").lower()
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8000"))
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
-DB_PATH = Path(os.environ.get("DATABASE_PATH", ROOT / "bortolini.db"))
+def _resolve_db_path():
+    """Garante que o SQLite fique no disco persistente do Render (/var/data).
+
+    Sem isso, o banco era gravado na pasta do app (filesystem efemero) e
+    podia ser apagado a cada deploy/restart. Se existir um banco antigo na
+    pasta do app e ainda nao existir no disco persistente, ele e migrado
+    automaticamente para nao perder dados. Se o disco nao existir (plano
+    Free do Render), cai de volta para a pasta do app sem quebrar o boot.
+    """
+    def _usable(directory: Path) -> bool:
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            probe = directory / ".write_test"
+            probe.write_text("ok")
+            probe.unlink()
+            return True
+        except Exception:
+            return False
+
+    env_path = os.environ.get("DATABASE_PATH", "").strip()
+    if env_path:
+        target = Path(env_path)
+        if _usable(target.parent):
+            legacy = ROOT / "bortolini.db"
+            if not target.exists() and legacy.exists():
+                try:
+                    shutil.copy2(legacy, target)
+                    print(f"[db] Banco migrado de {legacy} para {target}")
+                except Exception as exc:
+                    print(f"[db] Falha ao migrar banco: {exc}")
+            return target
+        print(f"[db] AVISO: DATABASE_PATH={env_path} inacessivel; usando pasta do app (dados NAO persistentes)")
+        return ROOT / "bortolini.db"
+
+    persistent_dir = Path("/var/data")
+    if persistent_dir.is_dir() and _usable(persistent_dir):
+        target = persistent_dir / "bortolini.db"
+        legacy = ROOT / "bortolini.db"
+        if not target.exists() and legacy.exists():
+            try:
+                shutil.copy2(legacy, target)
+                print(f"[db] Banco migrado de {legacy} para {target}")
+            except Exception as exc:
+                print(f"[db] Falha ao migrar banco: {exc}")
+        return target
+    return ROOT / "bortolini.db"
+
+
+DB_PATH = _resolve_db_path()
 UPLOADS_DIR = Path(os.environ.get("UPLOADS_PATH", ROOT / "uploads"))
 APP_SECRET = os.environ.get("APP_SECRET", "local-dev-change-before-production")
 ADMIN_MASTER_KEY = os.environ.get("ADMIN_MASTER_KEY", "BORTOLINI-2026")
@@ -1136,6 +1184,16 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             data = self.get_public_order(order_id)
             if data is not None:
                 self.send_json(data)
+            return
+
+        if path == "/pedir" or path == "/pedir/" or re.match(r"^/pedir/\d+/?$", path):
+            # Rota real da loja do cliente e do acompanhamento de pedido.
+            # Serve a SPA; o frontend detecta o caminho e abre direto no modo cliente.
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write((ROOT / "index.html").read_bytes())
             return
 
         if path == "/entregador" or path == "/entregador/" or path.startswith("/entregador/"):
