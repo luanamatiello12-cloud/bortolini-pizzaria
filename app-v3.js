@@ -177,6 +177,8 @@ async function api(path, options = {}) {
 }
 
 async function loadData() {
+  const PUBLIC_ENDPOINTS = ["/api/menu", "/api/promotions", "/api/delivery-zones", "/api/public/settings"];
+  const publicOnly = isPublicPage();
   const endpoints = [
     ["/api/menu",           (v) => { menuItems = v; }],
     ["/api/orders",         (v) => { orders = v; }],
@@ -194,7 +196,7 @@ async function loadData() {
     ["/api/stock-movements",(v) => { stockMovements = v; }],
     ["/api/delivery-zones", (v) => { deliveryZones = v; }],
     ["/api/profit-report",  (v) => { profitReport = v; }],
-  ];
+  ].filter(([path]) => !publicOnly || PUBLIC_ENDPOINTS.includes(path));
 
   const results = await Promise.allSettled(endpoints.map(([path]) => api(path)));
   let anySuccess = false;
