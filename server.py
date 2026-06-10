@@ -140,7 +140,7 @@ SEED_MENU_ITEMS = [
     {"name": "Milho com Bacon", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho verde, bacon em cubos, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Vegetariana", "category": "Pizzas", "description": "Molho de tomate, muçarela, milho, ervilha, brócolis, azeitona, palmito, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Coração", "category": "Pizzas", "description": "Molho de tomate, muçarela, coração bovino em fatias, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
-    {"name": "Filé ao Molho Conhaque", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Filé ao molho conhaque", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon ao molho conhaque, muçarela finalização, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Filé Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, filé mignon cremoso (requeijão + creme de leite), catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Frango com Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango desfiado temperado, catupiry em espirais, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Frango Cremoso", "category": "Pizzas", "description": "Molho de tomate, muçarela, frango cremoso (creme de leite + requeijão), queijo parmesão, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
@@ -152,9 +152,9 @@ SEED_MENU_ITEMS = [
     {"name": "Lombo com Abacaxi", "category": "Pizzas", "description": "Molho de tomate, muçarela, lombo canadense, orégano. Abacaxi adicionado após o forno com leve queima de maçarico", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Lombo c/ Farofa de Bacon e Catupiry", "category": "Pizzas", "description": "Molho de tomate, muçarela, lombo canadense, farofa de bacon, catupiry em filetes, orégano. Catupiry distribuído em filetes antes de assar", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Cinco Queijos", "category": "Pizzas", "description": "Molho de tomate, muçarela, queijo prato, provolone, cheddar, catupiry, orégano", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
-    {"name": "Bortolini Campeira", "category": "Pizzas", "description": "Molho de tomate, muçarela, costela desfiada, creme de alho, queijo coalho", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Bortolini Campeira ⭐", "category": "Pizzas", "description": "Molho de tomate, muçarela, costela desfiada, creme de alho, queijo coalho. Finalizada com cebola crisps, chimichurri e cheiro verde (após forno)", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Tomate Seco e Rúcula", "category": "Pizzas", "description": "Molho de tomate, muçarela (base), tomate seco, orégano, muçarela (finalização). Rúcula fresca adicionada após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
-    {"name": "Pizza Sushi de Atum Premium", "category": "Pizzas", "description": "Molho de tomate, cream cheese, atum, cheiro verde, muçarela leve, molho teriyaki, gergelim", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Pizza Sushi de Atum Premium ⭐", "category": "Pizzas", "description": "Molho de tomate, cream cheese, atum, cheiro verde, muçarela leve, molho teriyaki, gergelim. Cream cheese e teriyaki em riscos alternados", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Dois Amores", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate branco derretido, chocolate preto derretido. Círculos alternados de chocolate branco e preto", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Chocolate Branco", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate branco ralado. Finalizada com pedacinhos de Lacta após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Chocolate Preto", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate preto. Chamusque com queimador após o forno; finalizar com pedaços de Lacta", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
@@ -162,7 +162,7 @@ SEED_MENU_ITEMS = [
     {"name": "Charge", "category": "Pizzas", "description": "Massa de pizza, chocolate preto, paçoca de amendoim esfarelada, pedaços de Charge. Paçoca e Charge adicionados após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Kinder Bueno", "category": "Pizzas", "description": "Massa de pizza, creme de leite, chocolate preto (chamusquedo), pedaços de Kinder Bueno (Lacta). Chocolate chamusquedo com maçarico; Kinder Bueno após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Banana com Canela", "category": "Pizzas", "description": "Massa de pizza, creme de leite, banana em fatias, mel, açúcar com canela", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
-    {"name": "Pizza Bortolini Premium", "category": "Pizzas", "description": "Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
+    {"name": "Pizza Bortolini ⭐", "category": "Pizzas", "description": "Massa de pizza, creme de leite, amendoim triturado, Nutella, chocolate ralado, morangos frescos. Chamusque com maçarico; morangos e amendoim adicionados após o forno", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Bortolini Campeira Doce", "category": "Pizzas", "description": "Massa de pizza, creme de leite, Nutella, amendoim triturado, chocolate ralado. Variação doce especial da casa", "size": "25cm, 30cm, 35cm, 40cm, 45cm"},
     {"name": "Coca-Cola 2L", "category": "Bebidas", "description": "Refrigerante Coca-Cola garrafa 2 litros", "size": ""},
     {"name": "Guaraná 2L", "category": "Bebidas", "description": "Refrigerante Guaraná garrafa 2 litros", "size": ""},
@@ -258,28 +258,6 @@ SEED_INGREDIENTS = [
     {"name": "Bacon crocante", "code": "BACON-CROC-001", "unit": "g", "stock_qty": 8000, "min_qty": 1500, "unit_cost": 0.0},
     {"name": "Catupiry em espirais", "code": "CATU-ESPI-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
     {"name": "Catupiry em filetes", "code": "CATU-FILE-001", "unit": "g", "stock_qty": 5000, "min_qty": 1000, "unit_cost": 0.0},
-    # Ingredientes adicionais da lista completa do cardápio
-    {"name": "Calabresa fatiada", "code": "CALAB-FAT-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Muçarela", "code": "MUCA-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Doritos", "code": "DORIT-002", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Coração bovino em fatias", "code": "CORAC-BOV-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Filé mignon ao molho conhaque", "code": "FILEM-CONH-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Filé mignon cremoso", "code": "FILEM-CREM-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Frango desfiado temperado", "code": "FRANGD-TEMP-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Atum sólido em óleo escorrido", "code": "ATUM-ESC-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Requeijão cremoso em fios", "code": "REQ-FIOS-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Costela desfiada ao molho barbecue", "code": "COSTDES-BBQ-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Chocolate branco derretido", "code": "CHOCB-DERR-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Chocolate preto derretido", "code": "CHOCP-DERR-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Chocolate branco ralado", "code": "CHOCB-RAL-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Raspas de chocolate", "code": "CHOC-RASP-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Paçoca de amendoim esfarelada", "code": "PACOCA-ESF-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Pedaços de Kinder Bueno", "code": "KINDER-PED-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Banana em fatias", "code": "BANAN-FAT-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Morangos frescos", "code": "MORAN-FRES-001", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Requeijão", "code": "REQ-002", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "creme de leite", "code": "CRLEITE-002", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
-    {"name": "Milho", "code": "MILHO-002", "unit": "g", "stock_qty": 0, "min_qty": 500, "unit_cost": 0.0},
 ]
 
 # Mapeamento de pizzas para ingredientes (fichas técnicas)
@@ -339,7 +317,7 @@ SEED_RECIPES = {
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Coração em fatias", 230), ("Queijo parmesão", 22),
     ],
-    "Filé ao Molho Conhaque": [
+    "Filé ao molho conhaque": [
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Filé ao molho conhaque", 230), ("Queijo parmesão", 22),
     ],
@@ -387,7 +365,7 @@ SEED_RECIPES = {
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Queijo prato", 80), ("Provolone", 60), ("Cheddar", 60), ("Catupiry", 77), ("Queijo parmesão", 22),
     ],
-    "Bortolini Campeira": [
+    "Bortolini Campeira ⭐": [
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Costela desfiada", 190), ("Creme de alho", 60), ("Queijo coalho", 140),
         ("Cebola crisps", 10), ("Chimichurri", 5), ("Cheiro verde", 5),
@@ -396,7 +374,7 @@ SEED_RECIPES = {
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Tomate seco", 130), ("Rúcula", 40), ("Queijo parmesão", 22),
     ],
-    "Pizza Sushi de Atum Premium": [
+    "Pizza Sushi de Atum Premium ⭐": [
         ("Massa de pizza", 380), ("Molho de tomate", 80), ("Muçarela", 230), ("Orégano", 3.5),
         ("Cream cheese", 110), ("Atum sólido em óleo", 185), ("Molho teriyaki", 50), ("Gergelim", 20),
     ],
@@ -428,7 +406,7 @@ SEED_RECIPES = {
         ("Massa de pizza", 380), ("Creme de leite", 145),
         ("Banana fatiada", 260), ("Mel", 20), ("Açúcar com canela", 22),
     ],
-    "Pizza Bortolini Premium": [
+    "Pizza Bortolini ⭐": [
         ("Massa de pizza", 380), ("Creme de leite", 145),
         ("Amendoim triturado", 50), ("Nutella", 150), ("Chocolate ralado", 50), ("Morango", 140),
     ],
@@ -3462,15 +3440,9 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 return
             row = cursor.fetchone()
             driver_id = row["id"]
-            username = name.lower().replace(" ", ".")
-            original_username = username
-            suffix = 1
-            while conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone():
-                username = f"{original_username}.{suffix}"
-                suffix += 1
             user_cursor = conn.execute(
                 "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
-                (username, email, cpf, "", hash_pin(pin), name, "entregador"),
+                (name.lower().replace(" ", "."), email, cpf, "", hash_pin(pin), name, "entregador"),
             )
             user_row = user_cursor.fetchone()
             user_id = user_row["id"]
@@ -3691,7 +3663,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_error(HTTPStatus.NOT_FOUND, "Pedido não encontrado")
                 return
             conn.execute(
-                "UPDATE orders SET status = 'Entregue', delivered_at = CURRENT_TIMESTAMP WHERE id = ?",
+                "UPDATE orders SET status = 'Finalizado', delivered_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (order_id,),
             )
             row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
