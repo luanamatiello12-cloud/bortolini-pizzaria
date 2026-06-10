@@ -1619,6 +1619,21 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     return
                 data = self.update_driver_location(driver["id"], payload)
                 if data is not None:
+                    # CORREÇÃO: gravar a posição também nos pedidos em rota deste
+                    # entregador — é dos pedidos que a página do cliente lê o GPS.
+                    try:
+                        lat = float(payload["lat"])
+                        lng = float(payload["lng"])
+                        conn.execute(
+                            """
+                            UPDATE orders
+                            SET driver_lat = ?, driver_lng = ?, last_location_at = ?
+                            WHERE driver_name = ? AND status IN ('Entrega', 'Saiu para entrega')
+                            """,
+                            (lat, lng, datetime.now().isoformat(timespec="seconds"), user["name"]),
+                        )
+                    except (KeyError, TypeError, ValueError):
+                        pass
                     self.send_json(data)
             return
         if path.startswith("/api/public/driver/orders/") and path.endswith("/start"):
@@ -3669,7 +3684,18 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
     def delete_driver(self, driver_id):
         with connect() as conn:
+            row = conn.execute("SELECT name FROM drivers WHERE id = ?", (driver_id,)).fetchone()
             conn.execute("DELETE FROM drivers WHERE id = ?", (driver_id,))
+            # Remove tambem o usuario de login do app e as sessoes ativas dele,
+            # liberando o CPF para um futuro recadastro
+            if row:
+                user = conn.execute(
+                    "SELECT id FROM users WHERE role = 'entregador' AND lower(name) = lower(?)",
+                    (row["name"],),
+                ).fetchone()
+                if user:
+                    conn.execute("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
+                    conn.execute("DELETE FROM users WHERE id = ?", (user["id"],))
         self.send_json({"ok": True})
 
     def delete_order(self, order_id):
