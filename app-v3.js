@@ -3136,15 +3136,12 @@ async function trackOrderV2() {
     return;
   }
   try {
-    const order = await api(`/api/public/orders/${id}`);
-    result.innerHTML = `
-      <article class="cart-item">
-        <strong>Pedido #${order.id} - ${order.status}</strong>
-        <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
-        <p>${formatOrderItemsSummary(order)} - previsao ${order.eta}</p>
-        <p>${order.status === "Cancelado" ? `Cancelado: ${order.cancel_reason || "motivo nao informado"}` : order.driver_name ? `Entregador: ${order.driver_name} - ${formatLocation(order)}` : "Ainda sem entregador em rota."}</p>
-      </article>
-    `;
+    await api(`/api/public/orders/${id}`);
+    // Navega para a tela completa de acompanhamento (com mapa e polling)
+    document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
+    byId("order-track").classList.add("active-view");
+    loadOrderTrack(Number(id));
+    startTrackPolling(Number(id));
   } catch (error) {
     result.innerHTML = `<article class="cart-item"><strong>Pedido nao encontrado.</strong></article>`;
   }
@@ -3152,7 +3149,7 @@ async function trackOrderV2() {
 
 function renderOrderTimeline(status) {
   const steps = status === "Cancelado" ? ["Novo", "Cancelado"] : ["Novo", "Cozinha", "Entrega", "Finalizado"];
-  const current = steps.indexOf(status);
+  const current = steps.indexOf(status === "Entregue" ? "Finalizado" : status);
   return steps
     .map((step, index) => `<span class="timeline-step ${index <= current ? "done" : ""}">${step}</span>`)
     .join("");
@@ -4083,7 +4080,7 @@ function startPolling() {
         playNotificationSound();
       }
     } catch (_) {}
-  }, 30_000);
+  }, 10000);
 }
 
 function stopPolling() {
@@ -4730,7 +4727,7 @@ async function loadOrderTrack(orderId, silent = false) {
   try {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
-    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" ? "success" : ""}`;
+    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" || order.status === "Entregue" ? "success" : ""}`;
 
     const itemList = order.items && order.items.length
       ? order.items.map((it) => `
@@ -4799,7 +4796,7 @@ async function loadOrderTrack(orderId, silent = false) {
       mapSection.classList.add("hidden");
     }
     // Pedido encerrado: para de atualizar automaticamente
-    if (order.status === "Finalizado" || order.status === "Cancelado") {
+    if (order.status === "Finalizado" || order.status === "Entregue" || order.status === "Cancelado") {
       stopTrackPolling();
     }
   } catch(e) {
@@ -4815,7 +4812,7 @@ function startTrackPolling(orderId) {
   _trackPollInterval = setInterval(() => {
     if (document.hidden) return; // economiza dados com a aba em segundo plano
     loadOrderTrack(orderId, true);
-  }, 12000);
+  }, 5000);
 }
 function stopTrackPolling() {
   if (_trackPollInterval) {
