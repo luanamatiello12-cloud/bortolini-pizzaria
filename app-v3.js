@@ -177,27 +177,23 @@ async function api(path, options = {}) {
 }
 
 async function loadData() {
-  // Em página pública, só carrega dados públicos para evitar erros 403 no console
-  const isPublic = isPublicPage();
   const endpoints = [
     ["/api/menu",           (v) => { menuItems = v; }],
+    ["/api/orders",         (v) => { orders = v; }],
+    ["/api/users",          (v) => { demoUsers = v; }],
+    ["/api/deliveries",     (v) => { deliveries = v; }],
+    ["/api/promotions",     (v) => { promotions = v; }],
+    ["/api/customers",      (v) => { customers = v; }],
+    ["/api/settings",       (v) => { settings = v; }],
     ["/api/public/settings",(v) => { if (!settings.restaurant_name) settings = v; }],
-    ...(isPublic ? [] : [
-      ["/api/orders",         (v) => { orders = v; }],
-      ["/api/users",          (v) => { demoUsers = v; }],
-      ["/api/deliveries",     (v) => { deliveries = v; }],
-      ["/api/promotions",     (v) => { promotions = v; }],
-      ["/api/customers",      (v) => { customers = v; }],
-      ["/api/settings",       (v) => { settings = v; }],
-      ["/api/inbox",          (v) => { conversations = v; }],
-      ["/api/drivers",        (v) => { drivers = v; }],
-      ["/api/closeout",       (v) => { closeout = v; }],
-      ["/api/ingredients",    (v) => { ingredients = v; }],
-      ["/api/recipes",        (v) => { recipes = v; }],
-      ["/api/stock-movements",(v) => { stockMovements = v; }],
-      ["/api/delivery-zones", (v) => { deliveryZones = v; }],
-      ["/api/profit-report",  (v) => { profitReport = v; }],
-    ]),
+    ["/api/inbox",          (v) => { conversations = v; }],
+    ["/api/drivers",        (v) => { drivers = v; }],
+    ["/api/closeout",       (v) => { closeout = v; }],
+    ["/api/ingredients",    (v) => { ingredients = v; }],
+    ["/api/recipes",        (v) => { recipes = v; }],
+    ["/api/stock-movements",(v) => { stockMovements = v; }],
+    ["/api/delivery-zones", (v) => { deliveryZones = v; }],
+    ["/api/profit-report",  (v) => { profitReport = v; }],
   ];
 
   const results = await Promise.allSettled(endpoints.map(([path]) => api(path)));
@@ -1294,12 +1290,12 @@ function renderPizzaFlavorsDialog() {
 
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = Array.isArray(pizzaFlavorsDialogState.flavors) && pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
-    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
+    const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
         <div class="flavor-check">✓</div>
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
+        <strong>${item.name}${isPremium ? ' <span class="premium-badge">+R$</span>' : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
       </article>
     `;
@@ -1617,8 +1613,10 @@ function renderPremiumExtrasBadges(flavors) {
 }
 
 function formatOrderItemLine(item) {
+  const qty = item.qty ?? item.quantity ?? 1;
+  const name = item.name ?? item.item_name ?? "";
   const extras = item.extras ? ` <span class="premium-extra-badge-inline">+ ${escapeHtml(item.extras)}</span>` : "";
-  return `${item.qty}x ${escapeHtml(item.name)}${extras}`;
+  return `${qty}x ${escapeHtml(name)}${extras}`;
 }
 
 function formatOrderItemsSummary(order) {
@@ -1769,11 +1767,10 @@ function renderInlineFlavorOptions(mainItemId) {
   return pizzaItems.map((item) => {
     const isSelected = selectedIds.includes(item.id);
     const canSelect = !isSelected && remaining > 0;
-    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-card ${isSelected ? "selected" : ""} ${!isSelected && !canSelect ? "disabled" : ""}" onclick="toggleInlineFlavor(${mainItemId}, ${item.id})">
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
+        <strong>${item.name}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
         ${isSelected ? '<span class="status-pill success">✓ Selecionado</span>' : ""}
       </article>
@@ -3139,22 +3136,26 @@ async function trackOrderV2() {
     result.innerHTML = `<article class="cart-item"><strong>Informe o numero do pedido.</strong></article>`;
     return;
   }
-  try {
-    await api(`/api/public/orders/${id}`);
-    // Navega para a tela completa de acompanhamento (com mapa e polling)
-    document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
-    byId("order-track").classList.add("active-view");
-    document.querySelector(".app-layout")?.classList.add("hidden");
-    loadOrderTrack(Number(id));
-    startTrackPolling(Number(id));
-  } catch (error) {
-    result.innerHTML = `<article class="cart-item"><strong>Pedido nao encontrado.</strong></article>`;
+  result.innerHTML = "";
+  openCustomerOrderTracking(id);
+}
+
+// Abre a página completa de acompanhamento (status + itens + mapa do entregador ao vivo)
+function openCustomerOrderTracking(orderId) {
+  document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
+  byId("order-track").classList.add("active-view");
+  document.querySelector(".app-layout")?.classList.add("hidden");
+  if (window.location.pathname !== `/pedir/${orderId}`) {
+    history.replaceState(null, "", `/pedir/${orderId}`);
   }
+  loadOrderTrack(orderId);
+  startTrackPolling(orderId);
 }
 
 function renderOrderTimeline(status) {
+  if (status === "Entregue") status = "Finalizado";
   const steps = status === "Cancelado" ? ["Novo", "Cancelado"] : ["Novo", "Cozinha", "Entrega", "Finalizado"];
-  const current = steps.indexOf(status === "Entregue" ? "Finalizado" : status);
+  const current = steps.indexOf(status);
   return steps
     .map((step, index) => `<span class="timeline-step ${index <= current ? "done" : ""}">${step}</span>`)
     .join("");
@@ -4085,7 +4086,7 @@ function startPolling() {
         playNotificationSound();
       }
     } catch (_) {}
-  }, 10000);
+  }, 12_000);
 }
 
 function stopPolling() {
@@ -4732,7 +4733,7 @@ async function loadOrderTrack(orderId, silent = false) {
   try {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
-    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" || order.status === "Entregue" ? "success" : ""}`;
+    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" ? "success" : ""}`;
 
     const itemList = order.items && order.items.length
       ? order.items.map((it) => `
@@ -4801,7 +4802,7 @@ async function loadOrderTrack(orderId, silent = false) {
       mapSection.classList.add("hidden");
     }
     // Pedido encerrado: para de atualizar automaticamente
-    if (order.status === "Finalizado" || order.status === "Entregue" || order.status === "Cancelado") {
+    if (order.status === "Finalizado" || order.status === "Cancelado" || order.status === "Entregue") {
       stopTrackPolling();
     }
   } catch(e) {
@@ -4817,7 +4818,7 @@ function startTrackPolling(orderId) {
   _trackPollInterval = setInterval(() => {
     if (document.hidden) return; // economiza dados com a aba em segundo plano
     loadOrderTrack(orderId, true);
-  }, 5000);
+  }, 12000);
 }
 function stopTrackPolling() {
   if (_trackPollInterval) {
@@ -4915,11 +4916,7 @@ async function initCustomerPublicMode() {
     // Se vier com número de pedido (/pedir/13 ou #pedir?pedido=13),
     // abre direto a tela de acompanhamento (com linha do tempo e mapa do entregador)
     if (trackId && !isNaN(Number(trackId))) {
-      document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
-      byId("order-track").classList.add("active-view");
-      document.querySelector(".app-layout")?.classList.add("hidden");
-      loadOrderTrack(Number(trackId));
-      startTrackPolling(Number(trackId));
+      openCustomerOrderTracking(Number(trackId));
       return;
     }
 
