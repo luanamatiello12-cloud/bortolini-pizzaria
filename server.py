@@ -3417,6 +3417,15 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return
         pin = random_pin()
         with connect() as conn:
+            # CPF já usado por outro entregador? Mensagem clara em vez de erro 500
+            if cpf:
+                existing_cpf = conn.execute(
+                    "SELECT id, name FROM users WHERE cpf = ? AND role = 'entregador'",
+                    (cpf,),
+                ).fetchone()
+                if existing_cpf:
+                    self.send_error(HTTPStatus.CONFLICT, f"CPF ja cadastrado para o entregador {existing_cpf['name']}")
+                    return
             safe_name = re.sub(r"[^a-z0-9]", "", name.lower().replace(" ", "."))
             if not safe_name:
                 safe_name = "entregador"
@@ -3425,6 +3434,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             suffix = 1
             while conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
                 email = f"{original_email}.{suffix}"
+                suffix += 1
+            # Username tambem e UNIQUE: deduplicar com sufixo para nao quebrar
+            username = name.lower().replace(" ", ".")
+            original_username = username
+            suffix = 1
+            while conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone():
+                username = f"{original_username}.{suffix}"
                 suffix += 1
             try:
                 cursor = conn.execute(
@@ -3436,14 +3452,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     (name, area, payload.get("status", "Disponivel"), payload.get("lat"), payload.get("lng")),
                 )
             except DB_INTEGRITY_ERROR:
-                self.send_error(HTTPStatus.CONFLICT, "Entregador ja existe")
+                self.send_error(HTTPStatus.CONFLICT, "Ja existe um entregador com esse nome")
                 return
             row = cursor.fetchone()
             driver_id = row["id"]
-            user_cursor = conn.execute(
-                "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
-                (name.lower().replace(" ", "."), email, cpf, "", hash_pin(pin), name, "entregador"),
-            )
+            try:
+                user_cursor = conn.execute(
+                    "INSERT INTO users (username, email, cpf, pin, pin_hash, name, role, must_change_pin) VALUES (?, ?, ?, ?, ?, ?, ?, 1) RETURNING *",
+                    (username, email, cpf, "", hash_pin(pin), name, "entregador"),
+                )
+            except DB_INTEGRITY_ERROR:
+                # Nao deixar entregador orfao sem usuario de login
+                conn.execute("DELETE FROM drivers WHERE id = ?", (driver_id,))
+                self.send_error(HTTPStatus.CONFLICT, "Ja existe um usuario com esses dados (nome ou CPF)")
+                return
             user_row = user_cursor.fetchone()
             user_id = user_row["id"]
         result = dict(row)
