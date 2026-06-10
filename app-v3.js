@@ -1290,12 +1290,12 @@ function renderPizzaFlavorsDialog() {
 
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = Array.isArray(pizzaFlavorsDialogState.flavors) && pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
-    const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
+    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
         <div class="flavor-check">✓</div>
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${isPremium ? ' <span class="premium-badge">+R$</span>' : ''}</strong>
+        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
       </article>
     `;
@@ -1765,10 +1765,11 @@ function renderInlineFlavorOptions(mainItemId) {
   return pizzaItems.map((item) => {
     const isSelected = selectedIds.includes(item.id);
     const canSelect = !isSelected && remaining > 0;
+    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-card ${isSelected ? "selected" : ""} ${!isSelected && !canSelect ? "disabled" : ""}" onclick="toggleInlineFlavor(${mainItemId}, ${item.id})">
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}</strong>
+        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
         ${isSelected ? '<span class="status-pill success">✓ Selecionado</span>' : ""}
       </article>
@@ -3337,16 +3338,19 @@ async function toggleDriver(driverId) {
 async function createDriver() {
   const payload = {
     name: byId("driver-name").value.trim(),
+    cpf: byId("driver-cpf").value.trim(),
     area: byId("driver-area").value.trim(),
     status: "Disponivel",
   };
   if (!payload.name) { showToast("Informe o nome do entregador."); return; }
+  if (!payload.cpf) { showToast("Informe o CPF do entregador."); return; }
   try {
     const created = state.apiOnline
       ? await api("/api/drivers", { method: "POST", body: JSON.stringify(payload) })
       : { ...payload, id: Math.max(...drivers.map((driver) => driver.id), 0) + 1, active: 1, orders: 0 };
     drivers = [...drivers, created];
     byId("driver-name").value = "";
+    byId("driver-cpf").value = "";
     byId("driver-area").value = "";
     renderDelivery();
     renderDeliveryManager();
