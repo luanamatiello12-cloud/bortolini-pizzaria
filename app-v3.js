@@ -948,6 +948,7 @@ function renderDeliveryManager() {
           <strong>${driver.name}</strong>
           <p>${driver.status || "Disponivel"} - ${driver.orders || 0} pedido(s) - ${driver.area}</p>
           ${can("drivers") ? `<button class="ghost" data-toggle-driver="${driver.id}">${driver.active ? "Pausar" : "Ativar"}</button>` : ""}
+          ${can("drivers") ? `<button class="ghost" data-delete-driver="${driver.id}" style="color:var(--danger,#d32f2f);">Excluir</button>` : ""}
         </article>
       `,
     )
@@ -979,6 +980,24 @@ function renderDeliveryManager() {
   });
   document.querySelectorAll("[data-toggle-driver]").forEach((button) => {
     button.addEventListener("click", () => toggleDriver(Number(button.dataset.toggleDriver)));
+  });
+  document.querySelectorAll("[data-delete-driver]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const driverId = Number(button.dataset.deleteDriver);
+      const driver = drivers.find((d) => d.id === driverId);
+      if (!driver) return;
+      if (!confirm(`Excluir o entregador "${driver.name}"?\n\nO acesso dele ao app também será removido e o CPF ficará liberado para novo cadastro.`)) return;
+      try {
+        await api(`/api/drivers/${driverId}`, { method: "DELETE" });
+        drivers = drivers.filter((d) => d.id !== driverId);
+        renderDelivery();
+        renderDeliveryManager();
+        renderTeamUsers();
+        showToast(`Entregador "${driver.name}" excluído.`);
+      } catch (error) {
+        showToast(error.message || "Não foi possível excluir o entregador.");
+      }
+    });
   });
 }
 
@@ -4663,13 +4682,7 @@ function toggleDriverLocation() {
 
     function sendLocation(pos) {
       const { latitude: lat, longitude: lng } = pos.coords;
-      _driverCurrentOrderIds.forEach(orderId => {
-        fetch(`/api/deliveries/${orderId}/location`, {
-          method: "PATCH",
-          headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
-          body: JSON.stringify({ lat, lng })
-        }).catch(() => {});
-      });
+      // O endpoint público atualiza o cadastro do entregador E os pedidos em rota
       if (_driverUserId) {
         fetch(`/api/public/drivers/${_driverUserId}/location`, {
           method: "PATCH",
