@@ -2019,7 +2019,7 @@ function renderInboxQrPanel() {
   } else {
     image.src = "";
     image.alt = "Configure o número WhatsApp em Integrações";
-    hint.textContent = "Configure o número WhatsApp em Integrações para gerar o QR Code de conexão.";
+    hint.innerHTML = `<strong>Atendimento via WhatsApp</strong><br><p>Configure o número WhatsApp em <strong>Integrações</strong> para gerar o QR Code de conexão e liberar o atendimento automatizado.</p>`;
   }
 }
 
@@ -2421,6 +2421,10 @@ async function createProduct() {
   }
   if (payload.price <= 0) {
     payload.active = 0;
+  }
+  if (!payload.image_url && !editingProductId) {
+    byId("product-error").textContent = "Adicione uma foto do produto.";
+    return;
   }
 
   try {
@@ -2847,15 +2851,31 @@ function selectPaymentCard(card) {
   }
 }
 
+function populateCheckoutNeighborhoods() {
+  const select = byId("dialog-checkout-neighborhood");
+  if (!select) return;
+  const activeZones = deliveryZones.filter((z) => z.active);
+  select.innerHTML = `<option value="">Selecione o bairro</option>` +
+    activeZones.map((z) => `<option value="${escapeHtml(z.neighborhood)}" data-fee="${z.fee}">${escapeHtml(z.neighborhood)} — ${currency.format(z.fee)}</option>`).join("");
+}
+
+function getFeeFromNeighborhood() {
+  const select = byId("dialog-checkout-neighborhood");
+  if (!select || !select.value) return null;
+  const option = select.querySelector(`option[value="${CSS.escape(select.value)}"]`);
+  return option ? Number(option.dataset.fee) : null;
+}
+
 function openCheckoutDialog() {
   if (!cart.length) {
     showToast("Adicione pelo menos um item ao carrinho.");
     return;
   }
+  populateCheckoutNeighborhoods();
   const subtotal = cartTotal();
   const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
-  const address = byId("dialog-checkout-address")?.value || "";
-  const fee = deliveryType === "Entrega" ? getDeliveryFee(address) : 0;
+  const neighborhoodFee = getFeeFromNeighborhood();
+  const fee = deliveryType === "Entrega" ? (neighborhoodFee !== null ? neighborhoodFee : Number(settings.delivery_fee || 0)) : 0;
 
   byId("checkout-summary").innerHTML = cart
     .map((entry) => {
@@ -2884,7 +2904,7 @@ function openCheckoutDialog() {
     })
     .join("");
 
-  updateCheckoutTotals(subtotal, fee, address);
+  updateCheckoutTotals(subtotal, fee, null);
   byId("checkout-eta").textContent = settings.prep_time || "35 min";
 
   byId("dialog-checkout-error").textContent = "";
@@ -2892,6 +2912,8 @@ function openCheckoutDialog() {
   byId("dialog-checkout-phone").value = "";
   byId("dialog-checkout-type").value = "Entrega";
   byId("dialog-checkout-address").value = "";
+  byId("dialog-checkout-neighborhood").value = "";
+  byId("checkout-neighborhood-label")?.classList.remove("hidden");
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
   byId("checkout-dialog").showModal();
@@ -2911,8 +2933,13 @@ async function checkoutCart() {
   }
   const deliveryType = byId("dialog-checkout-type").value;
   const address = byId("dialog-checkout-address").value.trim();
+  const neighborhood = byId("dialog-checkout-neighborhood")?.value || "";
   if (deliveryType === "Entrega" && !address) {
     byId("dialog-checkout-error").textContent = "Informe o endereço para entrega.";
+    return;
+  }
+  if (deliveryType === "Entrega" && !neighborhood) {
+    byId("dialog-checkout-error").textContent = "Selecione o bairro para calcular a entrega.";
     return;
   }
   const itemLines = cart.map((entry) => {
@@ -2940,7 +2967,8 @@ async function checkoutCart() {
   });
 
   const subtotal = cartTotal();
-  const deliveryFee = deliveryType === "Entrega" ? getDeliveryFee(address) : 0;
+  const neighborhoodFee = getFeeFromNeighborhood();
+  const deliveryFee = deliveryType === "Entrega" ? (neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(address)) : 0;
   const total = subtotal + deliveryFee;
 
   const payload = {
@@ -3885,29 +3913,8 @@ function renderAccess() {
 }
 
 function renderDemoUsers() {
-  const fallbackProfiles = [
-    { username: "adm", name: "adm", role: "admin", default_pin: "3725" },
-    { username: "financeiro", name: "Financeiro", role: "financeiro", default_pin: "3702" },
-  ];
-  const profiles = demoUsers.length ? demoUsers : fallbackProfiles;
-  byId("demo-users").innerHTML = profiles
-    .map(
-      (user) => `
-        <button class="profile-button" data-demo-user="${user.username}" data-demo-pin="${user.default_pin || "1234"}">
-          <strong>${roleLabels[user.role] || user.name}</strong>
-          <small>${user.username} · PIN: ${user.default_pin || "1234"}</small>
-        </button>
-      `,
-    )
-    .join("");
-
-  document.querySelectorAll("[data-demo-pin]").forEach((button) => {
-    button.addEventListener("click", () => {
-      byId("login-user").value = button.dataset.demoUser;
-      byId("login-pin").value = button.dataset.demoPin;
-      login();
-    });
-  });
+  // Botões de demo login REMOVIDOS por segurança — PINs nunca devem ser expostos no cliente
+  byId("demo-users").innerHTML = "";
 }
 
 async function login() {
@@ -4134,18 +4141,25 @@ byId("cart-review-continue")?.addEventListener("click", () => {
 });
 byId("dialog-checkout-btn")?.addEventListener("click", checkoutCart);
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
-  const addressLabel = byId("dialog-address-label");
-  if (addressLabel) {
-    addressLabel.style.display = event.target.value === "Entrega" ? "" : "none";
+  const isDelivery = event.target.value === "Entrega";
+  byId("checkout-neighborhood-label")?.classList.toggle("hidden", !isDelivery);
+  const neighborhoodFee = getFeeFromNeighborhood();
+  const fee = isDelivery ? (neighborhoodFee !== null ? neighborhoodFee : Number(settings.delivery_fee || 0)) : 0;
+  updateCheckoutTotals(cartTotal(), fee, null);
+});
+byId("dialog-checkout-neighborhood")?.addEventListener("change", (event) => {
+  if (byId("dialog-checkout-type")?.value === "Entrega") {
+    const fee = getFeeFromNeighborhood();
+    if (fee !== null) {
+      updateCheckoutTotals(cartTotal(), fee, null);
+    }
   }
-  const subtotal = cartTotal();
-  const fee = event.target.value === "Entrega" ? getDeliveryFee(byId("dialog-checkout-address")?.value) : 0;
-  updateCheckoutTotals(subtotal, fee);
 });
 byId("dialog-checkout-address")?.addEventListener("input", (event) => {
   if (byId("dialog-checkout-type")?.value === "Entrega") {
-    const fee = getDeliveryFee(event.target.value);
-    updateCheckoutTotals(cartTotal(), fee, event.target.value);
+    const neighborhoodFee = getFeeFromNeighborhood();
+    const fee = neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(event.target.value);
+    updateCheckoutTotals(cartTotal(), fee, null);
   }
 });
 byId("track-order-btn")?.addEventListener("click", trackOrderV2);
@@ -4387,7 +4401,7 @@ async function driverPublicLogin() {
     loadDriverPublicOrders();
     startDriverOrdersPoll();
   } catch(e) {
-    byId("driver-login-error").textContent = "CPF ou PIN invalido.";
+    byId("driver-login-error").textContent = "CPF ou PIN inválido.";
   }
 }
 
@@ -4658,14 +4672,14 @@ async function loadOrderTrack(orderId) {
       ? order.items.map((it) => `
           <div class="track-item-row">
             <div class="track-item-info">
-              <span class="track-item-qty">${it.qty}x</span>
-              <span class="track-item-name">${escapeHtml(it.name)}</span>
+              <span class="track-item-qty">${it.quantity}x</span>
+              <span class="track-item-name">${escapeHtml(it.item_name)}</span>
               ${it.extras ? `<span class="track-item-extras">${escapeHtml(it.extras)}</span>` : ""}
             </div>
-            <span class="track-item-price">${currency.format(it.price * it.qty)}</span>
+            <span class="track-item-price">${currency.format(it.unit_price * it.quantity)}</span>
           </div>
         `).join("")
-      : `<div class="track-item-row"><span class="track-item-name">${escapeHtml(order.item)}</span></div>`;
+      : `<div class="track-item-row"><span class="track-item-name">${escapeHtml(order.item || "Itens indisponíveis")}</span></div>`;
 
     details.innerHTML = `
       <div class="track-header">
