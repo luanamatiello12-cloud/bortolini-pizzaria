@@ -1658,7 +1658,23 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 self.send_error(HTTPStatus.FORBIDDEN, "Pedido não atribuído a você")
                 return
             with connect() as conn:
-                conn.execute("UPDATE orders SET status = 'Saiu para entrega' WHERE id = ?", (order_id,))
+                # Ao iniciar, copia a última localização do entregador para o pedido
+                driver = conn.execute(
+                    "SELECT lat, lng FROM drivers WHERE lower(name) = lower(?)",
+                    (user["name"],)
+                ).fetchone()
+                conn.execute(
+                    """
+                    UPDATE orders
+                    SET status = 'Saiu para entrega',
+                        driver_lat = COALESCE(?, driver_lat),
+                        driver_lng = COALESCE(?, driver_lng),
+                        last_location_at = ?
+                    WHERE id = ?
+                    """,
+                    (driver["lat"] if driver else None, driver["lng"] if driver else None,
+                     datetime.now().isoformat(timespec="seconds"), order_id),
+                )
                 row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
             return self.send_json(dict(row))
         if path.startswith("/api/public/driver/orders/") and path.endswith("/deliver"):
@@ -2232,7 +2248,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 FROM drivers d
                 LEFT JOIN orders o
                     ON lower(o.driver_name) = lower(d.name)
-                    AND o.status = 'Entrega'
+                    AND o.status IN ('Entrega', 'Saiu para entrega')
                 GROUP BY d.id
                 ORDER BY d.active DESC, d.name
                 """
@@ -3592,7 +3608,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             ORDER BY (
                 SELECT COUNT(*)
                 FROM orders
-                WHERE status = 'Entrega'
+                WHERE status IN ('Entrega', 'Saiu para entrega')
                   AND lower(driver_name) = lower(drivers.name)
             ), id
             LIMIT 1
@@ -3600,8 +3616,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         ).fetchone()
         if row:
             return {"name": row["name"], "lat": row["lat"], "lng": row["lng"]}
-        name, lat, lng = DRIVER_POINTS[order_id % len(DRIVER_POINTS)]
-        return {"name": name, "lat": lat, "lng": lng}
+        # Fallback quando não há entregadores cadastrados: localização nula
+        return {"name": "Sem entregador", "lat": None, "lng": None}
 
     def assign_driver(self, order_id, payload):
         driver_id = payload.get("driver_id")
@@ -3644,6 +3660,15 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 WHERE id = ?
                 """,
                 (lat, lng, datetime.now().isoformat(timespec="seconds"), order_id),
+            )
+            # Espelha a localização para a tabela drivers (via driver_name)
+            conn.execute(
+                """
+                UPDATE drivers
+                SET lat = ?, lng = ?
+                WHERE lower(name) = lower((SELECT driver_name FROM orders WHERE id = ?))
+                """,
+                (lat, lng, order_id),
             )
             row = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
         if row is None:
@@ -3748,6 +3773,18 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 "UPDATE drivers SET lat = ?, lng = ? WHERE id = ?",
                 (lat, lng, driver_id),
             )
+            # Espelha a localização para os pedidos ativos deste entregador
+            driver = conn.execute("SELECT name FROM drivers WHERE id = ?", (driver_id,)).fetchone()
+            if driver:
+                conn.execute(
+                    """
+                    UPDATE orders
+                    SET driver_lat = ?, driver_lng = ?, last_location_at = ?
+                    WHERE lower(driver_name) = lower(?)
+                      AND status IN ('Entrega', 'Saiu para entrega')
+                    """,
+                    (lat, lng, datetime.now().isoformat(timespec="seconds"), driver["name"]),
+                )
             row = conn.execute("SELECT * FROM drivers WHERE id = ?", (driver_id,)).fetchone()
         if row is None:
             self.send_error(HTTPStatus.NOT_FOUND, "Entregador não encontrado")

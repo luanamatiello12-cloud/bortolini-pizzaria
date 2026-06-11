@@ -1001,6 +1001,9 @@ function destinationPoint(index) {
 }
 
 function formatLocation(delivery) {
+  if (!delivery?.driver_lat || !delivery?.driver_lng) {
+    return "Aguardando localização do entregador...";
+  }
   const lat = Number(delivery.driver_lat).toFixed(4);
   const lng = Number(delivery.driver_lng).toFixed(4);
   const updatedAt = delivery.last_location_at
@@ -4795,7 +4798,10 @@ async function loadOrderTrack(orderId, silent = false) {
         if (window._trackMarker) window._trackMap.removeLayer(window._trackMarker);
         window._trackMarker = L.marker([Number(order.driver_lat), Number(order.driver_lng)]).addTo(window._trackMap);
         window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
-        setTimeout(() => window._trackMap.invalidateSize(), 300);
+        requestAnimationFrame(() => {
+          setTimeout(() => window._trackMap?.invalidateSize(), 100);
+          setTimeout(() => window._trackMap?.invalidateSize(), 400);
+        });
       }
     } else {
       mapSection.classList.add("hidden");
