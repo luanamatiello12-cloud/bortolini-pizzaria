@@ -1344,6 +1344,7 @@ function togglePizzaFlavorDialog(flavorId) {
     }
   }
   renderPizzaFlavorsDialog();
+  updatePizzaFlavorsDialogPrice();
 }
 
 function updatePizzaFlavorsDialogPrice() {
