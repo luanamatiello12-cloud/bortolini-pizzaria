@@ -1877,6 +1877,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             row = conn.execute(
                 """
                 SELECT id, customer, status, item, total, eta, delivery_type,
+                       payment, payment_status, created_at, address, notes,
                        driver_name, driver_lat, driver_lng, last_location_at
                 FROM orders
                 WHERE id = ?
