@@ -1314,12 +1314,12 @@ function renderPizzaFlavorsDialog() {
 
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = Array.isArray(pizzaFlavorsDialogState.flavors) && pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
-    const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
+    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
         <div class="flavor-check">✓</div>
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${isPremium ? ' <span class="premium-badge">+R$</span>' : ''}</strong>
+        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
       </article>
     `;
@@ -1344,6 +1344,7 @@ function togglePizzaFlavorDialog(flavorId) {
     }
   }
   renderPizzaFlavorsDialog();
+  updatePizzaFlavorsDialogPrice();
 }
 
 function updatePizzaFlavorsDialogPrice() {
@@ -2897,6 +2898,12 @@ function populateCheckoutNeighborhoods() {
   const activeZones = deliveryZones.filter((z) => z.active);
   select.innerHTML = `<option value="">Selecione o bairro</option>` +
     activeZones.map((z) => `<option value="${escapeHtml(z.neighborhood)}" data-fee="${z.fee}">${escapeHtml(z.neighborhood)}</option>`).join("");
+  select.onchange = () => {
+    if (byId("dialog-checkout-type")?.value === "Entrega") {
+      const fee = getFeeFromNeighborhood();
+      if (fee !== null) updateCheckoutTotals(cartTotal(), fee, null);
+    }
+  };
 }
 
 function getFeeFromNeighborhood() {
@@ -4777,7 +4784,7 @@ async function loadOrderTrack(orderId, silent = false) {
         <h1 class="track-title">Pedido #${order.id}</h1>
         <p class="track-customer">${escapeHtml(order.customer)}</p>
         <div class="track-meta">
-          <span class="track-meta-item">📅 ${new Date(order.created_at).toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"})}</span>
+          ${(() => { const d = order.created_at ? new Date(order.created_at) : null; return d && !isNaN(d.getTime()) ? `<span class="track-meta-item">📅 ${d.toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"})}</span>` : ""; })()}
           ${order.address ? `<span class="track-meta-item">📍 ${escapeHtml(order.address)}</span>` : ""}
         </div>
       </div>
@@ -4790,8 +4797,8 @@ async function loadOrderTrack(orderId, silent = false) {
           <strong>${currency.format(order.total)}</strong>
         </div>
         <div class="track-payment-row">
-          <span>Pagamento: ${order.payment}</span>
-          <span>Previsão: ${order.eta}</span>
+          <span>Pagamento: ${order.payment || order.payment_status || "Não informado"}</span>
+          <span>Previsão: ${order.eta || "a combinar"}</span>
         </div>
       </div>
       <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
