@@ -2464,9 +2464,8 @@ async function createProduct() {
     byId("product-error").textContent = "Preencha nome, categoria e preço.";
     return;
   }
-  if (payload.price <= 0) {
-    payload.active = 0;
-  }
+  // Pizzas podem ter preco base 0 (preco real vem dos tamanhos)
+  // Nao desativa automaticamente
   if (!payload.image_url && !editingProductId) {
     byId("product-error").textContent = "Adicione uma foto do produto.";
     return;
