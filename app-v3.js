@@ -502,6 +502,7 @@ function renderMenu() {
             ${showSort ? `<button class="ghost sort-btn" data-sort-down="${item.id}" title="Mover para baixo" ${index === filteredItems.length - 1 ? "disabled" : ""}>↓</button>` : ""}
             <button class="ghost" data-edit-product="${item.id}">Editar</button>
             <button class="ghost" data-toggle-product="${item.id}">${item.active ? "Pausar" : "Ativar"}</button>
+            <button class="ghost danger-link" data-delete-product="${item.id}">Excluir</button>
           </div>
         </article>
       `,
@@ -550,6 +551,9 @@ function renderMenu() {
   });
   document.querySelectorAll("[data-toggle-product]").forEach((button) => {
     button.addEventListener("click", () => toggleProduct(Number(button.dataset.toggleProduct)));
+  });
+  document.querySelectorAll("[data-delete-product]").forEach((button) => {
+    button.addEventListener("click", () => deleteProduct(Number(button.dataset.deleteProduct)));
   });
   document.querySelectorAll("[data-sort-up]").forEach((button) => {
     button.addEventListener("click", () => moveMenuItem(Number(button.dataset.sortUp), -1));
@@ -2638,8 +2642,8 @@ async function createIngredient() {
       showToast("Ingrediente adicionado ao estoque.");
     }
   } catch (error) {
-    if(errEl) errEl.textContent = "Não foi possível cadastrar o ingrediente.";
-    else showToast("Erro ao cadastrar ingrediente.");
+    if(errEl) errEl.textContent = error.message || "Não foi possível cadastrar o ingrediente.";
+    else showToast(error.message || "Erro ao cadastrar ingrediente.");
   }
 }
 
@@ -3227,6 +3231,23 @@ async function toggleProduct(itemId) {
     renderCustomerStore();
   } catch (error) {
     return;
+  }
+}
+
+async function deleteProduct(itemId) {
+  const item = menuItems.find((current) => current.id === itemId);
+  if (!item) return;
+  if (!confirm(`Tem certeza que deseja excluir "${item.name}" do cardápio?`)) return;
+  try {
+    if (state.apiOnline) {
+      await api(`/api/menu/${itemId}`, { method: "DELETE" });
+    }
+    menuItems = menuItems.filter((current) => current.id !== itemId);
+    renderMenu();
+    renderCustomerStore();
+    showToast("Produto removido do cardápio.");
+  } catch (error) {
+    showToast(error.message || "Erro ao excluir produto.");
   }
 }
 

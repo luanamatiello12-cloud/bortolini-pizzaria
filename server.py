@@ -891,8 +891,9 @@ def init_db():
         for item in SEED_MENU_ITEMS:
             row = conn.execute("SELECT id FROM menu_items WHERE name = ?", (item["name"],)).fetchone()
             if row:
+                # Não sobrescreve o preço definido pelo usuário
                 conn.execute(
-                    "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
+                    "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
                     (item["category"], item.get("description", ""), item["name"]),
                 )
             else:
@@ -2359,8 +2360,9 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     (item["name"],),
                 ).fetchone()
                 if row:
+                    # Não sobrescreve o preço definido pelo usuário
                     conn.execute(
-                        "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
+                        "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
                         (item["category"], item.get("description", ""), item["name"]),
                     )
                     updated += 1
