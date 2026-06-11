@@ -2314,6 +2314,10 @@ async function advanceOrder(id) {
       if (nextStatus === "Entrega") {
         deliveries = await api("/api/deliveries");
         drivers = await api("/api/drivers");
+        const assigned = orders.find((current) => current.id === id);
+        if (assigned?.driver_name) {
+          showToast(`🛵 Pedido #${id} atribuído automaticamente a ${assigned.driver_name}`);
+        }
       }
       closeout = await api("/api/closeout");
     } catch (error) {
