@@ -15,6 +15,7 @@ import threading
 import time
 import unicodedata
 from urllib.parse import urlparse
+import urllib.request
 
 try:
     import psycopg
@@ -1131,6 +1132,29 @@ def rows_to_dicts(rows):
     return [dict(row) for row in rows]
 
 
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+
+
+def upload_to_supabase_storage(data_bytes, filename, content_type):
+    """Faz upload de arquivo para o Supabase Storage bucket 'products'."""
+    url = f"{SUPABASE_URL}/storage/v1/object/products/{filename}"
+    req = urllib.request.Request(
+        url,
+        data=data_bytes,
+        headers={
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": content_type,
+            "x-upsert": "true",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        if resp.status not in (200, 201):
+            raise RuntimeError(f"Supabase upload failed: {resp.status}")
+    return f"{SUPABASE_URL}/storage/v1/object/public/products/{filename}"
+
+
 def data_url_to_upload(value, prefix):
     if not isinstance(value, str) or not value.startswith(("data:image/", "data:application/pdf")):
         return value
@@ -1141,8 +1165,20 @@ def data_url_to_upload(value, prefix):
     ext = "jpg" if raw_ext in {"jpeg", "jpg"} else "svg" if raw_ext == "svg+xml" else raw_ext
     safe_prefix = re.sub(r"[^a-zA-Z0-9_-]+", "-", prefix).strip("-") or "image"
     filename = f"{safe_prefix}-{int(datetime.now().timestamp())}.{ext}"
+    data_bytes = base64.b64decode(match.group(3))
+    content_type = {
+        "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+        "webp": "image/webp", "gif": "image/gif", "svg": "image/svg+xml",
+        "pdf": "application/pdf",
+    }.get(ext, "application/octet-stream")
+    # Se Supabase estiver configurado, envia para la; senao, fallback local
+    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+        try:
+            return upload_to_supabase_storage(data_bytes, filename, content_type)
+        except Exception as e:
+            print(f"[upload] Supabase falhou ({e}), usando fallback local")
     path = UPLOADS_DIR / filename
-    path.write_bytes(base64.b64decode(match.group(3)))
+    path.write_bytes(data_bytes)
     return f"uploads/{filename}"
 
 
