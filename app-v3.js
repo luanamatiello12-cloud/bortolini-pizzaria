@@ -177,28 +177,26 @@ async function api(path, options = {}) {
 }
 
 async function loadData() {
-  // Em página pública, só carrega dados públicos para evitar erros 403 no console
-  const isPublic = isPublicPage();
+  const PUBLIC_ENDPOINTS = ["/api/menu", "/api/promotions", "/api/delivery-zones", "/api/public/settings"];
+  const publicOnly = isPublicPage();
   const endpoints = [
     ["/api/menu",           (v) => { menuItems = v; }],
+    ["/api/orders",         (v) => { orders = v; }],
+    ["/api/users",          (v) => { demoUsers = v; }],
+    ["/api/deliveries",     (v) => { deliveries = v; }],
+    ["/api/promotions",     (v) => { promotions = v; }],
+    ["/api/customers",      (v) => { customers = v; }],
+    ["/api/settings",       (v) => { settings = v; }],
     ["/api/public/settings",(v) => { if (!settings.restaurant_name) settings = v; }],
-    ...(isPublic ? [] : [
-      ["/api/orders",         (v) => { orders = v; }],
-      ["/api/users",          (v) => { demoUsers = v; }],
-      ["/api/deliveries",     (v) => { deliveries = v; }],
-      ["/api/promotions",     (v) => { promotions = v; }],
-      ["/api/customers",      (v) => { customers = v; }],
-      ["/api/settings",       (v) => { settings = v; }],
-      ["/api/inbox",          (v) => { conversations = v; }],
-      ["/api/drivers",        (v) => { drivers = v; }],
-      ["/api/closeout",       (v) => { closeout = v; }],
-      ["/api/ingredients",    (v) => { ingredients = v; }],
-      ["/api/recipes",        (v) => { recipes = v; }],
-      ["/api/stock-movements",(v) => { stockMovements = v; }],
-      ["/api/delivery-zones", (v) => { deliveryZones = v; }],
-      ["/api/profit-report",  (v) => { profitReport = v; }],
-    ]),
-  ];
+    ["/api/inbox",          (v) => { conversations = v; }],
+    ["/api/drivers",        (v) => { drivers = v; }],
+    ["/api/closeout",       (v) => { closeout = v; }],
+    ["/api/ingredients",    (v) => { ingredients = v; }],
+    ["/api/recipes",        (v) => { recipes = v; }],
+    ["/api/stock-movements",(v) => { stockMovements = v; }],
+    ["/api/delivery-zones", (v) => { deliveryZones = v; }],
+    ["/api/profit-report",  (v) => { profitReport = v; }],
+  ].filter(([path]) => !publicOnly || PUBLIC_ENDPOINTS.includes(path));
 
   const results = await Promise.allSettled(endpoints.map(([path]) => api(path)));
   let anySuccess = false;
@@ -950,6 +948,7 @@ function renderDeliveryManager() {
           <strong>${driver.name}</strong>
           <p>${driver.status || "Disponivel"} - ${driver.orders || 0} pedido(s) - ${driver.area}</p>
           ${can("drivers") ? `<button class="ghost" data-toggle-driver="${driver.id}">${driver.active ? "Pausar" : "Ativar"}</button>` : ""}
+          ${can("drivers") ? `<button class="ghost" data-delete-driver="${driver.id}" style="color:var(--danger,#d32f2f);">Excluir</button>` : ""}
         </article>
       `,
     )
@@ -981,6 +980,24 @@ function renderDeliveryManager() {
   });
   document.querySelectorAll("[data-toggle-driver]").forEach((button) => {
     button.addEventListener("click", () => toggleDriver(Number(button.dataset.toggleDriver)));
+  });
+  document.querySelectorAll("[data-delete-driver]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const driverId = Number(button.dataset.deleteDriver);
+      const driver = drivers.find((d) => d.id === driverId);
+      if (!driver) return;
+      if (!confirm(`Excluir o entregador "${driver.name}"?\n\nO acesso dele ao app também será removido e o CPF ficará liberado para novo cadastro.`)) return;
+      try {
+        await api(`/api/drivers/${driverId}`, { method: "DELETE" });
+        drivers = drivers.filter((d) => d.id !== driverId);
+        renderDelivery();
+        renderDeliveryManager();
+        renderTeamUsers();
+        showToast(`Entregador "${driver.name}" excluído.`);
+      } catch (error) {
+        showToast(error.message || "Não foi possível excluir o entregador.");
+      }
+    });
   });
 }
 
@@ -1297,12 +1314,12 @@ function renderPizzaFlavorsDialog() {
 
   container.innerHTML = pizzaItems.map((item) => {
     const isSelected = Array.isArray(pizzaFlavorsDialogState.flavors) && pizzaFlavorsDialogState.flavors.some((f) => f.id === item.id);
-    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
+    const isPremium = PIZZA_PREMIUM_TOPPINGS.some((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-dialog-card ${isSelected ? "selected" : ""}" onclick="togglePizzaFlavorDialog(${item.id})">
         <div class="flavor-check">✓</div>
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
+        <strong>${item.name}${isPremium ? ' <span class="premium-badge">+R$</span>' : ''}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
       </article>
     `;
@@ -1620,8 +1637,10 @@ function renderPremiumExtrasBadges(flavors) {
 }
 
 function formatOrderItemLine(item) {
+  const qty = item.qty ?? item.quantity ?? 1;
+  const name = item.name ?? item.item_name ?? "";
   const extras = item.extras ? ` <span class="premium-extra-badge-inline">+ ${escapeHtml(item.extras)}</span>` : "";
-  return `${item.qty}x ${escapeHtml(item.name)}${extras}`;
+  return `${qty}x ${escapeHtml(name)}${extras}`;
 }
 
 function formatOrderItemsSummary(order) {
@@ -1772,11 +1791,10 @@ function renderInlineFlavorOptions(mainItemId) {
   return pizzaItems.map((item) => {
     const isSelected = selectedIds.includes(item.id);
     const canSelect = !isSelected && remaining > 0;
-    const premiumTopping = PIZZA_PREMIUM_TOPPINGS.find((pt) => item.name.toLowerCase().includes(pt.name.toLowerCase()));
     return `
       <article class="menu-card flavor-card ${isSelected ? "selected" : ""} ${!isSelected && !canSelect ? "disabled" : ""}" onclick="toggleInlineFlavor(${mainItemId}, ${item.id})">
         ${renderPhoto(item.image_url, "menu-photo", item.name)}
-        <strong>${item.name}${premiumTopping ? ` <span class="premium-badge">+${currency.format(premiumTopping.extra)}</span>` : ''}</strong>
+        <strong>${item.name}</strong>
         <p class="ingredients-desc">${item.description || ""}</p>
         ${isSelected ? '<span class="status-pill success">✓ Selecionado</span>' : ""}
       </article>
@@ -3142,22 +3160,26 @@ async function trackOrderV2() {
     result.innerHTML = `<article class="cart-item"><strong>Informe o numero do pedido.</strong></article>`;
     return;
   }
-  try {
-    await api(`/api/public/orders/${id}`);
-    // Navega para a tela completa de acompanhamento (com mapa e polling)
-    document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
-    byId("order-track").classList.add("active-view");
-    document.querySelector(".app-layout")?.classList.add("hidden");
-    loadOrderTrack(Number(id));
-    startTrackPolling(Number(id));
-  } catch (error) {
-    result.innerHTML = `<article class="cart-item"><strong>Pedido nao encontrado.</strong></article>`;
+  result.innerHTML = "";
+  openCustomerOrderTracking(id);
+}
+
+// Abre a página completa de acompanhamento (status + itens + mapa do entregador ao vivo)
+function openCustomerOrderTracking(orderId) {
+  document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
+  byId("order-track").classList.add("active-view");
+  document.querySelector(".app-layout")?.classList.add("hidden");
+  if (window.location.pathname !== `/pedir/${orderId}`) {
+    history.replaceState(null, "", `/pedir/${orderId}`);
   }
+  loadOrderTrack(orderId);
+  startTrackPolling(orderId);
 }
 
 function renderOrderTimeline(status) {
+  if (status === "Entregue") status = "Finalizado";
   const steps = status === "Cancelado" ? ["Novo", "Cancelado"] : ["Novo", "Cozinha", "Entrega", "Finalizado"];
-  const current = steps.indexOf(status === "Entregue" ? "Finalizado" : status);
+  const current = steps.indexOf(status);
   return steps
     .map((step, index) => `<span class="timeline-step ${index <= current ? "done" : ""}">${step}</span>`)
     .join("");
@@ -3372,7 +3394,7 @@ async function createDriver() {
       showToast(`Entregador criado! PIN inicial: ${created.default_pin}`);
     }
   } catch (error) {
-    showToast("Nao foi possivel criar o entregador.");
+    showToast(error.message || "Nao foi possivel criar o entregador.");
   }
 }
 
@@ -4067,14 +4089,16 @@ function startPolling() {
   _pollingInterval = setInterval(async () => {
     if (!state.currentUser || !state.apiOnline) return;
     try {
-      const [newOrders, newDeliveries] = await Promise.all([
+      const [newOrders, newDeliveries, newDrivers] = await Promise.all([
         api("/api/orders"),
         api("/api/deliveries"),
+        api("/api/drivers"),
       ]);
       const hasNewOrder = newOrders.length > orders.length ||
         newOrders.some((o, i) => o.status !== orders[i]?.status);
       orders = newOrders;
       deliveries = newDeliveries;
+      drivers = newDrivers;
       state.apiOnline = true;
       updateConnectionBadge();
       renderOrders();
@@ -4088,7 +4112,7 @@ function startPolling() {
         playNotificationSound();
       }
     } catch (_) {}
-  }, 10000);
+  }, 12_000);
 }
 
 function stopPolling() {
@@ -4663,13 +4687,7 @@ function toggleDriverLocation() {
 
     function sendLocation(pos) {
       const { latitude: lat, longitude: lng } = pos.coords;
-      _driverCurrentOrderIds.forEach(orderId => {
-        fetch(`/api/deliveries/${orderId}/location`, {
-          method: "PATCH",
-          headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
-          body: JSON.stringify({ lat, lng })
-        }).catch(() => {});
-      });
+      // O endpoint público atualiza o cadastro do entregador E os pedidos em rota
       if (_driverUserId) {
         fetch(`/api/public/drivers/${_driverUserId}/location`, {
           method: "PATCH",
@@ -4735,7 +4753,7 @@ async function loadOrderTrack(orderId, silent = false) {
   try {
     const order = await api(`/api/public/orders/${orderId}`);
     statusPill.textContent = order.status;
-    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" || order.status === "Entregue" ? "success" : ""}`;
+    statusPill.className = `status-pill ${order.status === "Cancelado" ? "danger" : order.status === "Finalizado" ? "success" : ""}`;
 
     const itemList = order.items && order.items.length
       ? order.items.map((it) => `
@@ -4786,18 +4804,22 @@ async function loadOrderTrack(orderId, silent = false) {
       byId("track-map-link").href = `https://www.google.com/maps/search/?api=1&query=${order.driver_lat},${order.driver_lng}`;
       const mapContainer = byId("track-map-area");
       if (typeof L !== "undefined" && mapContainer) {
+        let firstRender = false;
         if (!window._trackMap) {
+          firstRender = true;
           window._trackMap = L.map(mapContainer).setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
           }).addTo(window._trackMap);
         } else {
-          window._trackMap.setView([Number(order.driver_lat), Number(order.driver_lng)], 15);
+          // Acompanha o entregador sem resetar o zoom escolhido pelo cliente
+          window._trackMap.panTo([Number(order.driver_lat), Number(order.driver_lng)]);
         }
         if (window._trackMarker) window._trackMap.removeLayer(window._trackMarker);
         window._trackMarker = L.marker([Number(order.driver_lat), Number(order.driver_lng)]).addTo(window._trackMap);
-        window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`).openPopup();
+        window._trackMarker.bindPopup(`<strong>${escapeHtml(order.driver_name || "Entregador")}</strong><br>Pedido #${order.id}`);
+        if (firstRender) window._trackMarker.openPopup();
         requestAnimationFrame(() => {
           setTimeout(() => window._trackMap?.invalidateSize(), 100);
           setTimeout(() => window._trackMap?.invalidateSize(), 400);
@@ -4807,7 +4829,7 @@ async function loadOrderTrack(orderId, silent = false) {
       mapSection.classList.add("hidden");
     }
     // Pedido encerrado: para de atualizar automaticamente
-    if (order.status === "Finalizado" || order.status === "Entregue" || order.status === "Cancelado") {
+    if (order.status === "Finalizado" || order.status === "Cancelado" || order.status === "Entregue") {
       stopTrackPolling();
     }
   } catch(e) {
@@ -4823,7 +4845,7 @@ function startTrackPolling(orderId) {
   _trackPollInterval = setInterval(() => {
     if (document.hidden) return; // economiza dados com a aba em segundo plano
     loadOrderTrack(orderId, true);
-  }, 5000);
+  }, 12000);
 }
 function stopTrackPolling() {
   if (_trackPollInterval) {
@@ -4921,11 +4943,7 @@ async function initCustomerPublicMode() {
     // Se vier com número de pedido (/pedir/13 ou #pedir?pedido=13),
     // abre direto a tela de acompanhamento (com linha do tempo e mapa do entregador)
     if (trackId && !isNaN(Number(trackId))) {
-      document.querySelectorAll(".view").forEach((view) => view.classList.remove("active-view"));
-      byId("order-track").classList.add("active-view");
-      document.querySelector(".app-layout")?.classList.add("hidden");
-      loadOrderTrack(Number(trackId));
-      startTrackPolling(Number(trackId));
+      openCustomerOrderTracking(Number(trackId));
       return;
     }
 
