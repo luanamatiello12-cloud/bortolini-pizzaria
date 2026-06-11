@@ -675,6 +675,25 @@
 
             <section class="panel settings-panel">
               <div class="panel-head">
+                <h2>WhatsApp (conexão direta)</h2>
+                <span class="status-pill" id="wa-status-pill">—</span>
+              </div>
+              <p id="wa-status-text" class="form-hint">Verificando status…</p>
+              <p id="wa-number" class="form-hint" style="display:none;"></p>
+              <div id="wa-qr-box" style="display:none;text-align:center;margin:12px 0;">
+                <img id="wa-qr-img" alt="QR Code WhatsApp" style="width:240px;height:240px;border-radius:8px;background:#fff;" />
+                <p class="form-hint">No celular: WhatsApp → Aparelhos conectados → Conectar aparelho, e escaneie.</p>
+              </div>
+              <div class="template-actions">
+                <button class="primary" type="button" id="wa-connect-btn">Conectar</button>
+                <button class="ghost" type="button" id="wa-reconnect-btn">Reconectar</button>
+                <button class="ghost" type="button" id="wa-disconnect-btn">Desconectar</button>
+              </div>
+              <p class="form-hint">Conexão direta via Baileys (serviço Node). A sessão fica salva no banco — não precisa reescanear a cada reinício.</p>
+            </section>
+
+            <section class="panel settings-panel">
+              <div class="panel-head">
                 <h2>GPS do entregador</h2>
                 <span class="status-pill success">Pronto para celular</span>
               </div>
@@ -976,7 +995,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260610o"></script>
+    <script defer src="/app-v3.js?v=20260610p"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->

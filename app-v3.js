@@ -3821,6 +3821,7 @@ function switchView(viewId) {
   document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
   // Renderizar entregas quando aba Entregas for ativada
+  if (viewId === "integrations") { waStartPolling(); } else { waStopPolling(); }
   if (viewId === "delivery") {
     setTimeout(() => renderDelivery(), 150);
   }
@@ -4279,6 +4280,43 @@ byId("logout-btn")?.addEventListener("click", logout);
 byId("save-settings-btn")?.addEventListener("click", saveSettings);
 byId("save-pizza-prices-btn")?.addEventListener("click", savePizzaSizePrices);
 byId("save-integrations-btn")?.addEventListener("click", saveIntegrations);
+
+// ----- WhatsApp (Baileys) - painel de Integracoes -----
+let _waPollTimer = null;
+async function waRefreshStatus() {
+  const pill = byId("wa-status-pill"), txt = byId("wa-status-text"), num = byId("wa-number"), qrBox = byId("wa-qr-box");
+  try {
+    const s = await api("/api/whatsapp/status");
+    const labels = { connected: "Conectado", qr: "Aguardando leitura do QR", connecting: "Conectando…", disconnected: "Desconectado" };
+    if (pill) pill.textContent = labels[s.status] || s.status || "—";
+    if (txt) txt.textContent = s.connected ? "WhatsApp conectado e pronto para enviar/receber." : "WhatsApp não conectado.";
+    if (num) { num.textContent = s.number ? `Número conectado: ${s.number}` : ""; num.style.display = s.number ? "" : "none"; }
+    if (s.status === "qr") { await waLoadQr(); if (qrBox) qrBox.style.display = ""; }
+    else if (qrBox) { qrBox.style.display = "none"; }
+  } catch (e) {
+    if (pill) pill.textContent = "Indisponível";
+    if (txt) txt.textContent = "Serviço WhatsApp indisponível (verifique WHATSAPP_SERVICE_URL).";
+    if (qrBox) qrBox.style.display = "none";
+  }
+}
+async function waLoadQr() {
+  try { const r = await api("/api/whatsapp/qrcode"); const img = byId("wa-qr-img"); if (r && r.qr && img) img.src = r.qr; } catch (e) {}
+}
+function waStartPolling() { waStopPolling(); waRefreshStatus(); _waPollTimer = setInterval(waRefreshStatus, 4000); }
+function waStopPolling() { if (_waPollTimer) { clearInterval(_waPollTimer); _waPollTimer = null; } }
+byId("wa-connect-btn")?.addEventListener("click", async () => {
+  try { await api("/api/whatsapp/connect", { method: "POST", body: "{}" }); showToast("Iniciando conexão do WhatsApp…", "success"); waStartPolling(); }
+  catch (e) { showToast(e.message || "Falha ao conectar.", "error"); }
+});
+byId("wa-reconnect-btn")?.addEventListener("click", async () => {
+  try { await api("/api/whatsapp/connect", { method: "POST", body: "{}" }); showToast("Reconectando…", "success"); waStartPolling(); }
+  catch (e) { showToast(e.message || "Falha ao reconectar.", "error"); }
+});
+byId("wa-disconnect-btn")?.addEventListener("click", async () => {
+  if (!confirm("Desconectar o WhatsApp? Será necessário escanear o QR novamente.")) return;
+  try { await api("/api/whatsapp/disconnect", { method: "POST", body: "{}" }); showToast("WhatsApp desconectado.", "success"); waRefreshStatus(); }
+  catch (e) { showToast(e.message || "Falha ao desconectar.", "error"); }
+});
 byId("save-pin-btn")?.addEventListener("click", saveNewPin);
 byId("copy-driver-created-link")?.addEventListener("click", () => {
   const link = byId("driver-created-link").value;

@@ -99,6 +99,33 @@ UPLOADS_DIR = Path(os.environ.get("UPLOADS_PATH", ROOT / "uploads"))
 APP_SECRET = os.environ.get("APP_SECRET", "local-dev-change-before-production")
 ADMIN_MASTER_KEY = os.environ.get("ADMIN_MASTER_KEY", "BORTOLINI-2026")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "bortolini-webhook-local")
+WHATSAPP_SERVICE_URL = os.environ.get("WHATSAPP_SERVICE_URL", "").strip().rstrip("/")
+WHATSAPP_API_KEY = os.environ.get("WHATSAPP_API_KEY", "").strip()
+
+
+def call_whatsapp_service(method, endpoint, body=None):
+    """Chama o servico Node do WhatsApp (Baileys). Retorna (status_int, dict)."""
+    if not WHATSAPP_SERVICE_URL:
+        return 503, {"error": "Servico WhatsApp nao configurado (defina WHATSAPP_SERVICE_URL)."}
+    import urllib.request, urllib.error
+    url = f"{WHATSAPP_SERVICE_URL}{endpoint}"
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"}
+    if WHATSAPP_API_KEY:
+        headers["X-API-Key"] = WHATSAPP_API_KEY
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read()
+            return resp.status, (json.loads(raw) if raw else {})
+    except urllib.error.HTTPError as e:
+        raw = e.read()
+        try:
+            return e.code, json.loads(raw)
+        except Exception:
+            return e.code, {"error": raw.decode(errors="replace")}
+    except Exception as e:
+        return 502, {"error": str(e)}
 PIX_CNPJ = os.environ.get("PIX_CNPJ", "66.686.680/0001-57")
 USE_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 DB_INTEGRITY_ERROR = (sqlite3.IntegrityError,)
@@ -1211,6 +1238,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             self.serve_upload(path)
             return
 
+        # --- Proxy WhatsApp (Baileys) ---
+        if path == "/api/whatsapp/status":
+            if not self.require_permission("settings"):
+                return
+            st, data = call_whatsapp_service("GET", "/api/whatsapp/status")
+            self.send_json(data, st)
+            return
+        if path == "/api/whatsapp/qrcode":
+            if not self.require_permission("settings"):
+                return
+            st, data = call_whatsapp_service("GET", "/api/whatsapp/qrcode")
+            self.send_json(data, st)
+            return
+
         # Public endpoints (no auth required)
         if path.startswith("/api/public/orders/") and not path.endswith("/comprovante"):
             try:
@@ -1389,6 +1430,26 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         try:
             path = urlparse(self.path).path
+            # --- Proxy WhatsApp (Baileys) ---
+            if path == "/api/whatsapp/connect":
+                if not self.require_permission("settings"):
+                    return
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/connect", {})
+                self.send_json(data, st)
+                return
+            if path == "/api/whatsapp/send":
+                if not self.require_permission("settings"):
+                    return
+                payload = self.read_json()
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/send", payload)
+                self.send_json(data, st)
+                return
+            if path == "/api/whatsapp/disconnect":
+                if not self.require_permission("settings"):
+                    return
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/disconnect", {})
+                self.send_json(data, st)
+                return
             if path == "/api/orders":
                 payload = self.read_json()
                 data = self.create_order(payload)
@@ -2034,6 +2095,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         evo_instance = settings.get("evolution_instance", "").strip()
         evo_key = settings.get("evolution_apikey", "").strip()
         if not evo_url or not evo_instance or not evo_key:
+            # Sem Evolution configurado: tenta enviar pelo servico Baileys
+            if WHATSAPP_SERVICE_URL:
+                st, _ = call_whatsapp_service("POST", "/api/whatsapp/send", {"number": re.sub(r"\D", "", phone_number), "message": text})
+                return st < 400
             return False
         try:
             import urllib.request
@@ -3853,6 +3918,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
 def main():
     init_db()
+    print(f"[DB] Backend ativo: {'PostgreSQL (Supabase)' if USE_POSTGRES else 'SQLite local'}")
     if not USE_POSTGRES:
     # Iniciar backup automático em 24h (primeira vez)
         t = threading.Timer(86400, auto_backup)
