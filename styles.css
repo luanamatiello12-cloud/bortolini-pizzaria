@@ -3851,3 +3851,6 @@ dialog::backdrop {
 .wa-reply button{border-radius:20px;padding:8px 18px}
 .wa-thread-empty p{font-size:1.1rem;margin-bottom:4px}
 .wa-sidebar-head strong{font-size:1.05rem}
+.ifood-remove{background:transparent;border:none;color:#dc2626;font-size:1.3rem;line-height:1;cursor:pointer;padding:0 6px;margin-left:8px;font-weight:700}
+.ifood-remove:hover{color:#b91c1c}
+.ifood-item-row{align-items:center}

@@ -1674,6 +1674,7 @@ function openCartReview() {
                   ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
                 <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+                <button type="button" class="ifood-remove" onclick="removeFromCart(${index})" title="Remover">×</button>
               </div>
             `;
           }
@@ -1684,6 +1685,7 @@ function openCartReview() {
                 <strong>${escapeHtml(entry.name)}</strong>
               </div>
               <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+              <button type="button" class="ifood-remove" onclick="removeFromCart(${index})" title="Remover">×</button>
             </div>
           `;
         })
@@ -1702,6 +1704,8 @@ function removeFromCart(index) {
   cart.splice(index, 1);
   saveCart();
   renderCart();
+  const rev = byId("cart-review-dialog");
+  if (rev && rev.open) { if (cart.length) { openCartReview(); } else { rev.close(); } }
 }
 
 function addBebidaToCart(itemId) {
