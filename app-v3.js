@@ -4459,7 +4459,7 @@ byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-
 byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
 byId("create-zone-btn")?.addEventListener("click", saveDeliveryZone);
 byId("cancel-zone-btn")?.addEventListener("click", cancelZoneEdit);
-byId("pizza-flavors-dialog-add")?.addEventListener("click", addPizzaFromFlavorsDialog);
+// (removido: botao usa onclick inline para evitar adicionar 2x)
 // bordas removidas - event listener de borda removido
 
 // Event delegation para tabs da loja pública (evita listeners duplicados)
