@@ -81,7 +81,7 @@ function getItemImage(itemName) {
 
 function renderPhoto(src, className, label) {
   if (src) {
-    return `<img class="${className}" src="${src}" alt="${label}" />`;
+    return `<img class="${className}" src="${src}" alt="${label}" onerror="this.onerror=null;this.removeAttribute('src');this.classList.add('photo-placeholder')" />`;
   }
   return `<div class="${className} photo-placeholder" aria-label="${label}">Foto</div>`;
 }
