@@ -900,6 +900,8 @@ function renderInboxThread() {
   if (titleEl) titleEl.textContent = String(conv.client || "Desconhecido");
   const subEl = byId("wa-thread-sub");
   if (subEl) subEl.textContent = `${conv.channel || ""} · ${conv.status || ""}`;
+  const avEl = byId("wa-thread-avatar");
+  if (avEl) avEl.textContent = String(conv.client || "?").replace(/\D/g, "").slice(-2) || "?";
   const modeBox = byId("wa-mode-toggle");
   if (modeBox) {
     const human = conv.mode === "human";

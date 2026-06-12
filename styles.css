@@ -3839,3 +3839,15 @@ dialog::backdrop {
 .wa-mode-btn { padding: 4px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #8696a0; cursor: pointer; font-size: 0.8rem; }
 .wa-mode-btn.on { background: #00a884; color: #fff; border-color: #00a884; }
 @media (max-width: 720px) { .wa-inbox { grid-template-columns: 1fr; height: auto; } .wa-sidebar { max-height: 32vh; } .wa-thread { min-height: 50vh; } }
+
+/* polish inbox wa */
+.wa-inbox{box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.wa-head-avatar{width:38px;height:38px;font-size:.85rem;background:#00a884;color:#fff}
+.wa-thread-head{gap:12px}
+.wa-bubble{box-shadow:0 1px 1px rgba(0,0,0,.2)}
+.wa-bubble.out{color:#e9ffe9}
+.wa-messages{background-image:linear-gradient(rgba(11,20,26,.96),rgba(11,20,26,.96))}
+.wa-conv-info strong{color:#e9edef}
+.wa-reply button{border-radius:20px;padding:8px 18px}
+.wa-thread-empty p{font-size:1.1rem;margin-bottom:4px}
+.wa-sidebar-head strong{font-size:1.05rem}
