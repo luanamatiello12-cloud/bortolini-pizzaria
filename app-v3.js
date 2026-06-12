@@ -314,6 +314,12 @@ function renderOwnerAlerts() {
     : `<article class="best-item"><strong>Operação tranquila</strong><span>Sem alertas críticos agora.</span></article>`;
 }
 
+async function deleteOrder(id) {
+  if (!confirm("Excluir o pedido #" + id + " permanentemente?")) return;
+  try { await api(`/api/orders/${id}`, { method: "DELETE" }); orders = await api("/api/orders"); renderOrders(); showToast("Pedido excluido."); }
+  catch (e) { showToast(e.message || "Falha ao excluir.", "error"); }
+}
+
 function renderOrders() {
   const rows = filteredOrders();
   renderOrderInsights();
@@ -340,6 +346,7 @@ function renderOrders() {
               ${order.status === "Finalizado" ? "Concluído" : "Avançar"}
             </button>
             ${canCancelOrder(order) ? `<button class="ghost danger-link" data-cancel-order="${order.id}">Cancelar</button>` : ""}
+            <button class="ghost danger-link" data-delete-order="${order.id}">Excluir</button>
             <button class="ghost" data-whatsapp="${order.id}">WhatsApp</button>
             <button class="ghost" data-print-order="${order.id}">Imprimir</button>
             ${order.cancel_reason ? `<small class="cancel-note">Motivo: ${order.cancel_reason}</small>` : ""}
@@ -360,6 +367,9 @@ function renderOrders() {
   });
   document.querySelectorAll("[data-cancel-order]").forEach((button) => {
     button.addEventListener("click", () => openCancelDialog(Number(button.dataset.cancelOrder)));
+  });
+  document.querySelectorAll("[data-delete-order]").forEach((button) => {
+    button.addEventListener("click", () => deleteOrder(Number(button.dataset.deleteOrder)));
   });
   document.querySelectorAll("[data-approve-payment]").forEach((button) => {
     button.addEventListener("click", () => updatePaymentStatus(Number(button.dataset.approvePayment), "Pago", "Aprovado"));
@@ -1380,6 +1390,23 @@ function renderCustomerStore() {
         </article>
       `).join("")
     : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
+
+  // Combos
+  const combos = menuItems.filter((item) => item.active && (item.category === "Combos" || item.category === "Combo"));
+  if (byId("store-combos")) byId("store-combos").innerHTML = combos.length
+    ? combos.map((item) => `
+        <article class="menu-card-ifood">
+          <div class="ifood-info">
+            <strong>${escapeHtml(item.name)}</strong>
+            <p>${escapeHtml(item.description) || "Combo"}</p>
+            ${Number(item.price) > 0 ? `<span class="ifood-price">${currency.format(item.price)}</span>` : ""}
+          </div>
+          <div class="ifood-right">
+            ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
+            <button class="add-btn-round" onclick="addBebidaToCartAnimated(${item.id})">+</button>
+          </div>
+        </article>`).join("")
+    : `<p class="form-hint">Nenhum combo disponível.</p>`;
 
   // Promoções
   const activePromos = promotions.filter((p) => p.active);
