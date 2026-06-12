@@ -4830,11 +4830,12 @@ async function driverMarkDelivered(orderId) {
   const btn = byId(`driver-deliver-${orderId}`);
   if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
   try {
-    await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
+    const r = await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
       method: "PATCH",
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
       body: JSON.stringify({ status: "Entregue" })
     });
+    if (!r.ok) throw new Error("falha");
     showToast("✅ Pedido entregue!");
     loadDriverPublicOrders();
   } catch(e) {
