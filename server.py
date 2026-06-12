@@ -15,7 +15,6 @@ import threading
 import time
 import unicodedata
 from urllib.parse import urlparse
-import urllib.request
 
 try:
     import psycopg
@@ -96,6 +95,9 @@ def _resolve_db_path():
 
 DB_PATH = _resolve_db_path()
 UPLOADS_DIR = Path(os.environ.get("UPLOADS_PATH", ROOT / "uploads"))
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "uploads").strip()
 APP_SECRET = os.environ.get("APP_SECRET", "local-dev-change-before-production")
 ADMIN_MASTER_KEY = os.environ.get("ADMIN_MASTER_KEY", "BORTOLINI-2026")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "bortolini-webhook-local")
@@ -919,9 +921,8 @@ def init_db():
         for item in SEED_MENU_ITEMS:
             row = conn.execute("SELECT id FROM menu_items WHERE name = ?", (item["name"],)).fetchone()
             if row:
-                # Não sobrescreve o preço definido pelo usuário
                 conn.execute(
-                    "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
+                    "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
                     (item["category"], item.get("description", ""), item["name"]),
                 )
             else:
@@ -1159,29 +1160,6 @@ def rows_to_dicts(rows):
     return [dict(row) for row in rows]
 
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-
-
-def upload_to_supabase_storage(data_bytes, filename, content_type):
-    """Faz upload de arquivo para o Supabase Storage bucket 'products'."""
-    url = f"{SUPABASE_URL}/storage/v1/object/products/{filename}"
-    req = urllib.request.Request(
-        url,
-        data=data_bytes,
-        headers={
-            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-            "Content-Type": content_type,
-            "x-upsert": "true",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        if resp.status not in (200, 201):
-            raise RuntimeError(f"Supabase upload failed: {resp.status}")
-    return f"{SUPABASE_URL}/storage/v1/object/public/products/{filename}"
-
-
 def data_url_to_upload(value, prefix):
     if not isinstance(value, str) or not value.startswith(("data:image/", "data:application/pdf")):
         return value
@@ -1190,22 +1168,32 @@ def data_url_to_upload(value, prefix):
         return value
     raw_ext = (match.group(1) or match.group(2)).lower()
     ext = "jpg" if raw_ext in {"jpeg", "jpg"} else "svg" if raw_ext == "svg+xml" else raw_ext
+    content_type = "application/pdf" if ext == "pdf" else ("image/svg+xml" if ext == "svg" else f"image/{'jpeg' if ext == 'jpg' else ext}")
     safe_prefix = re.sub(r"[^a-zA-Z0-9_-]+", "-", prefix).strip("-") or "image"
     filename = f"{safe_prefix}-{int(datetime.now().timestamp())}.{ext}"
-    data_bytes = base64.b64decode(match.group(3))
-    content_type = {
-        "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
-        "webp": "image/webp", "gif": "image/gif", "svg": "image/svg+xml",
-        "pdf": "application/pdf",
-    }.get(ext, "application/octet-stream")
-    # Se Supabase estiver configurado, envia para la; senao, fallback local
+    binary = base64.b64decode(match.group(3))
+    # 1) Supabase Storage (persiste entre deploys) quando configurado
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
         try:
-            return upload_to_supabase_storage(data_bytes, filename, content_type)
+            import urllib.request
+            up = urllib.request.Request(
+                f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{filename}",
+                data=binary,
+                headers={
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                    "apikey": SUPABASE_SERVICE_KEY,
+                    "Content-Type": content_type,
+                    "x-upsert": "true",
+                },
+                method="POST",
+            )
+            urllib.request.urlopen(up, timeout=20)
+            return f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{filename}"
         except Exception as e:
-            print(f"[upload] Supabase falhou ({e}), usando fallback local")
+            print(f"[SUPABASE STORAGE ERROR] {e} - salvando local")
+    # 2) Fallback local (efemero no Render - some no deploy)
     path = UPLOADS_DIR / filename
-    path.write_bytes(data_bytes)
+    path.write_bytes(binary)
     return f"uploads/{filename}"
 
 
@@ -2461,9 +2449,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     (item["name"],),
                 ).fetchone()
                 if row:
-                    # Não sobrescreve o preço definido pelo usuário
                     conn.execute(
-                        "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
+                        "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
                         (item["category"], item.get("description", ""), item["name"]),
                     )
                     updated += 1
