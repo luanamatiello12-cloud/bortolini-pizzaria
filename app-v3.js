@@ -4371,6 +4371,17 @@ byId("new-product-btn")?.addEventListener("click", () => {
   byId("create-product").textContent = "Criar produto";
   byId("product-dialog").showModal();
 });
+
+byId("new-combo-btn")?.addEventListener("click", () => {
+  editingProductId = null; productPhotoData = "";
+  ["product-name","product-description","product-size","product-prep","product-addons","product-price","product-photo","product-gift"].forEach((id) => { if (byId(id)) byId(id).value = ""; });
+  if (byId("product-free-delivery")) byId("product-free-delivery").checked = false;
+  byId("product-category").value = "Combos";
+  byId("product-photo-preview").classList.add("hidden");
+  byId("create-product").textContent = "Criar combo";
+  byId("product-dialog").showModal();
+  byId("product-name").focus();
+});
 byId("new-promotion-btn")?.addEventListener("click", () => {
   editingPromotionId = null;
   byId("promotion-title").value = "";
