@@ -1027,6 +1027,8 @@ def ensure_menu_item_columns(conn):
         "prep_time": "ALTER TABLE menu_items ADD COLUMN prep_time TEXT",
         "addons": "ALTER TABLE menu_items ADD COLUMN addons TEXT",
         "sort_order": "ALTER TABLE menu_items ADD COLUMN sort_order INTEGER DEFAULT 0",
+        "gift": "ALTER TABLE menu_items ADD COLUMN gift TEXT",
+        "free_delivery": "ALTER TABLE menu_items ADD COLUMN free_delivery INTEGER DEFAULT 0",
     }
     for column, sql in migrations.items():
         if column not in columns:
@@ -3160,6 +3162,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     "UPDATE menu_items SET image_url = ? WHERE id = ?",
                     (image_url, row["id"]),
                 )
+            conn.execute("UPDATE menu_items SET gift = ?, free_delivery = ? WHERE id = ?", (str(payload.get("gift","")).strip(), 1 if payload.get("free_delivery") else 0, row["id"]))
         return dict(row)
 
 
@@ -3219,7 +3222,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         fields = []
         values = []
         image_url_value = None
-        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons"]:
+        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons", "gift", "free_delivery"]:
             if field in payload:
                 fields.append(f"{field} = ?")
                 if field == "image_url":

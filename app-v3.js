@@ -1399,6 +1399,7 @@ function renderCustomerStore() {
           <div class="ifood-info">
             <strong>${escapeHtml(item.name)}</strong>
             <p>${escapeHtml(item.description) || "Combo"}</p>
+            ${item.size ? `<small>Tamanho: ${escapeHtml(item.size)}</small> ` : ""}${item.gift ? `<small>🎁 ${escapeHtml(item.gift)}</small> ` : ""}${item.free_delivery ? `<small style="color:#16a34a">🚚 Frete grátis</small>` : ""}
             ${Number(item.price) > 0 ? `<span class="ifood-price">${currency.format(item.price)}</span>` : ""}
           </div>
           <div class="ifood-right">
@@ -1750,7 +1751,7 @@ function addBebidaToCart(itemId) {
   if (existing) {
     existing.qty += 1;
   } else {
-    cart.push({ type: "bebida", id: item.id, name: item.name, price: Number(item.price), qty: 1 });
+    cart.push({ type: "bebida", id: item.id, name: item.name, price: Number(item.price), qty: 1, free_delivery: item.free_delivery ? 1 : 0, gift: item.gift || "" });
   }
   saveCart();
   renderCart();
@@ -2604,6 +2605,8 @@ async function createProduct() {
     category: byId("product-category").value.trim(),
     description: byId("product-description").value.trim(),
     size: byId("product-size").value.trim(),
+    gift: byId("product-gift") ? byId("product-gift").value.trim() : "",
+    free_delivery: byId("product-free-delivery") ? (byId("product-free-delivery").checked ? 1 : 0) : 0,
     prep_time: byId("product-prep").value.trim(),
     addons: byId("product-addons").value.trim(),
     price: Number(byId("product-price").value),
@@ -3185,7 +3188,8 @@ async function checkoutCart() {
 
   const subtotal = cartTotal();
   const neighborhoodFee = getFeeFromNeighborhood();
-  const deliveryFee = deliveryType === "Entrega" ? (neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(address)) : 0;
+  const comboFree = cart.some((e) => e.free_delivery);
+  const deliveryFee = (deliveryType === "Retirada" || comboFree) ? 0 : (neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(address));
   const total = subtotal + deliveryFee;
 
   const payload = {
@@ -3358,6 +3362,8 @@ function openProductEditor(itemId) {
   byId("product-category").value = item.category;
   byId("product-description").value = item.description || "";
   byId("product-size").value = item.size || "";
+  if (byId("product-gift")) byId("product-gift").value = item.gift || "";
+  if (byId("product-free-delivery")) byId("product-free-delivery").checked = !!item.free_delivery;
   byId("product-prep").value = item.prep_time || "";
   byId("product-addons").value = item.addons || "";
   byId("product-price").value = item.price;
