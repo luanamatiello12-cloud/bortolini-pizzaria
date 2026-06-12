@@ -1740,10 +1740,7 @@ function addBebidaToCartAnimated(itemId) {
 }
 
 function getPremiumExtra(flavors) {
-  if (!flavors || flavors.length === 0) return 0;
-  const flavorNames = flavors.map((f) => f.name);
-  const premium = PIZZA_PREMIUM_TOPPINGS.find((pt) => flavorNames.some((fn) => fn.toLowerCase().includes(pt.name.toLowerCase())));
-  return premium ? premium.extra : 0;
+  return getPremiumExtrasList(flavors).reduce((sum, pt) => sum + (pt.extra || 0), 0);
 }
 
 function getPremiumExtrasList(flavors) {
