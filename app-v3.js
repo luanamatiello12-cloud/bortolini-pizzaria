@@ -847,10 +847,121 @@ function renderIngredientCalculator() {
     : `<article class="ingredient-card empty-card"><strong>Sem ficha tecnica</strong><p>Cadastre a receita desse produto antes do calculo.</p></article>`;
 }
 
+let _activeInboxId = null;
+let _inboxPollTimer = null;
+
 function renderInbox() {
-  // A view de inbox foi simplificada — agora so mostra QR code do WhatsApp
-  // Os elementos de chat foram removidos do HTML para evitar erros
-  renderInboxQrPanel();
+  const list = byId("wa-conv-list");
+  if (!list) return;
+  const convs = conversations || [];
+  const countEl = byId("wa-conv-count");
+  if (countEl) countEl.textContent = String(convs.length);
+  if (!convs.length) {
+    list.innerHTML = `<div class="wa-empty">Nenhuma conversa ainda.<br><small>Mensagens recebidas no WhatsApp aparecem aqui.</small></div>`;
+    _activeInboxId = null;
+    renderInboxThread();
+    return;
+  }
+  if (_activeInboxId == null || !convs.some((c) => c.id === _activeInboxId)) {
+    _activeInboxId = convs[0].id;
+  }
+  list.innerHTML = convs
+    .map((c) => {
+      const initials = String(c.client || "?").replace(/\D/g, "").slice(-2) || "?";
+      return `<button type="button" class="wa-conv ${c.id === _activeInboxId ? "active" : ""}" onclick="openInboxConversation(${c.id})">
+        <span class="wa-avatar">${escapeHtml(initials)}</span>
+        <span class="wa-conv-info">
+          <strong>${escapeHtml(String(c.client || "Desconhecido"))}</strong>
+          <small>${escapeHtml(String(c.preview || ""))}</small>
+        </span>
+      </button>`;
+    })
+    .join("");
+  renderInboxThread();
+}
+
+function openInboxConversation(id) {
+  _activeInboxId = id;
+  renderInbox();
+}
+
+function renderInboxThread() {
+  const empty = byId("wa-thread-empty");
+  const active = byId("wa-thread-active");
+  const conv = (conversations || []).find((c) => c.id === _activeInboxId);
+  if (!conv) {
+    if (empty) empty.classList.remove("hidden");
+    if (active) active.classList.add("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  if (active) active.classList.remove("hidden");
+  const titleEl = byId("wa-thread-title");
+  if (titleEl) titleEl.textContent = String(conv.client || "Desconhecido");
+  const subEl = byId("wa-thread-sub");
+  if (subEl) subEl.textContent = `${conv.channel || ""} · ${conv.status || ""}`;
+  const modeBox = byId("wa-mode-toggle");
+  if (modeBox) {
+    const human = conv.mode === "human";
+    modeBox.innerHTML = `<button type="button" class="wa-mode-btn ${human ? "" : "on"}" onclick="waSetMode(${conv.id}, '${human ? "ai" : "human"}')">IA: ${human ? "desligada" : "ligada"}</button>`;
+  }
+  const box = byId("wa-messages");
+  if (box) {
+    box.innerHTML = (conv.messages || [])
+      .filter((m) => Array.isArray(m) && m[0] !== "system")
+      .map((m) => {
+        const side = m[0] === "client" ? "in" : "out";
+        const tag = m[0] === "ai" ? `<span class="wa-tag">IA</span>` : m[0] === "agent" ? `<span class="wa-tag">você</span>` : "";
+        return `<div class="wa-bubble ${side}">${tag}${escapeHtml(String(m[1] || ""))}</div>`;
+      })
+      .join("");
+    box.scrollTop = box.scrollHeight;
+  }
+}
+
+async function waSendReply(event) {
+  if (event) event.preventDefault();
+  const input = byId("wa-reply-input");
+  const text = input ? input.value.trim() : "";
+  if (!text || _activeInboxId == null) return false;
+  if (input) input.value = "";
+  try {
+    await api(`/api/inbox/${_activeInboxId}/reply`, { method: "POST", body: JSON.stringify({ text, author: "agent" }) });
+    conversations = await api("/api/inbox");
+    renderInbox();
+  } catch (e) {
+    showToast(e.message || "Falha ao enviar.", "error");
+  }
+  return false;
+}
+
+async function waSetMode(id, mode) {
+  try {
+    await api(`/api/inbox/${id}/mode`, { method: "POST", body: JSON.stringify({ mode }) });
+    conversations = await api("/api/inbox");
+    renderInbox();
+    showToast(mode === "human" ? "IA desligada — você assume a conversa." : "IA religada.", "success");
+  } catch (e) {
+    showToast(e.message || "Falha ao mudar modo.", "error");
+  }
+}
+
+async function inboxRefresh() {
+  try {
+    conversations = await api("/api/inbox");
+    renderInbox();
+  } catch (e) {}
+}
+function inboxStartPolling() {
+  inboxStopPolling();
+  inboxRefresh();
+  _inboxPollTimer = setInterval(inboxRefresh, 5000);
+}
+function inboxStopPolling() {
+  if (_inboxPollTimer) {
+    clearInterval(_inboxPollTimer);
+    _inboxPollTimer = null;
+  }
 }
 
 let _deliveryMap = null;
@@ -2051,6 +2162,7 @@ function customerOrderUrl() {
 function renderInboxQrPanel() {
   const image = byId("inbox-qr-image");
   const hint = byId("inbox-qr-hint");
+  if (!image) return;
   if (!image || !hint) return;
   const phone = String(settings.whatsapp_number || settings.stock_whatsapp || "").replace(/\D/g, "");
   if (phone) {
@@ -3822,6 +3934,7 @@ function switchView(viewId) {
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
   // Renderizar entregas quando aba Entregas for ativada
   if (viewId === "integrations") { waStartPolling(); } else { waStopPolling(); }
+  if (viewId === "inbox") { inboxStartPolling(); } else { inboxStopPolling(); }
   if (viewId === "delivery") {
     setTimeout(() => renderDelivery(), 150);
   }

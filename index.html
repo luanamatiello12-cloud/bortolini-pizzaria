@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260610o" />
+    <link rel="stylesheet" href="/styles.css?v=20260610q" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
@@ -414,16 +414,25 @@
         </section>
 
         <section id="inbox" class="view">
-          <div class="inbox-layout" style="grid-template-columns: 1fr; place-items: center; min-height: 70vh;">
-            <aside class="panel qr-panel" id="inbox-qr-panel" style="max-width: 360px; width: 100%;">
-              <div class="panel-head">
-                <h2>Conectar WhatsApp</h2>
-                <span class="status-pill">QR Code</span>
-              </div>
-              <img id="inbox-qr-image" class="qr-code-image" alt="QR Code WhatsApp" />
-              <p class="form-hint" id="inbox-qr-hint">Escaneie para iniciar uma conversa no WhatsApp.</p>
-              <button class="secondary" id="copy-whatsapp-link" type="button">Copiar link</button>
+          <div class="wa-inbox">
+            <aside class="wa-sidebar">
+              <div class="wa-sidebar-head"><strong>Conversas</strong><span class="status-pill" id="wa-conv-count">0</span></div>
+              <div class="wa-conv-list" id="wa-conv-list"></div>
             </aside>
+            <div class="wa-thread">
+              <div class="wa-thread-empty" id="wa-thread-empty"><p>💬 Selecione uma conversa</p><small>As mensagens recebidas no WhatsApp aparecem aqui.</small></div>
+              <div class="wa-thread-active hidden" id="wa-thread-active">
+                <header class="wa-thread-head">
+                  <div class="wa-thread-headinfo"><strong id="wa-thread-title">—</strong><small id="wa-thread-sub"></small></div>
+                  <div class="wa-mode" id="wa-mode-toggle"></div>
+                </header>
+                <div class="wa-messages" id="wa-messages"></div>
+                <form class="wa-reply" id="wa-reply-form" onsubmit="return waSendReply(event)">
+                  <input id="wa-reply-input" placeholder="Responder no WhatsApp..." autocomplete="off" />
+                  <button class="primary" type="submit">Enviar</button>
+                </form>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -995,7 +1004,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260610p"></script>
+    <script defer src="/app-v3.js?v=20260610q"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
