@@ -224,4 +224,15 @@ app.listen(PORT, () => {
   console.log(`Serviço WhatsApp ouvindo na porta ${PORT}`)
   // Reusa a sessão do Postgres e reconecta sozinho ao subir
   startSock().catch(console.error)
+
+  // Auto-ping: evita a hibernação do plano Free do Render (que derruba o
+  // WhatsApp). A cada ~12 min o serviço faz uma requisição na própria URL,
+  // gerando tráfego de entrada e mantendo a instância acordada.
+  const selfUrl = process.env.RENDER_EXTERNAL_URL
+  if (selfUrl) {
+    setInterval(() => {
+      fetch(`${selfUrl}/api/whatsapp/status`).catch(() => {})
+    }, 12 * 60 * 1000)
+    console.log('Auto-ping ativo para evitar hibernação:', selfUrl)
+  }
 })
