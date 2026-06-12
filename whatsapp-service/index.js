@@ -95,7 +95,14 @@ async function startSock() {
         if (!msg.message || msg.key.fromMe) continue
         const jid = msg.key.remoteJid || ''
         if (jid.endsWith('@g.us')) continue // ignora grupos
-        const from = jid.replace('@s.whatsapp.net', '')
+        // Usa o telefone real (senderPn) quando o JID vem como @lid (novo padrao do WhatsApp),
+        // senao a resposta nao chega de volta no numero certo.
+        let from
+        if (jid.endsWith('@lid')) {
+          from = String(msg.key.senderPn || msg.key.participantPn || '').replace(/@.*/, '') || jid.replace('@lid', '')
+        } else {
+          from = jid.replace(/@.*/, '')
+        }
         const m = msg.message
         const text =
           m.conversation ||

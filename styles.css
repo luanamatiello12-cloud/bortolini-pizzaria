@@ -3854,3 +3854,23 @@ dialog::backdrop {
 .ifood-remove{background:transparent;border:none;color:#dc2626;font-size:1.3rem;line-height:1;cursor:pointer;padding:0 6px;margin-left:8px;font-weight:700}
 .ifood-remove:hover{color:#b91c1c}
 .ifood-item-row{align-items:center}
+@media (max-width:768px){
+.app-shell{grid-template-columns:1fr!important}
+.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .2s;width:80%;max-width:300px}
+.sidebar.open{transform:translateX(0)}
+.menu-toggle{display:block}
+.main{padding:14px}
+.topbar{flex-wrap:wrap;gap:10px}
+.top-actions{width:100%}
+.search{flex:1}
+.metrics-grid,.split-layout,.kitchen-board{grid-template-columns:1fr!important}
+.menu-grid,.cardapio-grid{grid-template-columns:1fr!important}
+dialog{width:96vw!important;max-width:96vw!important}
+.ifood-checkout-scroll,.checkout-dialog{max-height:88vh}
+h1,#view-title{font-size:1.5rem}
+.store-tabs{overflow-x:auto}
+}
+@media (max-width:480px){
+.metric-card,.panel{padding:14px}
+.menu-card{flex-direction:column}
+}
