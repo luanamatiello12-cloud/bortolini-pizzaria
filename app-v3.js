@@ -2605,7 +2605,7 @@ async function createProduct() {
     category: byId("product-category").value.trim(),
     description: byId("product-description").value.trim(),
     size: byId("product-size").value.trim(),
-    gift: byId("product-gift") ? byId("product-gift").value.trim() : "",
+    gift: [byId("product-gift") && byId("product-gift").value.trim(), byId("product-gift2") && byId("product-gift2").value.trim()].filter(Boolean).join(" + "),
     free_delivery: byId("product-free-delivery") ? (byId("product-free-delivery").checked ? 1 : 0) : 0,
     prep_time: byId("product-prep").value.trim(),
     addons: byId("product-addons").value.trim(),
@@ -3363,6 +3363,7 @@ function openProductEditor(itemId) {
   byId("product-description").value = item.description || "";
   byId("product-size").value = item.size || "";
   if (byId("product-gift")) byId("product-gift").value = item.gift || "";
+  if (byId("product-gift2")) byId("product-gift2").value = "";
   if (byId("product-free-delivery")) byId("product-free-delivery").checked = !!item.free_delivery;
   byId("product-prep").value = item.prep_time || "";
   byId("product-addons").value = item.addons || "";
@@ -4374,7 +4375,7 @@ byId("new-product-btn")?.addEventListener("click", () => {
 
 byId("new-combo-btn")?.addEventListener("click", () => {
   editingProductId = null; productPhotoData = "";
-  ["product-name","product-description","product-size","product-prep","product-addons","product-price","product-photo","product-gift"].forEach((id) => { if (byId(id)) byId(id).value = ""; });
+  ["product-name","product-description","product-size","product-prep","product-addons","product-price","product-photo","product-gift","product-gift2"].forEach((id) => { if (byId(id)) byId(id).value = ""; });
   if (byId("product-free-delivery")) byId("product-free-delivery").checked = false;
   byId("product-category").value = "Combos";
   byId("product-photo-preview").classList.add("hidden");
