@@ -3873,4 +3873,4 @@ h1,#view-title{font-size:1.5rem}
 @media (max-width:480px){
 .metric-card,.panel{padding:14px}
 .menu-card{flex-direction:column}
-}
+}.wa-edit-name{background:none;border:none;color:#8696a0;cursor:pointer;font-size:.85rem;margin-left:6px}

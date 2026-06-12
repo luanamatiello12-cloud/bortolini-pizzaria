@@ -871,7 +871,7 @@ function renderInbox() {
       return `<button type="button" class="wa-conv ${c.id === _activeInboxId ? "active" : ""}" onclick="openInboxConversation(${c.id})">
         <span class="wa-avatar">${escapeHtml(initials)}</span>
         <span class="wa-conv-info">
-          <strong>${escapeHtml(String(c.client || "Desconhecido"))}</strong>
+          <strong>${escapeHtml(String(c.name || c.client || "Desconhecido"))}</strong>
           <small>${escapeHtml(String(c.preview || ""))}</small>
         </span>
       </button>`;
@@ -897,7 +897,8 @@ function renderInboxThread() {
   if (empty) empty.classList.add("hidden");
   if (active) active.classList.remove("hidden");
   const titleEl = byId("wa-thread-title");
-  if (titleEl) titleEl.textContent = String(conv.client || "Desconhecido");
+  if (titleEl) titleEl.innerHTML = `${escapeHtml(String(conv.name || conv.client || "Desconhecido"))} <button type="button" class="wa-edit-name" onclick="waEditName(${conv.id})" title="Editar contato">✎</button>`;
+  const subEl0 = byId("wa-thread-sub"); if (subEl0 && conv.name) subEl0.dataset.num = conv.client;
   const subEl = byId("wa-thread-sub");
   if (subEl) subEl.textContent = `${conv.channel || ""} · ${conv.status || ""}`;
   const avEl = byId("wa-thread-avatar");
@@ -935,6 +936,13 @@ async function waSendReply(event) {
     showToast(e.message || "Falha ao enviar.", "error");
   }
   return false;
+}
+
+async function waEditName(id) {
+  const c = (conversations||[]).find(x=>x.id===id); if(!c) return;
+  const nome = prompt("Nome do contato (numero: "+(c.client||"")+")", c.name||"");
+  if (nome===null) return;
+  try { await api(`/api/inbox/${id}/name`, {method:"POST", body: JSON.stringify({name:nome})}); conversations = await api("/api/inbox"); renderInbox(); } catch(e){ showToast(e.message,"error"); }
 }
 
 async function waSetMode(id, mode) {
@@ -2309,6 +2317,7 @@ function renderSettings() {
   byId("setting-fee").value = settings.delivery_fee || "";
   byId("setting-prep").value = settings.prep_time || "";
   byId("setting-areas").value = settings.delivery_areas || "";
+  if (byId("setting-ai-greeting")) byId("setting-ai-greeting").value = settings.ai_greeting || "";
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
   byId("settings-menu-link").value = `${window.location.origin}/pedir`;
   byId("settings-driver-link").value = baseUrl + "entregador/";
@@ -3697,6 +3706,7 @@ async function saveSettings() {
     delivery_fee: byId("setting-fee").value,
     prep_time: byId("setting-prep").value,
     delivery_areas: byId("setting-areas").value,
+    ai_greeting: byId("setting-ai-greeting") ? byId("setting-ai-greeting").value : (settings.ai_greeting || ""),
   };
   try {
     settings = state.apiOnline

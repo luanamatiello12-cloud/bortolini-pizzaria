@@ -1067,6 +1067,8 @@ def ensure_ai_conversation_columns(conn):
         conn.execute("ALTER TABLE ai_conversations ADD COLUMN mode TEXT NOT NULL DEFAULT 'ai'")
     if "assigned_to" not in columns:
         conn.execute("ALTER TABLE ai_conversations ADD COLUMN assigned_to TEXT")
+    if "name" not in columns:
+        conn.execute("ALTER TABLE ai_conversations ADD COLUMN name TEXT")
 
 
 def ensure_ai_message_system_author(conn):
@@ -1533,6 +1535,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 data = self.reply_inbox(conversation_id, payload)
                 if data is not None:
                     self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path.startswith("/api/inbox/") and path.endswith("/name"):
+                if not self.require_permission("orders"):
+                    return
+                cid = int(path.split("/")[-2])
+                data = self.update_inbox_name(cid, self.read_json())
+                if data is not None:
+                    self.send_json(data)
                 return
             if path.startswith("/api/inbox/") and path.endswith("/mode"):
                 if not self.require_permission("orders"):
@@ -2137,7 +2147,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     mode = row["mode"]
                 else:
                     cursor = conn.execute(
-                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'ai', '') RETURNING *",
+                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'human', '') RETURNING *",
                         (phone, "WhatsApp"),
                     )
                     conversation_id = cursor.fetchone()["id"]
@@ -2576,6 +2586,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 {
                     "id": row["id"],
                     "client": row["client"],
+                    "name": (row["name"] if "name" in row.keys() else "") or "",
                     "channel": row["channel"],
                     "status": row["status"],
                     "mode": row["mode"],
@@ -2654,6 +2665,12 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             client_phone = conversation["client"]
             self.send_evolution_message(client_phone, text)
         return next((item for item in self.get_inbox() if item["id"] == conversation_id), None)
+
+    def update_inbox_name(self, conversation_id, payload):
+        name = payload.get("name", "").strip()
+        with connect() as conn:
+            conn.execute("UPDATE ai_conversations SET name = ? WHERE id = ?", (name, conversation_id))
+        return next((i for i in self.get_inbox() if i["id"] == conversation_id), None)
 
     def update_inbox_mode(self, conversation_id, payload):
         mode = payload.get("mode", "ai")
@@ -2759,10 +2776,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return prefix + "Aceitamos PIX e as formas cadastradas no atendimento. Se for PIX, envie o comprovante apos o pagamento."
 
         prep_time = settings.get("prep_time", "35 a 45 minutos")
-        return prefix + (
-            f"Entendi, {client_name}. Vou te ajudar por aqui. "
-            f"O tempo medio de preparo esta em {prep_time}. Se quiser, envie bairro, pedido ou produto desejado."
-        )
+        tpl = settings.get("ai_greeting", "Ola {cliente}! Como posso ajudar? Tempo medio de preparo: {preparo}.")
+        return prefix + tpl.replace("{cliente}", str(client_name)).replace("{preparo}", str(prep_time))
 
     def format_money(self, value):
         try:
