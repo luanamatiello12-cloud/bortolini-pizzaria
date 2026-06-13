@@ -973,15 +973,11 @@ def init_db():
                 (key, value),
             )
 
-        # Sincroniza cardápio do seed automaticamente (sabores das pizzas)
+        # Insere sabores do seed que ainda nao existem. NAO sobrescreve itens
+        # existentes para nao apagar edicoes do usuario (preco, descricao, etc.)
         for item in SEED_MENU_ITEMS:
             row = conn.execute("SELECT id FROM menu_items WHERE name = ?", (item["name"],)).fetchone()
-            if row:
-                conn.execute(
-                    "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
-                    (item["category"], item.get("description", ""), item["name"]),
-                )
-            else:
+            if not row:
                 conn.execute(
                     "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
                     (item["name"], item["category"], item.get("description", "")),
