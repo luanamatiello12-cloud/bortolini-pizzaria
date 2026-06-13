@@ -986,6 +986,7 @@ async function waSetMode(id, mode) {
 }
 
 async function inboxRefresh() {
+  if (!byId("wa-conv-list")) return;
   try {
     conversations = await api("/api/inbox");
     renderInbox();

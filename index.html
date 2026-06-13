@@ -71,7 +71,6 @@
           <button class="nav-item" data-view="customer" data-permission="customer" role="tab" aria-selected="false" aria-controls="customer">Cliente QR</button>
           <button class="nav-item" data-view="menu" data-permission="menu" role="tab" aria-selected="false" aria-controls="menu">Cardápio</button>
           <button class="nav-item" data-view="inventory" data-permission="inventory" role="tab" aria-selected="false" aria-controls="inventory">Estoque</button>
-          <button class="nav-item" data-view="inbox" data-permission="inbox" role="tab" aria-selected="false" aria-controls="inbox">Atendimento IA</button>
           <button class="nav-item" data-view="delivery" data-permission="delivery" role="tab" aria-selected="false" aria-controls="delivery">Entregas</button>
           <button class="nav-item" data-view="payments" data-permission="payments" role="tab" aria-selected="false" aria-controls="payments">Pagamentos</button>
           <button class="nav-item" data-view="customers" data-permission="customers" role="tab" aria-selected="false" aria-controls="customers">Clientes</button>
@@ -415,30 +414,6 @@
             </div>
             <div id="stock-movements-list" class="ingredient-list"></div>
           </section>
-        </section>
-
-        <section id="inbox" class="view">
-          <div class="wa-inbox">
-            <aside class="wa-sidebar">
-              <div class="wa-sidebar-head"><strong>Conversas</strong><span class="status-pill" id="wa-conv-count">0</span></div>
-              <div class="wa-conv-list" id="wa-conv-list"></div>
-            </aside>
-            <div class="wa-thread">
-              <div class="wa-thread-empty" id="wa-thread-empty"><p>💬 Selecione uma conversa</p><small>As mensagens recebidas no WhatsApp aparecem aqui.</small></div>
-              <div class="wa-thread-active hidden" id="wa-thread-active">
-                <header class="wa-thread-head">
-                  <span class="wa-avatar wa-head-avatar" id="wa-thread-avatar"></span>
-                  <div class="wa-thread-headinfo"><strong id="wa-thread-title">—</strong><small id="wa-thread-sub"></small></div>
-                  <div class="wa-mode" id="wa-mode-toggle"></div>
-                </header>
-                <div class="wa-messages" id="wa-messages"></div>
-                <form class="wa-reply" id="wa-reply-form" onsubmit="return waSendReply(event)">
-                  <input id="wa-reply-input" placeholder="Responder no WhatsApp..." autocomplete="off" />
-                  <button class="primary" type="submit">Enviar</button>
-                </form>
-              </div>
-            </div>
-          </div>
         </section>
 
         <section id="delivery" class="view">
@@ -1027,7 +1002,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260612E"></script>
+    <script defer src="/app-v3.js?v=20260613A"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
