@@ -2504,22 +2504,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         }
 
     def sync_menu_items(self):
-        """Sincroniza o cardápio do SEED sem apagar dados existentes (upsert)."""
+        """Popula o cardápio do SEED apenas se estiver vazio. NUNCA sobrescreve
+        nem re-adiciona itens que o usuário excluiu/editou."""
         inserted = 0
-        updated = 0
         with connect() as conn:
-            for item in SEED_MENU_ITEMS:
-                row = conn.execute(
-                    "SELECT id FROM menu_items WHERE name = ?",
-                    (item["name"],),
-                ).fetchone()
-                if row:
-                    conn.execute(
-                        "UPDATE menu_items SET category = ?, description = ?, active = 1, price = 0 WHERE name = ?",
-                        (item["category"], item.get("description", ""), item["name"]),
-                    )
-                    updated += 1
-                else:
+            count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+            if count == 0:
+                for item in SEED_MENU_ITEMS:
                     next_sort = conn.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM menu_items").fetchone()[0] or 1
                     conn.execute(
                         "INSERT INTO menu_items (name, category, price, description, active, sort_order) VALUES (?, ?, 0, ?, 1, ?)",
@@ -2529,8 +2520,9 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return {
             "ok": True,
             "inserted": inserted,
-            "updated": updated,
-            "message": f"Cardápio sincronizado: {inserted} novos, {updated} atualizados.",
+            "updated": 0,
+            "message": (f"Cardápio populado: {inserted} itens." if inserted
+                        else "Cardápio já existe — nada alterado (itens excluídos/editados preservados)."),
         }
 
     def sync_ingredients(self):

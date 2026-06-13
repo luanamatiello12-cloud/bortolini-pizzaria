@@ -1486,7 +1486,7 @@ function renderPizzaFlavorsDialog() {
   if (!container) return;
 
   if (!pizzaItems.length) {
-    container.innerHTML = `<p class="form-hint" style="text-align:center;padding:24px 0;">🍕 Nenhum sabor cadastrado no cardápio.<br><small>Entre no admin e sincronize o cardápio em Configurações.</small></p>`;
+    container.innerHTML = `<p class="form-hint" style="text-align:center;padding:24px 0;">🍕 Nenhum sabor cadastrado no cardápio.<br><small>Cadastre os sabores no admin, em Cardápio.</small></p>`;
     return;
   }
 
