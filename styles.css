@@ -3161,6 +3161,8 @@ dialog::backdrop {
 .floating-cart-btn:hover {
   transform: translateX(-50%) scale(1.03);
 }
+/* iOS: position:fixed escapa do <dialog> e fica por cima; esconder com dialog aberto */
+body:has(dialog[open]) .floating-cart-btn { display: none !important; }
 
 /* Área de status do pedido */
 #order-status-area {
@@ -3989,7 +3991,7 @@ img.photo-placeholder{background:#e5e7eb;min-height:80px;border:none}
 .combo-qty button{background:none;border:none;color:var(--brand);font-size:1.3rem;cursor:pointer;line-height:1;width:20px}
 .combo-qty span{min-width:18px;text-align:center;font-weight:600}
 .combo-add-btn{flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
-@media(max-width:480px){.combo-dialog{width:100vw;max-width:100vw;border-radius:18px 18px 0 0;margin:0;position:fixed;bottom:0;top:auto}.combo-dialog-card{max-height:92vh}}
+@media(max-width:480px){.combo-dialog{width:100vw;max-width:100vw;max-height:94vh;border-radius:14px;margin:auto}.combo-dialog-card{max-height:94vh}.combo-dialog-cover{height:90px}.combo-dialog-body{padding:14px}}
 
 /* ===== Pré-visualização do combo no editor ===== */
 .combo-preview-wrap{margin:16px 0}
