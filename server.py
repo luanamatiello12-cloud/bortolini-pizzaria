@@ -3702,7 +3702,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return self.headers.get("X-User-Role", "")
 
     def update_order(self, order_id, payload):
-        allowed_statuses = {"Novo", "Cozinha", "Entrega", "Finalizado", "Cancelado"}
+        allowed_statuses = {"Novo", "Cozinha", "Entrega", "Disponível para retirada", "Finalizado", "Cancelado"}
         status = payload.get("status")
         if status not in allowed_statuses:
             self.send_error(HTTPStatus.BAD_REQUEST, "Status inválido")

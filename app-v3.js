@@ -2619,7 +2619,10 @@ async function advanceOrder(id) {
   const order = orders.find((current) => current.id === id);
   if (!canAdvanceOrder(order)) return;
 
-  const nextStatus = statusFlow[order.status];
+  let nextStatus = statusFlow[order.status];
+  // Retirada nao vai para entregador: da cozinha vai para "Disponivel para retirada"
+  if (order.delivery_type === "Retirada" && order.status === "Cozinha") nextStatus = "Disponível para retirada";
+  if (order.status === "Disponível para retirada") nextStatus = "Finalizado";
 
   // Feedback visual de loading
   const btns = document.querySelectorAll(`[data-advance="${id}"]`);
@@ -3532,9 +3535,13 @@ function openCustomerOrderTracking(orderId) {
   startTrackPolling(orderId);
 }
 
-function renderOrderTimeline(status) {
+function renderOrderTimeline(status, deliveryType) {
   if (status === "Entregue") status = "Finalizado";
-  const steps = status === "Cancelado" ? ["Novo", "Cancelado"] : ["Novo", "Cozinha", "Entrega", "Finalizado"];
+  const retirada = deliveryType === "Retirada" || status === "Disponível para retirada";
+  let steps;
+  if (status === "Cancelado") steps = ["Novo", "Cancelado"];
+  else if (retirada) steps = ["Novo", "Cozinha", "Disponível para retirada", "Finalizado"];
+  else steps = ["Novo", "Cozinha", "Entrega", "Finalizado"];
   const current = steps.indexOf(status);
   return steps
     .map((step, index) => `<span class="timeline-step ${index <= current ? "done" : ""}">${step}</span>`)
@@ -4024,60 +4031,67 @@ function copyWhatsAppMessage(orderId) {
   }
 }
 
+function printHtml(innerHtml, title) {
+  const old = document.getElementById("print-frame");
+  if (old) old.remove();
+  const frame = document.createElement("iframe");
+  frame.id = "print-frame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  document.body.appendChild(frame);
+  const doc = frame.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body style="font-family:Arial;padding:24px">${innerHtml}</body></html>`);
+  doc.close();
+  let printed = false;
+  const fire = () => { if (printed) return; printed = true; try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {} };
+  frame.onload = () => setTimeout(fire, 350);
+  setTimeout(fire, 900);
+}
+
 function printOrder(orderId) {
   const order = orders.find((current) => current.id === orderId);
   if (!order) return;
-  const win = window.open("", "_blank");
-  win.document.write(`
-    <title>Pedido #${order.id}</title>
-    <body style="font-family:Arial;padding:24px">
-      <h1>Bortolini Pizzaria e delivery</h1>
-      <h2>Pedido #${order.id}</h2>
-      <p><strong>Cliente:</strong> ${order.customer}</p>
-      <p><strong>Itens:</strong></p>
-      <ul>
-        ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x - ${currency.format(it.total)}</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
-      </ul>
-      <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
-      <p><strong>Endereço:</strong> ${order.address || "Retirada/balcão"}</p>
-      <p><strong>Taxa:</strong> ${currency.format(order.delivery_fee || 0)}</p>
-      <p><strong>Desconto:</strong> ${currency.format(order.discount || 0)}</p>
-      <p><strong>Pagamento:</strong> ${order.payment || "Não informado"}</p>
-      <p><strong>Status pagamento:</strong> ${order.payment_status || "Aguardando pagamento"}</p>
-      ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong> <a href="${order.payment_receipt_url}" target="_blank">Ver comprovante</a></p><img src="${order.payment_receipt_url}" style="max-width:300px;margin-top:8px;border:1px solid #ddd;border-radius:8px;" />` : ""}
-      <p><strong>Total:</strong> ${currency.format(order.total)}</p>
-    </body>
-  `);
-  win.document.close();
-  win.print();
+  printHtml(`
+    <h1>Bortolini Pizzaria e delivery</h1>
+    <h2>Pedido #${order.id}</h2>
+    <p><strong>Cliente:</strong> ${escapeHtml(order.customer || "")}</p>
+    <p><strong>Tipo:</strong> ${escapeHtml(order.delivery_type || "Entrega")}</p>
+    <p><strong>Itens:</strong></p>
+    <ul>
+      ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x - ${currency.format(it.total)}</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+    </ul>
+    <p><strong>Observações:</strong> ${escapeHtml(order.notes || "Sem observações")}</p>
+    <p><strong>Endereço:</strong> ${escapeHtml(order.address || "Retirada/balcão")}</p>
+    <p><strong>Taxa:</strong> ${currency.format(order.delivery_fee || 0)}</p>
+    <p><strong>Desconto:</strong> ${currency.format(order.discount || 0)}</p>
+    <p><strong>Pagamento:</strong> ${escapeHtml(order.payment || "Não informado")}</p>
+    <p><strong>Status pagamento:</strong> ${escapeHtml(order.payment_status || "Aguardando pagamento")}</p>
+    ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong></p><img src="${order.payment_receipt_url}" style="max-width:300px;margin-top:8px;border:1px solid #ddd;border-radius:8px;" />` : ""}
+    <p><strong>Total:</strong> ${currency.format(order.total)}</p>
+  `, `Pedido #${order.id}`);
 }
 
 function printKitchenTickets() {
   const active = orders.filter((order) => ["Novo", "Cozinha"].includes(order.status));
-  const win = window.open("", "_blank");
-  win.document.write(`
-    <title>Mapa da cozinha</title>
-    <body style="font-family:Arial;padding:24px">
-      <h1>Bortolini - cozinha</h1>
-      ${active
-        .map(
-          (order) => `
-            <section style="border-bottom:1px solid #ddd;padding:12px 0">
-              <h2>Pedido #${order.id}</h2>
-              <p><strong>Itens:</strong></p>
-              <ul>
-                ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
-              </ul>
-              <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
-              <p><strong>Status:</strong> ${order.status} · ${orderAge(order)} min</p>
-            </section>
-          `,
-        )
-        .join("")}
-    </body>
-  `);
-  win.document.close();
-  win.print();
+  printHtml(`
+    <h1>Bortolini - cozinha</h1>
+    ${active
+      .map(
+        (order) => `
+          <section style="border-bottom:1px solid #ddd;padding:12px 0">
+            <h2>Pedido #${order.id} <small>(${escapeHtml(order.delivery_type || "Entrega")})</small></h2>
+            <p><strong>Itens:</strong></p>
+            <ul>
+              ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+            </ul>
+            <p><strong>Observações:</strong> ${escapeHtml(order.notes || "Sem observações")}</p>
+            <p><strong>Status:</strong> ${escapeHtml(order.status)} · ${orderAge(order)} min</p>
+          </section>
+        `,
+      )
+      .join("")}
+  `, "Mapa da cozinha");
 }
 
 async function saveSettings() {
@@ -5377,7 +5391,7 @@ async function loadOrderTrack(orderId, silent = false) {
           <span>Previsão: ${order.eta || "a combinar"}</span>
         </div>
       </div>
-      <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
+      <div class="status-timeline">${renderOrderTimeline(order.status, order.delivery_type)}</div>
       ${order.notes ? `<div class="track-notes"><strong>Observações:</strong> ${escapeHtml(order.notes)}</div>` : ""}
     `;
     if (order.payment === "PIX" && order.payment_receipt_status !== "Enviado") {
