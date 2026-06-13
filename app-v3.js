@@ -328,7 +328,7 @@ function renderOrders() {
     .map(
       (order) => `
         <tr>
-          <td>#${order.id}</td>
+          <td>#${order.id}${formatOrderTime(order) ? `<br><small class="order-time">🕒 ${formatOrderTime(order)}</small>` : ""}</td>
           <td>
             <div class="order-cell">
               ${renderPhoto(getItemImage(order.item), "order-photo", escapeHtml(order.item))}
@@ -404,6 +404,7 @@ function renderLiveOrders() {
           <div>
             <strong>#${order.id} · ${escapeHtml(order.customer)}</strong>
             <p>${formatOrderItemsSummary(order)} via ${escapeHtml(order.channel)}</p>
+            ${formatOrderTime(order) ? `<small class="order-time">🕒 ${formatOrderTime(order)}</small>` : ""}
           </div>
           <span class="status-pill">${escapeHtml(order.status)}</span>
         </article>
@@ -457,7 +458,7 @@ function renderKitchen() {
                   <strong>#${order.id}</strong>
                   <p>${order.item}</p>
                   <small>${order.notes || "Sem observações"}</small><br>
-                  <small>${order.eta} · ${orderAge(order)} min</small>
+                  <small>${formatOrderTime(order, false) ? `🕒 ${formatOrderTime(order, false)} · ` : ""}${orderAge(order)} min</small>
                   ${orderAge(order) > 30 && order.status !== "Entrega" ? '<span class="status-pill danger">Atrasado</span>' : ""}
                   <div class="ticket-actions">
                     <button class="secondary" data-advance="${order.id}" ${!canAdvanceOrder(order) ? "disabled" : ""}>${order.status === "Entrega" ? "Finalizar" : "Avançar"}</button>
@@ -479,9 +480,26 @@ function renderKitchen() {
   });
 }
 
+function parseOrderDate(value) {
+  if (!value) return null;
+  let s = String(value).trim();
+  // SQLite grava "YYYY-MM-DD HH:MM:SS" em UTC (sem timezone) -> tratar como UTC
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) s = s.replace(" ", "T") + "Z";
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatOrderTime(order, withDate = true) {
+  const d = parseOrderDate(order.created_at);
+  if (!d) return "";
+  const opts = { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" };
+  if (withDate) { opts.day = "2-digit"; opts.month = "2-digit"; }
+  return d.toLocaleString("pt-BR", opts);
+}
+
 function orderAge(order) {
-  const created = new Date(order.created_at || Date.now());
-  if (Number.isNaN(created.getTime())) return 0;
+  const created = parseOrderDate(order.created_at);
+  if (!created) return 0;
   return Math.max(Math.round((Date.now() - created.getTime()) / 60000), 0);
 }
 
@@ -5359,7 +5377,7 @@ async function loadOrderTrack(orderId, silent = false) {
         <h1 class="track-title">Pedido #${order.id}</h1>
         <p class="track-customer">${escapeHtml(order.customer)}</p>
         <div class="track-meta">
-          ${(() => { const d = order.created_at ? new Date(order.created_at) : null; return d && !isNaN(d.getTime()) ? `<span class="track-meta-item">📅 ${d.toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"})}</span>` : ""; })()}
+          ${(() => { const d = parseOrderDate(order.created_at); return d ? `<span class="track-meta-item">📅 ${d.toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"})}</span>` : ""; })()}
           ${order.address ? `<span class="track-meta-item">📍 ${escapeHtml(order.address)}</span>` : ""}
         </div>
       </div>

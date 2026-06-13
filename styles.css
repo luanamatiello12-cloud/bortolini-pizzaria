@@ -3876,6 +3876,7 @@ h1,#view-title{font-size:1.5rem}
 }.wa-edit-name{background:none;border:none;color:#8696a0;cursor:pointer;font-size:.85rem;margin-left:6px}
 
 img.photo-placeholder{background:#e5e7eb;min-height:80px;border:none}
+.order-time{color:#6b7280;font-size:.78rem;white-space:nowrap}
 
 /* ===== Editor de grupos de opções (admin) ===== */
 .option-groups-editor{margin:14px 0;padding:14px;border:1px dashed #d1d5db;border-radius:12px;background:#fafafa}
