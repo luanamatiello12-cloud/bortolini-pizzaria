@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Bortolini · Central de Atendimento</title>
+<style>
+  :root{ --brand:#dc2626; --wa:#1d9e75; --bar:#1f2937; --line:#374151; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#111}
+  .app{display:flex;flex-direction:column;height:100vh}
+
+  .toolbar{height:48px;background:var(--bar);color:#e5e7eb;display:flex;align-items:center;gap:10px;padding:0 12px;flex:0 0 auto}
+  .toolbar .logo{width:28px;height:28px;border-radius:7px;background:var(--brand);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .toolbar .title{font-size:.9rem;font-weight:600}
+  .toolbar .spacer{flex:1}
+  .toolbar input{background:#111827;border:1px solid var(--line);color:#e5e7eb;border-radius:7px;padding:6px 10px;font-size:.8rem;width:280px}
+  .toolbar button{background:#374151;border:none;color:#e5e7eb;border-radius:7px;padding:7px 11px;font-size:.8rem;cursor:pointer}
+  .toolbar button:hover{background:#4b5563}
+  .toolbar button.wa{background:var(--wa)}
+
+  .panes{flex:1;display:flex;min-height:0}
+  .pane{display:flex;flex-direction:column;min-width:0}
+  .pane.bortolini{flex:1.5}
+  .pane.whats{flex:1;border-left:1px solid var(--line)}
+  .pane .label{height:26px;background:#111827;color:#9ca3af;font-size:.7rem;display:flex;align-items:center;gap:6px;padding:0 12px;flex:0 0 auto;letter-spacing:.03em}
+  .pane .label .dot{width:8px;height:8px;border-radius:50%}
+  .pane.bortolini .dot{background:var(--brand)}
+  .pane.whats .dot{background:var(--wa)}
+  webview{flex:1;width:100%;border:none;background:#fff}
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="toolbar">
+      <div class="logo">B</div>
+      <span class="title">Central de Atendimento</span>
+      <div class="spacer"></div>
+      <input id="bortolini-url" placeholder="URL do sistema Bortolini" />
+      <button id="go">Abrir</button>
+      <button id="reload-bortolini">↻ Sistema</button>
+      <button class="wa" id="reload-whats">↻ WhatsApp</button>
+    </div>
+
+    <div class="panes">
+      <section class="pane bortolini">
+        <div class="label"><span class="dot"></span> SISTEMA BORTOLINI</div>
+        <webview id="wv-bortolini" partition="persist:bortolini" allowpopups></webview>
+      </section>
+      <section class="pane whats">
+        <div class="label"><span class="dot"></span> WHATSAPP WEB — escaneie o QR no celular (Aparelhos conectados)</div>
+        <webview
+          id="wv-whats"
+          src="https://web.whatsapp.com"
+          partition="persist:whatsapp"
+          useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          allowpopups>
+        </webview>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_URL = "https://bortolini-pizzaria.onrender.com";
+    const urlInput = document.getElementById("bortolini-url");
+    const wvBort = document.getElementById("wv-bortolini");
+    const wvWhats = document.getElementById("wv-whats");
+
+    function loadBortolini(url) {
+      url = (url || "").trim() || DEFAULT_URL;
+      if (!/^https?:\/\//.test(url)) url = "https://" + url;
+      localStorage.setItem("bortolini_url", url);
+      urlInput.value = url;
+      wvBort.setAttribute("src", url);
+    }
+
+    loadBortolini(localStorage.getItem("bortolini_url") || DEFAULT_URL);
+
+    document.getElementById("go").addEventListener("click", () => loadBortolini(urlInput.value));
+    urlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") loadBortolini(urlInput.value); });
+    document.getElementById("reload-bortolini").addEventListener("click", () => wvBort.reload());
+    document.getElementById("reload-whats").addEventListener("click", () => wvWhats.reload());
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "bortolini-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App desktop (Electron) da Pizzaria Bortolini — sistema + WhatsApp Web lado a lado.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
