@@ -3250,11 +3250,21 @@ function getFeeFromNeighborhood() {
   return option ? Number(option.dataset.fee) : null;
 }
 
+function switchDialog(closeId, openId) {
+  const c = byId(closeId), o = byId(openId);
+  if (c && c.open) c.close();
+  if (!o) return;
+  // iOS/Safari quebra se showModal() roda no mesmo tick do close() anterior
+  setTimeout(() => { try { if (!o.open) o.showModal(); } catch (e) {} }, 0);
+}
+
 function openCheckoutDialog() {
   if (!cart.length) {
     showToast("Adicione pelo menos um item ao carrinho.");
     return;
   }
+  const cr = byId("cart-review-dialog");
+  if (cr && cr.open) cr.close();
   populateCheckoutNeighborhoods();
   const subtotal = cartTotal();
   const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
@@ -3303,7 +3313,8 @@ function openCheckoutDialog() {
   byId("checkout-neighborhood-label")?.classList.remove("hidden");
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
-  byId("checkout-dialog").showModal();
+  const cd = byId("checkout-dialog");
+  setTimeout(() => { try { if (!cd.open) cd.showModal(); } catch (e) {} }, 0);
 }
 
 async function checkoutCart() {
@@ -4769,10 +4780,7 @@ byId("order-delivery-type")?.addEventListener("change", updateOrderDeliveryMode)
 byId("create-product")?.addEventListener("click", createProduct);
 byId("create-promotion")?.addEventListener("click", createPromotion);
 byId("floating-cart-btn")?.addEventListener("click", openCartReview);
-byId("cart-review-continue")?.addEventListener("click", () => {
-  byId("cart-review-dialog").close();
-  openCheckoutDialog();
-});
+byId("cart-review-continue")?.addEventListener("click", () => openCheckoutDialog());
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const isDelivery = event.target.value === "Entrega";
   byId("checkout-neighborhood-label")?.classList.toggle("hidden", !isDelivery);

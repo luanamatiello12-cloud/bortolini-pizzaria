@@ -958,7 +958,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260613E"></script>
+    <script defer src="/app-v3.js?v=20260613G"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1101,7 +1101,7 @@
         <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
       </div>
       <div class="ifood-footer-fixed">
-        <button class="primary" id="cart-review-continue" type="button" onclick="byId('cart-review-dialog').close(); openCheckoutDialog();">Continuar para o pagamento</button>
+        <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
       </div>
     </div>
   </dialog>
@@ -1110,7 +1110,7 @@
   <dialog id="checkout-dialog" class="checkout-dialog">
     <div class="dialog-card ifood-checkout-card">
       <div class="ifood-checkout-header">
-        <button class="icon-button" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" aria-label="Voltar">←</button>
+        <button class="icon-button" onclick="switchDialog('checkout-dialog','cart-review-dialog')" aria-label="Voltar">←</button>
         <h2>Finalizar pedido</h2>
         <span></span>
       </div>
