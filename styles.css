@@ -3269,6 +3269,50 @@ dialog::backdrop {
   box-shadow: 0 0 0 2px var(--brand);
 }
 
+/* Sabores em linhas compactas (lista curta, fácil de rolar) */
+#pizza-flavors-dialog-list {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+.flavor-dialog-card {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  column-gap: 10px;
+  align-items: center;
+  padding: 8px 34px 8px 8px;
+  text-align: left;
+}
+.flavor-dialog-card .menu-photo,
+.flavor-dialog-card .photo-placeholder {
+  grid-row: 1 / span 2;
+  width: 50px;
+  height: 50px;
+  aspect-ratio: auto;
+  min-height: 0;
+  border-radius: 8px;
+  margin: 0;
+}
+.flavor-dialog-card strong {
+  grid-column: 2;
+  font-size: 0.92rem;
+  margin: 0;
+}
+.flavor-dialog-card .ingredients-desc {
+  grid-column: 2;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  margin: 2px 0 0;
+  color: #6b7280;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.flavor-dialog-card .flavor-check {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 /* ============================================================
    APP DO ENTREGADOR — redesign mobile-first
    ============================================================ */

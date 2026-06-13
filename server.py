@@ -2605,7 +2605,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         all_settings = {row["key"]: row["value"] for row in rows}
         public_keys = {
             "restaurant_name", "opening_hours", "delivery_fee", "delivery_areas",
-            "prep_time", "pizza_sizes", "pix_key"
+            "prep_time", "pizza_sizes", "pix_key", "whatsapp_number"
         }
         settings = {k: all_settings.get(k, "") for k in public_keys}
         settings["pix_cnpj"] = PIX_CNPJ
