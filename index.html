@@ -226,12 +226,14 @@
                     <p id="pix-order-summary"></p>
                     <div class="pix-info-box">
                       <p><strong>Pague via PIX para confirmar seu pedido:</strong></p>
+                      <p class="pix-amount">Valor: <strong id="pix-amount-display">R$ 0,00</strong></p>
+                      <img id="pix-qr-img" class="pix-qr" alt="QR Code PIX com valor" />
+                      <p class="pix-tip">Escaneie o QR no app do banco — o valor já vem preenchido. Ou use o Pix copia e cola:</p>
                       <div class="pix-cnpj-row">
-                        <span class="pix-label">CNPJ</span>
-                        <span class="pix-value" id="pix-cnpj-display">66.686.680/0001-57</span>
+                        <input class="pix-code-input" id="pix-code-display" readonly aria-label="Pix copia e cola" />
                         <button class="ghost pix-copy-btn" id="pix-copy-btn" onclick="copyPix()">Copiar</button>
                       </div>
-                      <p class="pix-tip">Abra o app do seu banco → PIX → CNPJ → cole a chave acima</p>
+                      <p class="pix-tip">Chave (CNPJ): <span id="pix-cnpj-display">66.686.680/0001-57</span></p>
                     </div>
                     <div class="pix-upload-section">
                       <p><strong>Após pagar, envie o comprovante:</strong></p>
@@ -958,7 +960,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260613G"></script>
+    <script defer src="/app-v3.js?v=20260613H"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->

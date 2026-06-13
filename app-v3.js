@@ -3451,6 +3451,7 @@ async function checkoutCart() {
       byId("pix-confirmation").classList.remove("hidden");
       byId("pix-order-summary").textContent = `${payload.item} · ${currency.format(payload.total)}`;
       window._pixOrderId = created.id;
+      setupPixPayment(payload.total, created.id);
     }
   } catch (error) {
     byId("dialog-checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
@@ -3459,14 +3460,67 @@ async function checkoutCart() {
   }
 }
 
+// ===== Pix copia e cola (BR Code EMV) com valor =====
+function _pixTLV(id, value) {
+  const v = String(value);
+  return id + String(v.length).padStart(2, "0") + v;
+}
+function _pixCrc16(str) {
+  let crc = 0xffff;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+function _sanitizePixText(s, max) {
+  return (s || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .toUpperCase().trim().slice(0, max) || "NA";
+}
+function pixBRCode({ key, name, city, amount, txid }) {
+  const mai = _pixTLV("26", _pixTLV("00", "br.gov.bcb.pix") + _pixTLV("01", key));
+  const amt = (amount != null && Number(amount) > 0) ? _pixTLV("54", Number(amount).toFixed(2)) : "";
+  const add = _pixTLV("62", _pixTLV("05", _sanitizePixText(txid, 25)));
+  const payload =
+    _pixTLV("00", "01") +
+    _pixTLV("01", "11") +
+    mai +
+    _pixTLV("52", "0000") +
+    _pixTLV("53", "986") +
+    amt +
+    _pixTLV("58", "BR") +
+    _pixTLV("59", _sanitizePixText(name, 25)) +
+    _pixTLV("60", _sanitizePixText(city, 15)) +
+    add +
+    "6304";
+  return payload + _pixCrc16(payload);
+}
+function setupPixPayment(amount, orderId) {
+  let key = (settings.pix_key || settings.pix_cnpj || "66.686.680/0001-57").trim();
+  if (/^[\d.\-/()\s+]+$/.test(key)) key = key.replace(/\D/g, "");
+  const code = pixBRCode({ key, name: settings.restaurant_name || "Bortolini", city: "CIDADE", amount, txid: "PED" + orderId });
+  window._pixCode = code;
+  const codeEl = byId("pix-code-display"); if (codeEl) codeEl.value = code;
+  const amtEl = byId("pix-amount-display"); if (amtEl) amtEl.textContent = currency.format(amount);
+  const qr = byId("pix-qr-img"); if (qr) qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(code)}`;
+  const cnpjEl = byId("pix-cnpj-display"); if (cnpjEl) cnpjEl.textContent = settings.pix_key || settings.pix_cnpj || key;
+}
+
 function copyPix() {
-  const cnpj = settings.pix_cnpj || "66.686.680/0001-57";
-  navigator.clipboard.writeText(cnpj).then(() => {
+  const text = window._pixCode || settings.pix_cnpj || "66.686.680/0001-57";
+  navigator.clipboard.writeText(text).then(() => {
     const btn = byId("pix-copy-btn");
     btn.textContent = "Copiado!";
     setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
   }).catch(() => {
-    showToast(`Chave PIX: ${cnpj}`);
+    const codeEl = byId("pix-code-display");
+    if (codeEl) { codeEl.focus(); codeEl.select(); }
+    showToast("Pix copia e cola pronto — toque em copiar no campo.");
   });
 }
 
