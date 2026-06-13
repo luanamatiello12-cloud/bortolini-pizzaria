@@ -2613,16 +2613,6 @@ function renderIntegrations() {
   byId("integration-whatsapp-token").value = settings.whatsapp_token || "";
   const pnid = byId("integration-phone-number-id"); if(pnid) pnid.value = settings.phone_number_id || "";
   byId("integration-gps-interval").value = settings.gps_interval || "30 segundos";
-  byId("integration-domain").value = settings.domain || "";
-  byId("deploy-db").checked = settings.deploy_db === "true";
-  byId("deploy-env").checked = settings.deploy_env === "true";
-  byId("deploy-https").checked = settings.deploy_https === "true";
-  byId("integration-evolution-url").value = settings.evolution_url || "";
-  byId("integration-evolution-instance").value = settings.evolution_instance || "";
-  byId("integration-evolution-apikey").value = settings.evolution_apikey || "";
-  const baseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
-  const webhookEl = byId("evolution-webhook-url");
-  if (webhookEl) webhookEl.textContent = `${baseUrl}/api/webhook/evolution`;
 }
 
 async function advanceOrder(id) {
@@ -4174,13 +4164,6 @@ async function saveIntegrations() {
     whatsapp_token: byId("integration-whatsapp-token").value,
     phone_number_id: byId("integration-phone-number-id") ? byId("integration-phone-number-id").value : "",
     gps_interval: byId("integration-gps-interval").value,
-    domain: byId("integration-domain").value,
-    deploy_db: String(byId("deploy-db").checked),
-    deploy_env: String(byId("deploy-env").checked),
-    deploy_https: String(byId("deploy-https").checked),
-    evolution_url: byId("integration-evolution-url").value.trim(),
-    evolution_instance: byId("integration-evolution-instance").value.trim(),
-    evolution_apikey: byId("integration-evolution-apikey").value.trim(),
   };
   try {
     settings = state.apiOnline
@@ -4340,7 +4323,6 @@ function switchView(viewId) {
   document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
   // Renderizar entregas quando aba Entregas for ativada
-  if (viewId === "integrations") { waStartPolling(); } else { waStopPolling(); }
   if (viewId === "inbox") { inboxStartPolling(); } else { inboxStopPolling(); }
   if (viewId === "delivery") {
     setTimeout(() => renderDelivery(), 150);
