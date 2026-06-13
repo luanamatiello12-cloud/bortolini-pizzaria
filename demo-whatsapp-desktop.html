@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bortolini · App Desktop (demonstração)</title>
+<style>
+  :root{
+    --brand:#dc2626; --brand-dark:#b91c1c;
+    --wa-green:#25D366; --wa-teal:#075E54; --wa-teal2:#128C7E;
+    --wa-bg:#ECE5DD; --wa-out:#DCF8C6; --ink:#111827; --muted:#6b7280;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:'Segoe UI',Inter,system-ui,Arial,sans-serif;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:linear-gradient(135deg,#1f2937,#374151 60%,#4b5563);
+  }
+  .demo-badge{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);
+    background:#facc15;color:#3f3f00;font-weight:700;font-size:.72rem;
+    padding:5px 12px;border-radius:999px;letter-spacing:.05em;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:10;
+  }
+  .app-window{
+    width:100%;max-width:1180px;height:720px;background:#fff;border-radius:12px;overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);display:flex;flex-direction:column;
+  }
+  /* Barra de título do app desktop */
+  .titlebar{
+    height:40px;background:#1f2937;display:flex;align-items:center;gap:12px;padding:0 14px;flex:0 0 auto;color:#e5e7eb;
+  }
+  .lights{display:flex;gap:8px}
+  .lights span{width:12px;height:12px;border-radius:50%}
+  .lights .r{background:#ff5f57}.lights .y{background:#febc2e}.lights .g{background:#28c840}
+  .titlebar .title{font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:8px}
+  .titlebar .title .pin{color:var(--brand)}
+  .titlebar .spacer{flex:1}
+  .titlebar .ver{font-size:.7rem;color:#9ca3af}
+
+  .body{flex:1;display:flex;min-height:0}
+
+  /* Rail lateral Bortolini */
+  .rail{width:70px;background:linear-gradient(180deg,var(--brand),var(--brand-dark));display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;flex:0 0 auto}
+  .rail .logo{width:42px;height:42px;border-radius:12px;background:#fff;color:var(--brand);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:10px}
+  .rail .ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;opacity:.8;cursor:pointer}
+  .rail .ico small{display:none}
+  .rail .ico.active{background:rgba(255,255,255,.22);opacity:1}
+  .rail .ico:hover{opacity:1;background:rgba(255,255,255,.14)}
+
+  /* Painel de pedidos */
+  .orders{width:300px;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;flex:0 0 auto;background:#fafafa}
+  .orders h2{margin:0;padding:16px;font-size:1rem;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+  .orders h2 .live{font-size:.66rem;color:#fff;background:var(--brand);padding:3px 8px;border-radius:999px}
+  .orders .list{overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+  .ocard{background:#fff;border:1px solid #eee;border-radius:12px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .ocard .top{display:flex;justify-content:space-between;align-items:center}
+  .ocard strong{font-size:.9rem}
+  .ocard .pill{font-size:.66rem;padding:3px 8px;border-radius:999px;font-weight:600}
+  .pill.novo{background:#fef3c7;color:#92400e}.pill.cozinha{background:#dbeafe;color:#1e40af}.pill.entrega{background:#dcfce7;color:#166534}
+  .ocard p{margin:6px 0 4px;font-size:.8rem;color:#374151}
+  .ocard .time{font-size:.74rem;color:var(--muted)}
+
+  /* Painel WhatsApp */
+  .wa{flex:1;display:flex;min-width:0}
+  .wa-list{width:260px;border-right:1px solid #d1d7db;display:flex;flex-direction:column;flex:0 0 auto;background:#fff}
+  .wa-list .head{background:#f0f2f5;height:56px;display:flex;align-items:center;padding:0 14px;gap:8px;color:var(--wa-teal);font-weight:700}
+  .wa-list .search{padding:8px 12px;background:#fff}
+  .wa-list .search input{width:100%;border:none;background:#f0f2f5;border-radius:8px;padding:8px 12px;font-size:.82rem}
+  .wa-list .chats{overflow:auto;flex:1}
+  .chat{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #f0f2f5;cursor:pointer;align-items:center}
+  .chat:hover{background:#f5f6f6}.chat.active{background:#f0f2f5}
+  .chat .av{width:42px;height:42px;border-radius:50%;background:#cfd8dc;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex:0 0 auto}
+  .chat .meta{flex:1;min-width:0}
+  .chat .meta .n{display:flex;justify-content:space-between;font-size:.86rem;font-weight:600}
+  .chat .meta .n span{font-size:.68rem;color:var(--muted);font-weight:400}
+  .chat .meta .m{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat .badge{background:var(--wa-green);color:#fff;border-radius:999px;font-size:.66rem;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+  .wa-thread{flex:1;display:flex;flex-direction:column;min-width:0}
+  .wa-thread .head{background:#f0f2f5;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;flex:0 0 auto;border-left:1px solid #d1d7db}
+  .wa-thread .head .av{width:38px;height:38px;border-radius:50%;background:var(--wa-teal2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .wa-thread .head .info strong{display:block;font-size:.9rem}
+  .wa-thread .head .info span{font-size:.72rem;color:var(--muted)}
+  .wa-msgs{flex:1;overflow:auto;padding:18px;background-color:var(--wa-bg);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 39h40M39 0v40' stroke='%23d8cfc4' stroke-width='.5' opacity='.5'/%3E%3C/svg%3E");
+    display:flex;flex-direction:column;gap:8px}
+  .bubble{max-width:72%;padding:7px 10px 5px;border-radius:8px;font-size:.84rem;line-height:1.35;box-shadow:0 1px 1px rgba(0,0,0,.08);position:relative}
+  .bubble .t{display:block;text-align:right;font-size:.62rem;color:#667781;margin-top:2px}
+  .in{align-self:flex-start;background:#fff;border-top-left-radius:2px}
+  .out{align-self:flex-end;background:var(--wa-out);border-top-right-radius:2px}
+  .daysep{align-self:center;background:#fff;color:#54656f;font-size:.68rem;padding:4px 10px;border-radius:8px;box-shadow:0 1px 1px rgba(0,0,0,.06);margin:4px 0}
+  .wa-input{flex:0 0 auto;background:#f0f2f5;display:flex;align-items:center;gap:10px;padding:10px 14px;border-left:1px solid #d1d7db}
+  .wa-input .box{flex:1;background:#fff;border-radius:20px;padding:9px 14px;color:var(--muted);font-size:.84rem}
+  .wa-input .send{width:40px;height:40px;border-radius:50%;background:var(--wa-green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+
+  .note{flex:0 0 auto;background:#0f172a;color:#cbd5e1;font-size:.76rem;padding:10px 16px;display:flex;gap:8px;align-items:center}
+  .note code{background:#1e293b;color:#a5b4fc;padding:2px 6px;border-radius:5px;font-size:.72rem}
+  .note b{color:#fff}
+</style>
+</head>
+<body>
+  <div class="demo-badge">DEMONSTRAÇÃO — protótipo visual</div>
+
+  <div class="app-window">
+    <!-- Barra de título (janela do app desktop) -->
+    <div class="titlebar">
+      <div class="lights"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+      <div class="title"><span class="pin">🍕</span> Bortolini · Central de Atendimento</div>
+      <div class="spacer"></div>
+      <div class="ver">app desktop v1.0</div>
+    </div>
+
+    <div class="body">
+      <!-- Rail Bortolini -->
+      <nav class="rail">
+        <div class="logo">B</div>
+        <div class="ico" title="Pedidos">🧾</div>
+        <div class="ico" title="Cardápio">📋</div>
+        <div class="ico" title="Entregas">🛵</div>
+        <div class="ico active" title="Atendimento WhatsApp">💬</div>
+        <div class="ico" title="Financeiro">💰</div>
+        <div class="ico" title="Configurações">⚙️</div>
+      </nav>
+
+      <!-- Pedidos ao vivo -->
+      <section class="orders">
+        <h2>Pedidos ao vivo <span class="live">● 3 ativos</span></h2>
+        <div class="list">
+          <div class="ocard">
+            <div class="top"><strong>#1042 · Marcos</strong><span class="pill novo">Novo</span></div>
+            <p>1x Pizza GG (Calabresa + Catupiry)</p>
+            <div class="time">🕒 12/06, 20:58 · há 2 min</div>
+          </div>
+          <div class="ocard">
+            <div class="top"><strong>#1041 · Júlia</strong><span class="pill cozinha">Cozinha</span></div>
+            <p>1x Combo Pizza GG + Broto Grátis</p>
+            <div class="time">🕒 12/06, 20:49 · há 11 min</div>
+          </div>
+          <div class="ocard">
+            <div class="top"><strong>#1040 · Pedro</strong><span class="pill entrega">Entrega</span></div>
+            <p>2x Pizza M (Portuguesa) · 1x Coca 2L</p>
+            <div class="time">🕒 12/06, 20:35 · há 25 min</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WhatsApp Web (no app real: <webview> carregando web.whatsapp.com) -->
+      <section class="wa">
+        <div class="wa-list">
+          <div class="head">💬 WhatsApp</div>
+          <div class="search"><input placeholder="Pesquisar ou começar nova conversa" /></div>
+          <div class="chats">
+            <div class="chat active">
+              <div class="av" style="background:#7e57c2">M</div>
+              <div class="meta"><div class="n">Marcos (Pedido #1042) <span>20:58</span></div><div class="m">Pode mandar pra confirmar o endereço?</div></div>
+              <div class="badge">2</div>
+            </div>
+            <div class="chat">
+              <div class="av" style="background:#26a69a">J</div>
+              <div class="meta"><div class="n">Júlia <span>20:50</span></div><div class="m">Perfeito, obrigada! 😋</div></div>
+            </div>
+            <div class="chat">
+              <div class="av" style="background:#ef5350">P</div>
+              <div class="meta"><div class="n">Pedro <span>20:36</span></div><div class="m">Já saiu pra entrega?</div></div>
+              <div class="badge">1</div>
+            </div>
+            <div class="chat">
+              <div class="av" style="background:#ffa726">A</div>
+              <div class="meta"><div class="n">Ana Clara <span>19:12</span></div><div class="m">Vocês têm pizza doce?</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wa-thread">
+          <div class="head">
+            <div class="av">M</div>
+            <div class="info"><strong>Marcos (Pedido #1042)</strong><span>online</span></div>
+          </div>
+          <div class="wa-msgs">
+            <div class="daysep">HOJE</div>
+            <div class="bubble in">Boa noite! Acabei de fazer um pedido pelo cardápio 🍕<span class="t">20:55</span></div>
+            <div class="bubble out">Boa noite, Marcos! Pedido <b>#1042</b> recebido ✅ Pizza GG Calabresa + Catupiry.<span class="t">20:56</span></div>
+            <div class="bubble out">Forma de pagamento: PIX. Assim que cair, já mandamos pra cozinha 👨‍🍳<span class="t">20:56</span></div>
+            <div class="bubble in">Show! Pode mandar pra confirmar o endereço?<span class="t">20:58</span></div>
+            <div class="bubble in">Rua das Flores, 120 - Centro<span class="t">20:58</span></div>
+          </div>
+          <div class="wa-input">
+            <div class="box">Digite uma mensagem</div>
+            <div class="send">➤</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="note">
+      ℹ️ <span><b>Como funciona no app real:</b> este painel direito é um <code>&lt;webview src="https://web.whatsapp.com"&gt;</code> dentro do Electron — carrega o WhatsApp Web de verdade ao lado do sistema Bortolini. No navegador isso é bloqueado; só no app desktop.</span>
+    </div>
+  </div>
+</body>
+</html>
