@@ -3527,9 +3527,22 @@ function parseOptionGroups(raw) {
   catch { return []; }
 }
 
+function menuImportCategories() {
+  const counts = {};
+  (menuItems || []).forEach((it) => {
+    if (!it.active) return;
+    const c = (it.category || "").trim();
+    if (!c) return;
+    counts[c] = (counts[c] || 0) + 1;
+  });
+  return Object.keys(counts).sort().map((c) => ({ category: c, count: counts[c] }));
+}
+
 function renderOptionGroupsEditor() {
   const box = byId("product-option-groups");
   if (!box) return;
+  const cats = menuImportCategories();
+  const catOptions = cats.map((c) => `<option value="${escapeHtml(c.category)}">${escapeHtml(c.category)} (${c.count})</option>`).join("");
   box.innerHTML = productOptionGroups.map((g, gi) => `
     <div class="opt-group">
       <div class="opt-group-top">
@@ -3541,9 +3554,17 @@ function renderOptionGroupsEditor() {
         <label>Máx<input type="number" min="1" value="${Number(g.max || 1)}" oninput="updateOptionGroup(${gi},'max',this.value)" /></label>
         <label class="inline-check"><input type="checkbox" ${g.required ? "checked" : ""} onchange="updateOptionGroup(${gi},'required',this.checked)" /> Obrigatório</label>
       </div>
+      <div class="opt-import">
+        <select id="opt-import-${gi}" class="opt-import-cat">
+          <option value="">Importar do cardápio…</option>
+          ${catOptions}
+        </select>
+        <button type="button" class="ghost opt-import-btn" onclick="importMenuOptions(${gi})">Importar todos</button>
+      </div>
       <div class="opt-options">
         ${(g.options || []).map((o, oi) => `
           <div class="opt-row">
+            ${o.image_url ? `<img class="opt-thumb" src="${escapeHtml(o.image_url)}" alt="" />` : ""}
             <input class="opt-name" placeholder="Nome da opção" value="${escapeHtml(o.name || "")}" oninput="updateOption(${gi},${oi},'name',this.value)" />
             <input class="opt-price" type="number" step="0.01" placeholder="+R$" value="${o.price ? Number(o.price) : ""}" oninput="updateOption(${gi},${oi},'price',this.value)" />
             <button type="button" class="opt-del" onclick="removeOption(${gi},${oi})" title="Remover opção">×</button>
@@ -3553,6 +3574,27 @@ function renderOptionGroupsEditor() {
     </div>
   `).join("");
   renderComboPreview();
+}
+
+function importMenuOptions(gi) {
+  const g = productOptionGroups[gi];
+  if (!g) return;
+  const cat = byId(`opt-import-${gi}`)?.value || "";
+  if (!cat) { showToast("Escolha uma categoria para importar."); return; }
+  g.options = (g.options || []).filter((o) => (o.name || "").trim());
+  const existing = new Set(g.options.map((o) => (o.name || "").trim().toLowerCase()));
+  let added = 0;
+  (menuItems || [])
+    .filter((it) => it.active && (it.category || "").trim() === cat)
+    .forEach((it) => {
+      const name = (it.name || "").trim();
+      if (!name || existing.has(name.toLowerCase())) return;
+      g.options.push({ name, price: 0, desc: it.description || "", image_url: it.image_url || "" });
+      existing.add(name.toLowerCase());
+      added++;
+    });
+  renderOptionGroupsEditor();
+  showToast(added ? `${added} ${added === 1 ? "sabor importado" : "sabores importados"} de ${cat}.` : `Nenhum item novo em ${cat}.`);
 }
 
 // Pré-visualização do combo dentro do editor (igual à tela do cliente)

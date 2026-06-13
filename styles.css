@@ -3893,6 +3893,10 @@ img.photo-placeholder{background:#e5e7eb;min-height:80px;border:none}
 .opt-row{display:flex;gap:6px;align-items:center}
 .opt-row .opt-name{flex:1}
 .opt-row .opt-price{width:90px}
+.opt-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;flex:0 0 auto}
+.opt-import{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.opt-import-cat{flex:1}
+.opt-import-btn{white-space:nowrap;font-size:.82rem;padding:6px 10px;color:var(--brand);border-color:var(--brand)}
 .opt-del{background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;width:30px;height:30px;font-size:1.1rem;cursor:pointer;flex:0 0 auto}
 .add-opt-btn,.add-group-btn{font-size:.82rem;padding:6px 10px}
 .add-group-btn{width:100%;margin-top:4px}
