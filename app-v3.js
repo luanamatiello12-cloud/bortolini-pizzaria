@@ -631,7 +631,9 @@ function formatDiscount(promotion) {
 
 function formatDateTime(value) {
   if (!value) return "sem data";
-  return new Date(value).toLocaleString("pt-BR", {
+  const d = parseOrderDate(value) || new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
