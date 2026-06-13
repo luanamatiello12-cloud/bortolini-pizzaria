@@ -31,9 +31,18 @@ npm start
 - Roda só no computador onde o app está aberto; mantenha-o ligado para receber mensagens.
 - Use um número dedicado da pizzaria.
 
-## Gerar instalador (.exe) — opcional
+## Gerar instalador (.exe) para a pizzaria
+
+Numa máquina **com Node 18+** (qualquer uma, faz isso uma vez):
 
 ```bash
-npm install --save-dev electron-builder
-npx electron-builder --win
+cd desktop-app
+npm install
+npm run dist
 ```
+
+O instalador sai em `desktop-app/dist/` (ex.: `Bortolini Setup 1.0.0.exe`).
+Copie esse `.exe` para o computador da pizzaria e execute — **não precisa de Node lá**,
+instala como qualquer programa e cria atalho na área de trabalho.
+
+> Ícone próprio (opcional): coloque um `build/icon.ico` (256×256) antes do `npm run dist`.
