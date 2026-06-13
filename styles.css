@@ -3876,3 +3876,63 @@ h1,#view-title{font-size:1.5rem}
 }.wa-edit-name{background:none;border:none;color:#8696a0;cursor:pointer;font-size:.85rem;margin-left:6px}
 
 img.photo-placeholder{background:#e5e7eb;min-height:80px;border:none}
+
+/* ===== Editor de grupos de opções (admin) ===== */
+.option-groups-editor{margin:14px 0;padding:14px;border:1px dashed #d1d5db;border-radius:12px;background:#fafafa}
+.option-groups-editor-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.option-groups-editor-head strong{font-size:.95rem}
+.option-groups-editor-head small{color:#6b7280;font-size:.78rem;line-height:1.3}
+.opt-group{border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px;background:#fff}
+.opt-group-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.opt-group-label{flex:1;font-weight:600}
+.opt-group-rules{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.opt-group-rules label{display:flex;flex-direction:column;font-size:.72rem;color:#6b7280;gap:2px}
+.opt-group-rules input[type=number]{width:64px}
+.opt-group-rules .inline-check{flex-direction:row;align-items:center;gap:4px;font-size:.8rem;color:#374151;margin-top:14px}
+.opt-options{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.opt-row{display:flex;gap:6px;align-items:center}
+.opt-row .opt-name{flex:1}
+.opt-row .opt-price{width:90px}
+.opt-del{background:#fee2e2;color:#b91c1c;border:none;border-radius:8px;width:30px;height:30px;font-size:1.1rem;cursor:pointer;flex:0 0 auto}
+.add-opt-btn,.add-group-btn{font-size:.82rem;padding:6px 10px}
+.add-group-btn{width:100%;margin-top:4px}
+
+/* ===== Personalizador de combo (cliente) ===== */
+.combo-dialog{border:none;border-radius:18px;padding:0;max-width:480px;width:94vw;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.combo-dialog::backdrop{background:rgba(0,0,0,.45)}
+.combo-dialog-card{display:flex;flex-direction:column;max-height:90vh;padding:0}
+.combo-dialog-head{position:relative}
+.combo-dialog-cover{height:150px;background-size:cover;background-position:center;background-color:#f3f4f6}
+.combo-dialog-cover.empty{background:linear-gradient(135deg,#fde2e2,#f3f4f6)}
+.combo-close{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:1.1rem;cursor:pointer;z-index:2}
+.combo-dialog-body{padding:16px 18px;overflow-y:auto;flex:1}
+.combo-dialog-body h2{margin:0 0 4px;font-size:1.3rem}
+.combo-dialog-desc{color:#6b7280;font-size:.88rem;line-height:1.4;margin:0 0 8px}
+.combo-dialog-baseprice{display:block;font-size:1.15rem;color:#111;margin-bottom:14px}
+.combo-group{margin:0 -18px 14px}
+.combo-group-head{display:flex;justify-content:space-between;align-items:center;background:#f3f4f6;padding:12px 18px}
+.combo-group-head strong{display:block;font-size:1rem}
+.combo-group-head span{font-size:.8rem;color:#6b7280}
+.combo-required{background:#111827;color:#fff;font-size:.68rem;font-weight:700;padding:5px 9px;border-radius:6px;letter-spacing:.03em;white-space:nowrap}
+.combo-option{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #f1f1f1;cursor:pointer;transition:background .12s}
+.combo-option:hover{background:#fafafa}
+.combo-option-info{flex:1;min-width:0}
+.combo-option-info strong{font-weight:500;font-size:.95rem}
+.combo-option-info p{margin:2px 0 0;font-size:.8rem;color:#6b7280;line-height:1.35}
+.combo-option-price{display:inline-block;margin-top:4px;font-size:.82rem;color:#374151}
+.combo-option-img{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:0 0 auto}
+.combo-radio{width:22px;height:22px;border-radius:50%;border:2px solid #d1d5db;flex:0 0 auto}
+.combo-radio.on{border-color:var(--brand);background:radial-gradient(circle,var(--brand) 0 6px,#fff 7px)}
+.combo-plus{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--brand);font-size:1.2rem;font-weight:700;flex:0 0 auto}
+.combo-plus.on{background:var(--brand);color:#fff}
+.combo-option.selected{background:#fff5f5}
+.combo-obs{display:block;margin-top:14px}
+.combo-obs-head{display:flex;justify-content:space-between;font-weight:600;font-size:.9rem;margin-bottom:6px}
+.combo-obs-head small{color:#9ca3af;font-weight:400}
+.combo-obs textarea{width:100%;min-height:60px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font:inherit;resize:vertical}
+.combo-dialog-footer{display:flex;gap:12px;align-items:center;padding:12px 18px;border-top:1px solid #eee;background:#fff}
+.combo-qty{display:flex;align-items:center;gap:14px;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px}
+.combo-qty button{background:none;border:none;color:var(--brand);font-size:1.3rem;cursor:pointer;line-height:1;width:20px}
+.combo-qty span{min-width:18px;text-align:center;font-weight:600}
+.combo-add-btn{flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
+@media(max-width:480px){.combo-dialog{width:100vw;max-width:100vw;border-radius:18px 18px 0 0;margin:0;position:fixed;bottom:0;top:auto}.combo-dialog-card{max-height:92vh}}

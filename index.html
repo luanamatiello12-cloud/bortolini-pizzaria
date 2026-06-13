@@ -892,6 +892,15 @@
         <label>Brinde 1 do combo (opcional)<input id="product-gift" placeholder="Ex: 1 refri 2L gratis" /></label>
         <label>Brinde 2 do combo (opcional)<input id="product-gift2" placeholder="Ex: 1 sobremesa gratis" /></label>
         <label class="inline-check"><input type="checkbox" id="product-free-delivery" /> Frete grátis (combo)</label>
+
+        <div class="option-groups-editor">
+          <div class="option-groups-editor-head">
+            <strong>Personalização (grupos de opções)</strong>
+            <small>Crie grupos como "Escolha seu sabor" e marque obrigatório, mínimo e máximo. O cliente escolhe na hora do pedido.</small>
+          </div>
+          <div id="product-option-groups"></div>
+          <button type="button" class="ghost add-group-btn" onclick="addOptionGroup()">+ Adicionar grupo de opções</button>
+        </div>
         <label>
           Preço
           <input id="product-price" type="number" step="0.01" placeholder="0,00" />
@@ -1013,7 +1022,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260610D"></script>
+    <script defer src="/app-v3.js?v=20260612A"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1284,6 +1293,36 @@
       <p id="pizza-flavors-dialog-premium" style="color:#dc2626;font-size:0.85rem;text-align:center;margin:4px 0;display:none;"></p>
       <p class="form-error" id="pizza-flavors-dialog-error"></p>
       <button class="primary" id="pizza-flavors-dialog-add" type="button" onclick="addPizzaFromFlavorsDialog()">Adicionar ao carrinho</button>
+    </div>
+  </dialog>
+
+  <dialog id="combo-dialog" class="combo-dialog">
+    <div class="dialog-card combo-dialog-card">
+      <div class="combo-dialog-head">
+        <button class="icon-button combo-close" onclick="byId('combo-dialog').close()" aria-label="Fechar">⌄</button>
+        <div class="combo-dialog-cover" id="combo-dialog-cover"></div>
+      </div>
+      <div class="combo-dialog-body">
+        <h2 id="combo-dialog-title">Combo</h2>
+        <p id="combo-dialog-desc" class="combo-dialog-desc"></p>
+        <strong id="combo-dialog-baseprice" class="combo-dialog-baseprice"></strong>
+        <div id="combo-dialog-groups"></div>
+        <label class="combo-obs">
+          <span class="combo-obs-head">💬 Alguma observação? <small id="combo-obs-count">0/140</small></span>
+          <textarea id="combo-dialog-notes" maxlength="140" placeholder="Ex: tirar a cebola, maionese à parte etc." oninput="byId('combo-obs-count').textContent=this.value.length+'/140'"></textarea>
+        </label>
+        <p class="form-error" id="combo-dialog-error"></p>
+      </div>
+      <div class="combo-dialog-footer">
+        <div class="combo-qty">
+          <button type="button" onclick="changeComboQty(-1)">−</button>
+          <span id="combo-dialog-qty">1</span>
+          <button type="button" onclick="changeComboQty(1)">+</button>
+        </div>
+        <button class="primary combo-add-btn" type="button" onclick="addComboFromDialog()">
+          <span>Adicionar</span><strong id="combo-dialog-total">R$ 0,00</strong>
+        </button>
+      </div>
     </div>
   </dialog>
 

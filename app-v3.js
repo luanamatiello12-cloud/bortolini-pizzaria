@@ -25,6 +25,7 @@ let settings = {};
 let cart = [];
 let editingProductId = null;
 let editingPromotionId = null;
+let productOptionGroups = [];
 let editingZoneId = null;
 let cancelOrderId = null;
 let closeout = null;
@@ -1394,8 +1395,11 @@ function renderCustomerStore() {
   // Combos
   const combos = menuItems.filter((item) => item.active && (item.category === "Combos" || item.category === "Combo"));
   if (byId("store-combos")) byId("store-combos").innerHTML = combos.length
-    ? combos.map((item) => `
-        <article class="menu-card-ifood">
+    ? combos.map((item) => {
+        const hasGroups = parseOptionGroups(item.option_groups).length > 0;
+        const onAdd = hasGroups ? `openComboCustomizer(${item.id})` : `addBebidaToCartAnimated(${item.id})`;
+        return `
+        <article class="menu-card-ifood"${hasGroups ? ` onclick="openComboCustomizer(${item.id})" style="cursor:pointer"` : ""}>
           <div class="ifood-info">
             <strong>${escapeHtml(item.name)}</strong>
             <p>${escapeHtml(item.description) || "Combo"}</p>
@@ -1404,9 +1408,9 @@ function renderCustomerStore() {
           </div>
           <div class="ifood-right">
             ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
-            <button class="add-btn-round" onclick="addBebidaToCartAnimated(${item.id})">+</button>
+            <button class="add-btn-round" onclick="event.stopPropagation();${onAdd}">+</button>
           </div>
-        </article>`).join("")
+        </article>`; }).join("")
     : `<p class="form-hint">Nenhum combo disponível.</p>`;
 
   // Promoções
@@ -1555,6 +1559,151 @@ function addPizzaFromFlavorsDialog() {
   showToast("Pizza adicionada ao carrinho!");
 }
 
+// ===== Personalizador de combo (cliente, estilo iFood) =====
+let comboState = { itemId: null, item: null, groups: [], selections: [], qty: 1, basePrice: 0 };
+
+function groupSubtitle(g) {
+  const min = Number(g.min || 0), max = Number(g.max || 1);
+  if (max === 1) return "Escolha 1 opção";
+  if (min > 0 && min === max) return `Escolha ${max} opções`;
+  if (min > 0) return `Escolha de ${min} a ${max}`;
+  return `Escolha até ${max} ${max === 1 ? "opção" : "opções"}`;
+}
+
+function openComboCustomizer(itemId) {
+  const item = menuItems.find((m) => m.id === itemId);
+  if (!item) return;
+  const groups = parseOptionGroups(item.option_groups);
+  comboState = { itemId, item, groups, selections: groups.map(() => []), qty: 1, basePrice: Number(item.price) || 0 };
+  byId("combo-dialog-title").textContent = item.name;
+  byId("combo-dialog-desc").textContent = item.description || "";
+  byId("combo-dialog-baseprice").textContent = comboState.basePrice > 0 ? currency.format(comboState.basePrice) : "";
+  const cover = byId("combo-dialog-cover");
+  cover.style.backgroundImage = item.image_url ? `url("${item.image_url}")` : "";
+  cover.classList.toggle("empty", !item.image_url);
+  byId("combo-dialog-notes").value = "";
+  byId("combo-obs-count").textContent = "0/140";
+  byId("combo-dialog-qty").textContent = "1";
+  byId("combo-dialog-error").textContent = "";
+  renderComboGroups();
+  updateComboTotal();
+  byId("combo-dialog").showModal();
+}
+
+function renderComboGroups() {
+  byId("combo-dialog-groups").innerHTML = comboState.groups.map((g, gi) => {
+    const sel = comboState.selections[gi] || [];
+    const required = g.required || Number(g.min || 0) > 0;
+    const options = (g.options || []).map((o, oi) => {
+      const isSel = sel.some((s) => s.oi === oi);
+      const single = Number(g.max || 1) === 1;
+      const control = single
+        ? `<span class="combo-radio ${isSel ? "on" : ""}"></span>`
+        : `<span class="combo-plus ${isSel ? "on" : ""}">${isSel ? "✓" : "+"}</span>`;
+      return `
+        <div class="combo-option ${isSel ? "selected" : ""}" onclick="toggleComboOption(${gi},${oi})">
+          <div class="combo-option-info">
+            <strong>${escapeHtml(o.name)}</strong>
+            ${o.desc ? `<p>${escapeHtml(o.desc)}</p>` : ""}
+            ${Number(o.price) > 0 ? `<span class="combo-option-price">+ ${currency.format(o.price)}</span>` : ""}
+          </div>
+          ${o.image_url ? `<img class="combo-option-img" src="${escapeHtml(o.image_url)}" alt="${escapeHtml(o.name)}" />` : ""}
+          ${control}
+        </div>`;
+    }).join("");
+    return `
+      <section class="combo-group">
+        <div class="combo-group-head">
+          <div>
+            <strong>${escapeHtml(g.label)}</strong>
+            <span>${groupSubtitle(g)}</span>
+          </div>
+          ${required ? `<span class="combo-required">OBRIGATÓRIO</span>` : ""}
+        </div>
+        ${options}
+      </section>`;
+  }).join("");
+}
+
+function toggleComboOption(gi, oi) {
+  const g = comboState.groups[gi];
+  if (!g) return;
+  const sel = comboState.selections[gi];
+  const max = Number(g.max || 1);
+  const idx = sel.findIndex((s) => s.oi === oi);
+  if (idx >= 0) {
+    sel.splice(idx, 1);
+  } else if (max === 1) {
+    comboState.selections[gi] = [{ oi }];
+  } else if (sel.length < max) {
+    sel.push({ oi });
+  } else {
+    showToast(`Máximo de ${max} neste grupo`);
+    return;
+  }
+  byId("combo-dialog-error").textContent = "";
+  renderComboGroups();
+  updateComboTotal();
+}
+
+function comboUnitPrice() {
+  let total = comboState.basePrice;
+  comboState.groups.forEach((g, gi) => {
+    (comboState.selections[gi] || []).forEach((s) => {
+      total += Number(g.options[s.oi]?.price || 0);
+    });
+  });
+  return total;
+}
+
+function updateComboTotal() {
+  byId("combo-dialog-total").textContent = currency.format(comboUnitPrice() * comboState.qty);
+}
+
+function changeComboQty(delta) {
+  comboState.qty = Math.min(99, Math.max(1, comboState.qty + delta));
+  byId("combo-dialog-qty").textContent = String(comboState.qty);
+  updateComboTotal();
+}
+
+function addComboFromDialog() {
+  for (let gi = 0; gi < comboState.groups.length; gi++) {
+    const g = comboState.groups[gi];
+    const sel = comboState.selections[gi] || [];
+    const min = g.required ? Math.max(1, Number(g.min || 0)) : Number(g.min || 0);
+    if (sel.length < min) {
+      byId("combo-dialog-error").textContent = `Escolha ${min > 1 ? min + " opções" : "1 opção"} em "${g.label}".`;
+      return;
+    }
+  }
+  const selections = comboState.groups.map((g, gi) => ({
+    group: g.label,
+    options: (comboState.selections[gi] || []).map((s) => ({ name: g.options[s.oi].name, price: Number(g.options[s.oi].price || 0) })),
+  })).filter((s) => s.options.length);
+  const notes = byId("combo-dialog-notes").value.trim();
+  cart.push({
+    type: "combo",
+    id: comboState.itemId,
+    name: comboState.item.name,
+    price: comboUnitPrice(),
+    qty: comboState.qty,
+    free_delivery: comboState.item.free_delivery ? 1 : 0,
+    selections,
+    notes,
+  });
+  saveCart();
+  renderCart();
+  hidePixConfirmation();
+  byId("combo-dialog").close();
+  showToast("Combo adicionado ao carrinho!");
+}
+
+function comboSelText(entry) {
+  return (entry.selections || [])
+    .map((s) => `${s.group}: ${s.options.map((o) => o.name).join(", ")}`)
+    .join(" · ");
+}
+
 let pizzaBuilderState = {
   sizeKey: "",
   flavors: [],
@@ -1663,10 +1812,13 @@ function renderCart() {
               </article>
             `;
           }
+          const comboInfo = entry.type === "combo" ? comboSelText(entry) : "";
+          const comboNotes = entry.type === "combo" && entry.notes ? ` <small>(${entry.notes})</small>` : "";
           return `
             <article class="cart-item">
               <div class="cart-item-info">
                 <strong>${entry.qty}x ${entry.name}</strong>
+                ${comboInfo ? `<p>${escapeHtml(comboInfo)}${comboNotes}</p>` : ""}
               </div>
               <div class="cart-item-actions">
                 <span>${currency.format(entry.price * entry.qty)}</span>
@@ -1714,11 +1866,14 @@ function openCartReview() {
               </div>
             `;
           }
+          const comboInfo = entry.type === "combo" ? comboSelText(entry) : "";
+          const comboNotes = entry.type === "combo" && entry.notes ? ` · ${entry.notes}` : "";
           return `
             <div class="ifood-item-row">
               <span class="ifood-item-qty">${entry.qty}x</span>
               <div class="ifood-item-info">
                 <strong>${escapeHtml(entry.name)}</strong>
+                ${comboInfo ? `<p>${escapeHtml(comboInfo + comboNotes)}</p>` : ""}
               </div>
               <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
               <button type="button" class="ifood-remove" onclick="removeFromCart(${index})" title="Remover">×</button>
@@ -2611,6 +2766,7 @@ async function createProduct() {
     addons: byId("product-addons").value.trim(),
     price: Number(byId("product-price").value),
     image_url: productPhotoData,
+    option_groups: productOptionGroups.filter((g) => (g.label || "").trim() && (g.options || []).some((o) => (o.name || "").trim())),
   };
 
   byId("product-error").textContent = "";
@@ -2653,6 +2809,8 @@ async function createProduct() {
     byId("product-price").value = "";
     byId("product-photo").value = "";
     productPhotoData = "";
+    productOptionGroups = [];
+    renderOptionGroupsEditor();
     editingProductId = null;
     byId("create-product").textContent = "Criar produto";
     byId("product-dialog").close();
@@ -3167,6 +3325,10 @@ async function checkoutCart() {
       const flavors = entry.flavors.map((f) => f.name).join(" + ");
       return `${entry.qty}x ${entry.sizeLabel} (${flavors})`;
     }
+    if (entry.type === "combo") {
+      const sel = comboSelText(entry);
+      return `${entry.qty}x ${entry.name}${sel ? ` (${sel})` : ""}`;
+    }
     return `${entry.qty}x ${entry.name}`;
   });
 
@@ -3183,6 +3345,9 @@ async function checkoutCart() {
   cart.forEach((entry) => {
     if (entry.type === "pizza" && entry.notes) {
       allNotes.push(`${entry.sizeLabel}: ${entry.notes}`);
+    }
+    if (entry.type === "combo" && entry.notes) {
+      allNotes.push(`${entry.name}: ${entry.notes}`);
     }
   });
 
@@ -3205,7 +3370,7 @@ async function checkoutCart() {
       name: entry.type === "pizza" ? `${entry.sizeLabel} (${entry.flavors.map((f) => f.name).join(" + ")})` : entry.name,
       qty: entry.qty,
       price: entry.price,
-      extras: entry.type === "pizza" ? formatPremiumExtras(entry.flavors) : "",
+      extras: entry.type === "pizza" ? formatPremiumExtras(entry.flavors) : (entry.type === "combo" ? comboSelText(entry) : ""),
     })),
     total,
     payment: document.querySelector('input[name="checkout-payment"]:checked')?.value || "PIX",
@@ -3354,6 +3519,68 @@ function renderOrderTimeline(status) {
     .join("");
 }
 
+// ===== Editor de grupos de opções (admin) =====
+function parseOptionGroups(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+
+function renderOptionGroupsEditor() {
+  const box = byId("product-option-groups");
+  if (!box) return;
+  box.innerHTML = productOptionGroups.map((g, gi) => `
+    <div class="opt-group">
+      <div class="opt-group-top">
+        <input class="opt-group-label" placeholder="Título do grupo (ex: Escolha seu sabor)" value="${escapeHtml(g.label || "")}" oninput="updateOptionGroup(${gi},'label',this.value)" />
+        <button type="button" class="opt-del" onclick="removeOptionGroup(${gi})" title="Remover grupo">×</button>
+      </div>
+      <div class="opt-group-rules">
+        <label>Mín<input type="number" min="0" value="${Number(g.min || 0)}" oninput="updateOptionGroup(${gi},'min',this.value)" /></label>
+        <label>Máx<input type="number" min="1" value="${Number(g.max || 1)}" oninput="updateOptionGroup(${gi},'max',this.value)" /></label>
+        <label class="inline-check"><input type="checkbox" ${g.required ? "checked" : ""} onchange="updateOptionGroup(${gi},'required',this.checked)" /> Obrigatório</label>
+      </div>
+      <div class="opt-options">
+        ${(g.options || []).map((o, oi) => `
+          <div class="opt-row">
+            <input class="opt-name" placeholder="Nome da opção" value="${escapeHtml(o.name || "")}" oninput="updateOption(${gi},${oi},'name',this.value)" />
+            <input class="opt-price" type="number" step="0.01" placeholder="+R$" value="${o.price ? Number(o.price) : ""}" oninput="updateOption(${gi},${oi},'price',this.value)" />
+            <button type="button" class="opt-del" onclick="removeOption(${gi},${oi})" title="Remover opção">×</button>
+          </div>`).join("")}
+      </div>
+      <button type="button" class="ghost add-opt-btn" onclick="addOption(${gi})">+ Adicionar opção</button>
+    </div>
+  `).join("");
+}
+
+function addOptionGroup() {
+  productOptionGroups.push({ label: "", min: 1, max: 1, required: true, options: [{ name: "", price: 0 }] });
+  renderOptionGroupsEditor();
+}
+function removeOptionGroup(gi) { productOptionGroups.splice(gi, 1); renderOptionGroupsEditor(); }
+function updateOptionGroup(gi, field, value) {
+  if (!productOptionGroups[gi]) return;
+  if (field === "min" || field === "max") value = Math.max(0, parseInt(value, 10) || 0);
+  productOptionGroups[gi][field] = value;
+}
+function addOption(gi) {
+  if (!productOptionGroups[gi]) return;
+  productOptionGroups[gi].options = productOptionGroups[gi].options || [];
+  productOptionGroups[gi].options.push({ name: "", price: 0 });
+  renderOptionGroupsEditor();
+}
+function removeOption(gi, oi) {
+  if (!productOptionGroups[gi]) return;
+  productOptionGroups[gi].options.splice(oi, 1);
+  renderOptionGroupsEditor();
+}
+function updateOption(gi, oi, field, value) {
+  const opt = productOptionGroups[gi] && productOptionGroups[gi].options[oi];
+  if (!opt) return;
+  opt[field] = field === "price" ? (parseFloat(value) || 0) : value;
+}
+
 function openProductEditor(itemId) {
   const item = menuItems.find((current) => current.id === itemId);
   if (!item) return;
@@ -3365,6 +3592,8 @@ function openProductEditor(itemId) {
   if (byId("product-gift")) byId("product-gift").value = item.gift || "";
   if (byId("product-gift2")) byId("product-gift2").value = "";
   if (byId("product-free-delivery")) byId("product-free-delivery").checked = !!item.free_delivery;
+  productOptionGroups = parseOptionGroups(item.option_groups);
+  renderOptionGroupsEditor();
   byId("product-prep").value = item.prep_time || "";
   byId("product-addons").value = item.addons || "";
   byId("product-price").value = item.price;
@@ -4369,6 +4598,8 @@ byId("new-product-btn")?.addEventListener("click", () => {
   byId("product-price").value = "";
   byId("product-photo").value = "";
   byId("product-photo-preview").classList.add("hidden");
+  productOptionGroups = [];
+  renderOptionGroupsEditor();
   byId("create-product").textContent = "Criar produto";
   byId("product-dialog").showModal();
 });
@@ -4377,6 +4608,8 @@ byId("new-combo-btn")?.addEventListener("click", () => {
   editingProductId = null; productPhotoData = "";
   ["product-name","product-description","product-size","product-prep","product-addons","product-price","product-photo","product-gift","product-gift2"].forEach((id) => { if (byId(id)) byId(id).value = ""; });
   if (byId("product-free-delivery")) byId("product-free-delivery").checked = false;
+  productOptionGroups = [];
+  renderOptionGroupsEditor();
   byId("product-category").value = "Combos";
   byId("product-photo-preview").classList.add("hidden");
   byId("create-product").textContent = "Criar combo";

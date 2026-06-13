@@ -555,6 +555,62 @@ def random_pin():
     return str(secrets.randbelow(10000)).zfill(4)
 
 
+def normalize_option_groups(value):
+    """Recebe lista ou string JSON de grupos de opcoes e devolve JSON limpo (ou '')."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (ValueError, TypeError):
+            return ""
+    if not isinstance(value, list):
+        return ""
+    groups = []
+    for group in value:
+        if not isinstance(group, dict):
+            continue
+        label = str(group.get("label", "")).strip()
+        options = []
+        for opt in group.get("options", []) or []:
+            if not isinstance(opt, dict):
+                continue
+            name = str(opt.get("name", "")).strip()
+            if not name:
+                continue
+            try:
+                price = float(opt.get("price", 0) or 0)
+            except (ValueError, TypeError):
+                price = 0.0
+            options.append({
+                "name": name,
+                "price": price,
+                "desc": str(opt.get("desc", "")).strip(),
+                "image_url": str(opt.get("image_url", "")).strip(),
+            })
+        if not label or not options:
+            continue
+        try:
+            min_sel = int(group.get("min", 0) or 0)
+            max_sel = int(group.get("max", 1) or 1)
+        except (ValueError, TypeError):
+            min_sel, max_sel = 0, 1
+        if max_sel < 1:
+            max_sel = 1
+        if min_sel < 0:
+            min_sel = 0
+        if min_sel > max_sel:
+            min_sel = max_sel
+        groups.append({
+            "label": label,
+            "min": min_sel,
+            "max": max_sel,
+            "required": bool(group.get("required")) or min_sel > 0,
+            "options": options,
+        })
+    return json.dumps(groups, ensure_ascii=False) if groups else ""
+
+
 class HybridRow(dict):
     def __init__(self, columns, values):
         super().__init__(zip(columns, values))
@@ -1029,6 +1085,7 @@ def ensure_menu_item_columns(conn):
         "sort_order": "ALTER TABLE menu_items ADD COLUMN sort_order INTEGER DEFAULT 0",
         "gift": "ALTER TABLE menu_items ADD COLUMN gift TEXT",
         "free_delivery": "ALTER TABLE menu_items ADD COLUMN free_delivery INTEGER DEFAULT 0",
+        "option_groups": "ALTER TABLE menu_items ADD COLUMN option_groups TEXT",
     }
     for column, sql in migrations.items():
         if column not in columns:
@@ -3162,7 +3219,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     "UPDATE menu_items SET image_url = ? WHERE id = ?",
                     (image_url, row["id"]),
                 )
-            conn.execute("UPDATE menu_items SET gift = ?, free_delivery = ? WHERE id = ?", (str(payload.get("gift","")).strip(), 1 if payload.get("free_delivery") else 0, row["id"]))
+            conn.execute("UPDATE menu_items SET gift = ?, free_delivery = ?, option_groups = ? WHERE id = ?", (str(payload.get("gift","")).strip(), 1 if payload.get("free_delivery") else 0, normalize_option_groups(payload.get("option_groups")), row["id"]))
+            row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (row["id"],)).fetchone()
         return dict(row)
 
 
@@ -3222,12 +3280,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         fields = []
         values = []
         image_url_value = None
-        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons", "gift", "free_delivery"]:
+        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons", "gift", "free_delivery", "option_groups"]:
             if field in payload:
                 fields.append(f"{field} = ?")
                 if field == "image_url":
                     image_url_value = payload[field]
                     values.append(image_url_value)  # placeholder; será substituído após validação
+                elif field == "option_groups":
+                    values.append(normalize_option_groups(payload[field]))
                 else:
                     values.append(payload[field])
         if not fields:
