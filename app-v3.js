@@ -3552,6 +3552,60 @@ function renderOptionGroupsEditor() {
       <button type="button" class="ghost add-opt-btn" onclick="addOption(${gi})">+ Adicionar opção</button>
     </div>
   `).join("");
+  renderComboPreview();
+}
+
+// Pré-visualização do combo dentro do editor (igual à tela do cliente)
+function renderComboPreview() {
+  const box = byId("product-combo-preview");
+  const wrap = byId("combo-preview-wrap");
+  if (!box || !wrap) return;
+  const groups = (productOptionGroups || []).filter(
+    (g) => (g.label || "").trim() && (g.options || []).some((o) => (o.name || "").trim())
+  );
+  if (!groups.length) {
+    wrap.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const name = (byId("product-name")?.value || "").trim() || "Combo";
+  const desc = (byId("product-description")?.value || "").trim();
+  const price = Number(byId("product-price")?.value) || 0;
+  const img = productPhotoData;
+  const groupsHtml = groups.map((g) => {
+    const required = g.required || Number(g.min || 0) > 0;
+    const single = Number(g.max || 1) === 1;
+    const opts = (g.options || []).filter((o) => (o.name || "").trim()).map((o) => `
+      <div class="combo-option">
+        <div class="combo-option-info">
+          <strong>${escapeHtml(o.name)}</strong>
+          ${o.desc ? `<p>${escapeHtml(o.desc)}</p>` : ""}
+          ${Number(o.price) > 0 ? `<span class="combo-option-price">+ ${currency.format(o.price)}</span>` : ""}
+        </div>
+        ${single ? `<span class="combo-radio"></span>` : `<span class="combo-plus">+</span>`}
+      </div>`).join("");
+    return `
+      <section class="combo-group">
+        <div class="combo-group-head">
+          <div><strong>${escapeHtml(g.label)}</strong><span>${groupSubtitle(g)}</span></div>
+          ${required ? `<span class="combo-required">OBRIGATÓRIO</span>` : ""}
+        </div>
+        ${opts}
+      </section>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="combo-preview-cover ${img ? "" : "empty"}" style="${img ? `background-image:url('${img}')` : ""}"></div>
+    <div class="combo-preview-body">
+      <h3>${escapeHtml(name)}</h3>
+      ${desc ? `<p class="combo-dialog-desc">${escapeHtml(desc)}</p>` : ""}
+      ${price > 0 ? `<strong class="combo-dialog-baseprice">${currency.format(price)}</strong>` : ""}
+      ${groupsHtml}
+    </div>
+    <div class="combo-preview-footer">
+      <div class="combo-qty"><button type="button">−</button><span>1</span><button type="button">+</button></div>
+      <div class="combo-add-btn">Adicionar <strong>${currency.format(price)}</strong></div>
+    </div>`;
 }
 
 function addOptionGroup() {
@@ -3563,6 +3617,7 @@ function updateOptionGroup(gi, field, value) {
   if (!productOptionGroups[gi]) return;
   if (field === "min" || field === "max") value = Math.max(0, parseInt(value, 10) || 0);
   productOptionGroups[gi][field] = value;
+  renderComboPreview();
 }
 function addOption(gi) {
   if (!productOptionGroups[gi]) return;
@@ -3579,6 +3634,7 @@ function updateOption(gi, oi, field, value) {
   const opt = productOptionGroups[gi] && productOptionGroups[gi].options[oi];
   if (!opt) return;
   opt[field] = field === "price" ? (parseFloat(value) || 0) : value;
+  renderComboPreview();
 }
 
 function openProductEditor(itemId) {
@@ -3600,6 +3656,7 @@ function openProductEditor(itemId) {
   productPhotoData = item.image_url || "";
   byId("product-photo-preview").classList.toggle("hidden", !productPhotoData);
   byId("product-photo-preview").style.backgroundImage = productPhotoData ? `url("${productPhotoData}")` : "";
+  renderComboPreview();
   byId("create-product").textContent = "Salvar produto";
   byId("product-dialog").showModal();
 }
@@ -4832,6 +4889,7 @@ byId("product-photo")?.addEventListener("change", (event) => {
     productPhotoData = reader.result;
     byId("product-photo-preview").style.backgroundImage = `url("${productPhotoData}")`;
     byId("product-photo-preview").classList.remove("hidden");
+    renderComboPreview();
   });
   reader.readAsDataURL(file);
 });
