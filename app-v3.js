@@ -2685,6 +2685,11 @@ async function createOrder() {
   const deliveryFee = deliveryType === "Retirada" ? 0 : Number(byId("order-delivery-fee").value || zoneForAddress(byId("order-address").value)?.fee || settings.delivery_fee || 0);
   const subtotal = items.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
 
+  const createBtn = byId("create-order");
+  if (createBtn?.dataset.busy === "1") return;
+  if (createBtn) { createBtn.dataset.busy = "1"; createBtn.disabled = true; createBtn.textContent = "Criando..."; }
+  try {
+
   const payload = {
     customer,
     customer_phone: byId("customer-phone").value.trim(),
@@ -2750,6 +2755,9 @@ async function createOrder() {
   }
   renderAll();
   switchView("orders");
+  } finally {
+    if (createBtn) { createBtn.dataset.busy = ""; createBtn.disabled = false; createBtn.textContent = "Criar pedido"; }
+  }
 }
 
 async function createProduct() {
@@ -3379,6 +3387,9 @@ async function checkoutCart() {
     delivery_fee: deliveryFee,
     discount: 0,
   };
+  const checkoutBtn = byId("dialog-checkout-btn");
+  if (checkoutBtn?.dataset.busy === "1") return;
+  if (checkoutBtn) { checkoutBtn.dataset.busy = "1"; checkoutBtn.disabled = true; }
   try {
     const created = state.apiOnline
       ? await api("/api/orders", { method: "POST", body: JSON.stringify(payload) })
@@ -3418,6 +3429,8 @@ async function checkoutCart() {
     }
   } catch (error) {
     byId("dialog-checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
+  } finally {
+    if (checkoutBtn) { checkoutBtn.dataset.busy = ""; checkoutBtn.disabled = false; }
   }
 }
 
@@ -4743,7 +4756,6 @@ byId("cart-review-continue")?.addEventListener("click", () => {
   byId("cart-review-dialog").close();
   openCheckoutDialog();
 });
-byId("dialog-checkout-btn")?.addEventListener("click", checkoutCart);
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const isDelivery = event.target.value === "Entrega";
   byId("checkout-neighborhood-label")?.classList.toggle("hidden", !isDelivery);
