@@ -973,11 +973,11 @@ def init_db():
                 (key, value),
             )
 
-        # Insere sabores do seed que ainda nao existem. NAO sobrescreve itens
-        # existentes para nao apagar edicoes do usuario (preco, descricao, etc.)
-        for item in SEED_MENU_ITEMS:
-            row = conn.execute("SELECT id FROM menu_items WHERE name = ?", (item["name"],)).fetchone()
-            if not row:
+        # Popula o cardapio do seed APENAS na primeira vez (banco vazio).
+        # Assim itens que o usuario excluiu ou editou NAO voltam a cada reinicio.
+        menu_count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+        if menu_count == 0:
+            for item in SEED_MENU_ITEMS:
                 conn.execute(
                     "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
                     (item["name"], item["category"], item.get("description", "")),
