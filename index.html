@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260615b" />
+    <link rel="stylesheet" href="/styles.css?v=20260615c" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
@@ -959,7 +959,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260614a"></script>
+    <script defer src="/app-v3.js?v=20260615c"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1085,30 +1085,33 @@
     </div>
   </dialog>
   <!-- Modal de revisão do carrinho (estilo iFood) -->
-  <dialog id="cart-review-dialog" class="cart-review-dialog">
-    <div class="dialog-card ifood-cart-card">
-      <div class="ifood-checkout-header">
-        <button class="icon-button" onclick="byId('cart-review-dialog').close()" aria-label="Voltar">←</button>
-        <h2>Seu pedido</h2>
-        <span></span>
-      </div>
-      <div id="cart-review-items" class="ifood-items-list"></div>
-      <button class="ifood-add-more" onclick="byId('cart-review-dialog').close()" type="button">
-        <span>+</span> Adicionar mais itens
-      </button>
-      <div class="ifood-summary-box">
-        <div class="ifood-summary-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
-        <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
-        <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
-      </div>
-      <div class="ifood-footer-fixed">
-        <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
+  <div id="cart-review-dialog" class="sheet-overlay">
+    <div class="cart-review-dialog">
+      <div class="dialog-card ifood-cart-card">
+        <div class="ifood-checkout-header">
+          <button class="icon-button" onclick="closeSheet('cart-review-dialog')" aria-label="Voltar">←</button>
+          <h2>Seu pedido</h2>
+          <span></span>
+        </div>
+        <div id="cart-review-items" class="ifood-items-list"></div>
+        <button class="ifood-add-more" onclick="closeSheet('cart-review-dialog')" type="button">
+          <span>+</span> Adicionar mais itens
+        </button>
+        <div class="ifood-summary-box">
+          <div class="ifood-summary-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
+          <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
+          <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
+        </div>
+        <div class="ifood-footer-fixed">
+          <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
+        </div>
       </div>
     </div>
-  </dialog>
+  </div>
 
   <!-- Modal de checkout (estilo iFood) -->
-  <dialog id="checkout-dialog" class="checkout-dialog">
+  <div id="checkout-dialog" class="sheet-overlay">
+    <div class="checkout-dialog">
     <div class="dialog-card ifood-checkout-card">
       <div class="ifood-checkout-header">
         <button class="icon-button" onclick="switchDialog('checkout-dialog','cart-review-dialog')" aria-label="Voltar">←</button>
@@ -1211,7 +1214,8 @@
         </button>
       </div>
     </div>
-  </dialog>
+    </div>
+  </div>
   <!-- Modal de escolha de sabores (após selecionar tamanho) -->
   <dialog id="pizza-flavors-dialog" class="pizza-flavors-dialog">
     <div class="dialog-card">

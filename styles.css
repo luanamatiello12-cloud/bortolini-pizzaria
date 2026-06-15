@@ -2561,17 +2561,36 @@ dialog::backdrop {
   font-weight: 800;
 }
 
+/* Overlay base dos drawers (sem depender de <dialog> nativo) */
+.sheet-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  background: rgba(20, 25, 22, 0.45);
+}
+.sheet-overlay.open {
+  display: flex;
+}
+body.sheet-open {
+  overflow: hidden;
+}
+body.sheet-open .floating-cart-btn {
+  display: none !important;
+}
+
 /* Drawer de sacola (estilo iFood) */
 .cart-review-dialog {
   width: 100%;
   max-width: 560px;
-  max-height: 90dvh;
-  margin: auto auto 0;
-  top: auto;
-  bottom: 0;
+  max-height: 90vh;
+  background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 0;
-  border: none;
   box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
   display: flex;
   flex-direction: column;
@@ -2612,13 +2631,9 @@ dialog::backdrop {
 .checkout-dialog {
   width: 100%;
   max-width: 560px;
-  max-height: 90dvh;
-  margin: auto auto 0;
-  top: auto;
-  bottom: 0;
+  max-height: 90vh;
+  background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 0;
-  border: none;
   box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
   display: flex;
   flex-direction: column;
@@ -3931,7 +3946,7 @@ body:has(dialog[open]) .floating-cart-btn { display: none !important; }
 .metrics-grid,.split-layout,.kitchen-board{grid-template-columns:1fr!important}
 .menu-grid,.cardapio-grid{grid-template-columns:1fr!important}
 dialog{width:96vw!important;max-width:96vw!important}
-.checkout-dialog{max-height:88dvh}
+.checkout-dialog{max-height:88vh}
 h1,#view-title{font-size:1.5rem}
 .store-tabs{overflow-x:auto}
 }

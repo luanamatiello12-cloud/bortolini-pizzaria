@@ -1908,8 +1908,7 @@ function openCartReview() {
   byId("review-subtotal").textContent = currency.format(subtotal);
   byId("review-delivery-fee").textContent = "A calcular";
   byId("review-total").textContent = currency.format(subtotal);
-  // iOS/Safari quebra se showModal() roda no mesmo tick do close() anterior
-  setTimeout(() => { try { if (!dialog.open) dialog.showModal(); } catch (e) {} }, 0);
+  openSheet("cart-review-dialog");
 }
 
 function removeFromCart(index) {
@@ -1918,7 +1917,7 @@ function removeFromCart(index) {
   saveCart();
   renderCart();
   const rev = byId("cart-review-dialog");
-  if (rev && rev.open) { if (cart.length) { openCartReview(); } else { rev.close(); } }
+  if (rev && rev.classList.contains("open")) { if (cart.length) { openCartReview(); } else { closeSheet("cart-review-dialog"); } }
 }
 
 function addBebidaToCart(itemId) {
@@ -3251,12 +3250,25 @@ function getFeeFromNeighborhood() {
   return option ? Number(option.dataset.fee) : null;
 }
 
+function openSheet(id) {
+  const el = byId(id);
+  if (!el) return;
+  el.classList.add("open");
+  document.body.classList.add("sheet-open");
+}
+
+function closeSheet(id) {
+  const el = byId(id);
+  if (!el) return;
+  el.classList.remove("open");
+  if (!document.querySelector(".sheet-overlay.open")) {
+    document.body.classList.remove("sheet-open");
+  }
+}
+
 function switchDialog(closeId, openId) {
-  const c = byId(closeId), o = byId(openId);
-  if (c && c.open) c.close();
-  if (!o) return;
-  // iOS/Safari quebra se showModal() roda no mesmo tick do close() anterior
-  setTimeout(() => { try { if (!o.open) o.showModal(); } catch (e) {} }, 0);
+  closeSheet(closeId);
+  openSheet(openId);
 }
 
 function openCheckoutDialog() {
@@ -3264,8 +3276,7 @@ function openCheckoutDialog() {
     showToast("Adicione pelo menos um item ao carrinho.");
     return;
   }
-  const cr = byId("cart-review-dialog");
-  if (cr && cr.open) cr.close();
+  closeSheet("cart-review-dialog");
   populateCheckoutNeighborhoods();
   const subtotal = cartTotal();
   const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
@@ -3314,8 +3325,7 @@ function openCheckoutDialog() {
   byId("checkout-neighborhood-label")?.classList.remove("hidden");
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
-  const cd = byId("checkout-dialog");
-  setTimeout(() => { try { if (!cd.open) cd.showModal(); } catch (e) {} }, 0);
+  openSheet("checkout-dialog");
 }
 
 async function checkoutCart() {
@@ -3434,7 +3444,7 @@ async function checkoutCart() {
     pixReceiptData = "";
     renderAll();
 
-    byId("checkout-dialog").close();
+    closeSheet("checkout-dialog");
     const trackLink = `${window.location.origin}/pedir/${created.id}`;
     const floatingBtn = byId("floating-cart-btn");
     if (floatingBtn) floatingBtn.classList.add("hidden");
@@ -4836,6 +4846,10 @@ byId("create-product")?.addEventListener("click", createProduct);
 byId("create-promotion")?.addEventListener("click", createPromotion);
 byId("floating-cart-btn")?.addEventListener("click", openCartReview);
 byId("cart-review-continue")?.addEventListener("click", () => openCheckoutDialog());
+["cart-review-dialog", "checkout-dialog"].forEach((id) => {
+  const overlay = byId(id);
+  if (overlay) overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSheet(id); });
+});
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const isDelivery = event.target.value === "Entrega";
   byId("checkout-neighborhood-label")?.classList.toggle("hidden", !isDelivery);
