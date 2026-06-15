@@ -1908,7 +1908,8 @@ function openCartReview() {
   byId("review-subtotal").textContent = currency.format(subtotal);
   byId("review-delivery-fee").textContent = "A calcular";
   byId("review-total").textContent = currency.format(subtotal);
-  dialog.showModal();
+  // iOS/Safari quebra se showModal() roda no mesmo tick do close() anterior
+  setTimeout(() => { try { if (!dialog.open) dialog.showModal(); } catch (e) {} }, 0);
 }
 
 function removeFromCart(index) {
