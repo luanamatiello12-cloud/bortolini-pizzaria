@@ -2523,7 +2523,7 @@ dialog::backdrop {
 /* Botão flutuante de carrinho (estilo iFood) */
 .floating-cart-btn {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
@@ -3140,7 +3140,7 @@ dialog::backdrop {
 /* Ajuste no botão flutuante do carrinho */
 .floating-cart-btn {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
