@@ -1,0 +1,46 @@
+name: Build Desktop App
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'desktop-app/**'
+      - '.github/workflows/build-desktop.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: desktop-app
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: desktop-app
+        run: npm run dist
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bortolini-Instalador-Windows
+          path: desktop-app/dist/*.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-latest
+          name: Bortolini — App Desktop (instalador)
+          body: Instalador do app desktop. Baixe o arquivo .exe abaixo e instale no computador da pizzaria.
+          files: desktop-app/dist/*.exe

@@ -1,0 +1,21 @@
+{
+  "name": "bortolini-whatsapp-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serviço WhatsApp (Baileys) para a Pizzaria Bortolini — sessão persistida no Postgres do Supabase.",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "@hapi/boom": "^10.0.1",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "qrcode": "^1.5.4",
+    "dotenv": "^16.4.5"
+  }
+}

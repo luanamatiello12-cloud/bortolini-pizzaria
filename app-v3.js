@@ -25,6 +25,7 @@ let settings = {};
 let cart = [];
 let editingProductId = null;
 let editingPromotionId = null;
+let productOptionGroups = [];
 let editingZoneId = null;
 let cancelOrderId = null;
 let closeout = null;
@@ -81,7 +82,7 @@ function getItemImage(itemName) {
 
 function renderPhoto(src, className, label) {
   if (src) {
-    return `<img class="${className}" src="${src}" alt="${label}" />`;
+    return `<img class="${className}" src="${src}" alt="${label}" onerror="this.onerror=null;this.removeAttribute('src');this.classList.add('photo-placeholder')" />`;
   }
   return `<div class="${className} photo-placeholder" aria-label="${label}">Foto</div>`;
 }
@@ -314,6 +315,12 @@ function renderOwnerAlerts() {
     : `<article class="best-item"><strong>Operação tranquila</strong><span>Sem alertas críticos agora.</span></article>`;
 }
 
+async function deleteOrder(id) {
+  if (!confirm("Excluir o pedido #" + id + " permanentemente?")) return;
+  try { await api(`/api/orders/${id}`, { method: "DELETE" }); orders = await api("/api/orders"); renderOrders(); showToast("Pedido excluido."); }
+  catch (e) { showToast(e.message || "Falha ao excluir.", "error"); }
+}
+
 function renderOrders() {
   const rows = filteredOrders();
   renderOrderInsights();
@@ -321,7 +328,7 @@ function renderOrders() {
     .map(
       (order) => `
         <tr>
-          <td>#${order.id}</td>
+          <td>#${order.id}${formatOrderTime(order) ? `<br><small class="order-time">🕒 ${formatOrderTime(order)}</small>` : ""}</td>
           <td>
             <div class="order-cell">
               ${renderPhoto(getItemImage(order.item), "order-photo", escapeHtml(order.item))}
@@ -340,6 +347,7 @@ function renderOrders() {
               ${order.status === "Finalizado" ? "Concluído" : "Avançar"}
             </button>
             ${canCancelOrder(order) ? `<button class="ghost danger-link" data-cancel-order="${order.id}">Cancelar</button>` : ""}
+            <button class="ghost danger-link" data-delete-order="${order.id}">Excluir</button>
             <button class="ghost" data-whatsapp="${order.id}">WhatsApp</button>
             <button class="ghost" data-print-order="${order.id}">Imprimir</button>
             ${order.cancel_reason ? `<small class="cancel-note">Motivo: ${order.cancel_reason}</small>` : ""}
@@ -360,6 +368,9 @@ function renderOrders() {
   });
   document.querySelectorAll("[data-cancel-order]").forEach((button) => {
     button.addEventListener("click", () => openCancelDialog(Number(button.dataset.cancelOrder)));
+  });
+  document.querySelectorAll("[data-delete-order]").forEach((button) => {
+    button.addEventListener("click", () => deleteOrder(Number(button.dataset.deleteOrder)));
   });
   document.querySelectorAll("[data-approve-payment]").forEach((button) => {
     button.addEventListener("click", () => updatePaymentStatus(Number(button.dataset.approvePayment), "Pago", "Aprovado"));
@@ -393,6 +404,7 @@ function renderLiveOrders() {
           <div>
             <strong>#${order.id} · ${escapeHtml(order.customer)}</strong>
             <p>${formatOrderItemsSummary(order)} via ${escapeHtml(order.channel)}</p>
+            ${formatOrderTime(order) ? `<small class="order-time">🕒 ${formatOrderTime(order)}</small>` : ""}
           </div>
           <span class="status-pill">${escapeHtml(order.status)}</span>
         </article>
@@ -446,7 +458,7 @@ function renderKitchen() {
                   <strong>#${order.id}</strong>
                   <p>${order.item}</p>
                   <small>${order.notes || "Sem observações"}</small><br>
-                  <small>${order.eta} · ${orderAge(order)} min</small>
+                  <small>${formatOrderTime(order, false) ? `🕒 ${formatOrderTime(order, false)} · ` : ""}${orderAge(order)} min</small>
                   ${orderAge(order) > 30 && order.status !== "Entrega" ? '<span class="status-pill danger">Atrasado</span>' : ""}
                   <div class="ticket-actions">
                     <button class="secondary" data-advance="${order.id}" ${!canAdvanceOrder(order) ? "disabled" : ""}>${order.status === "Entrega" ? "Finalizar" : "Avançar"}</button>
@@ -468,9 +480,26 @@ function renderKitchen() {
   });
 }
 
+function parseOrderDate(value) {
+  if (!value) return null;
+  let s = String(value).trim();
+  // SQLite grava "YYYY-MM-DD HH:MM:SS" em UTC (sem timezone) -> tratar como UTC
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) s = s.replace(" ", "T") + "Z";
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatOrderTime(order, withDate = true) {
+  const d = parseOrderDate(order.created_at);
+  if (!d) return "";
+  const opts = { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" };
+  if (withDate) { opts.day = "2-digit"; opts.month = "2-digit"; }
+  return d.toLocaleString("pt-BR", opts);
+}
+
 function orderAge(order) {
-  const created = new Date(order.created_at || Date.now());
-  if (Number.isNaN(created.getTime())) return 0;
+  const created = parseOrderDate(order.created_at);
+  if (!created) return 0;
   return Math.max(Math.round((Date.now() - created.getTime()) / 60000), 0);
 }
 
@@ -602,7 +631,9 @@ function formatDiscount(promotion) {
 
 function formatDateTime(value) {
   if (!value) return "sem data";
-  return new Date(value).toLocaleString("pt-BR", {
+  const d = parseOrderDate(value) || new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
@@ -847,10 +878,132 @@ function renderIngredientCalculator() {
     : `<article class="ingredient-card empty-card"><strong>Sem ficha tecnica</strong><p>Cadastre a receita desse produto antes do calculo.</p></article>`;
 }
 
+let _activeInboxId = null;
+let _inboxPollTimer = null;
+
 function renderInbox() {
-  // A view de inbox foi simplificada — agora so mostra QR code do WhatsApp
-  // Os elementos de chat foram removidos do HTML para evitar erros
-  renderInboxQrPanel();
+  const list = byId("wa-conv-list");
+  if (!list) return;
+  const convs = conversations || [];
+  const countEl = byId("wa-conv-count");
+  if (countEl) countEl.textContent = String(convs.length);
+  if (!convs.length) {
+    list.innerHTML = `<div class="wa-empty">Nenhuma conversa ainda.<br><small>Mensagens recebidas no WhatsApp aparecem aqui.</small></div>`;
+    _activeInboxId = null;
+    renderInboxThread();
+    return;
+  }
+  if (_activeInboxId == null || !convs.some((c) => c.id === _activeInboxId)) {
+    _activeInboxId = convs[0].id;
+  }
+  list.innerHTML = convs
+    .map((c) => {
+      const initials = String(c.client || "?").replace(/\D/g, "").slice(-2) || "?";
+      return `<button type="button" class="wa-conv ${c.id === _activeInboxId ? "active" : ""}" onclick="openInboxConversation(${c.id})">
+        <span class="wa-avatar">${escapeHtml(initials)}</span>
+        <span class="wa-conv-info">
+          <strong>${escapeHtml(String(c.name || c.client || "Desconhecido"))}</strong>
+          <small>${escapeHtml(String(c.preview || ""))}</small>
+        </span>
+      </button>`;
+    })
+    .join("");
+  renderInboxThread();
+}
+
+function openInboxConversation(id) {
+  _activeInboxId = id;
+  renderInbox();
+}
+
+function renderInboxThread() {
+  const empty = byId("wa-thread-empty");
+  const active = byId("wa-thread-active");
+  const conv = (conversations || []).find((c) => c.id === _activeInboxId);
+  if (!conv) {
+    if (empty) empty.classList.remove("hidden");
+    if (active) active.classList.add("hidden");
+    return;
+  }
+  if (empty) empty.classList.add("hidden");
+  if (active) active.classList.remove("hidden");
+  const titleEl = byId("wa-thread-title");
+  if (titleEl) titleEl.innerHTML = `${escapeHtml(String(conv.name || conv.client || "Desconhecido"))} <button type="button" class="wa-edit-name" onclick="waEditName(${conv.id})" title="Editar contato">✎</button>`;
+  const subEl0 = byId("wa-thread-sub"); if (subEl0 && conv.name) subEl0.dataset.num = conv.client;
+  const subEl = byId("wa-thread-sub");
+  if (subEl) subEl.textContent = `${conv.channel || ""} · ${conv.status || ""}`;
+  const avEl = byId("wa-thread-avatar");
+  if (avEl) avEl.textContent = String(conv.client || "?").replace(/\D/g, "").slice(-2) || "?";
+  const modeBox = byId("wa-mode-toggle");
+  if (modeBox) {
+    const human = conv.mode === "human";
+    modeBox.innerHTML = `<button type="button" class="wa-mode-btn ${human ? "" : "on"}" onclick="waSetMode(${conv.id}, '${human ? "ai" : "human"}')">IA: ${human ? "desligada" : "ligada"}</button>`;
+  }
+  const box = byId("wa-messages");
+  if (box) {
+    box.innerHTML = (conv.messages || [])
+      .filter((m) => Array.isArray(m) && m[0] !== "system")
+      .map((m) => {
+        const side = m[0] === "client" ? "in" : "out";
+        const tag = m[0] === "ai" ? `<span class="wa-tag">IA</span>` : m[0] === "agent" ? `<span class="wa-tag">você</span>` : "";
+        return `<div class="wa-bubble ${side}">${tag}${escapeHtml(String(m[1] || ""))}</div>`;
+      })
+      .join("");
+    box.scrollTop = box.scrollHeight;
+  }
+}
+
+async function waSendReply(event) {
+  if (event) event.preventDefault();
+  const input = byId("wa-reply-input");
+  const text = input ? input.value.trim() : "";
+  if (!text || _activeInboxId == null) return false;
+  if (input) input.value = "";
+  try {
+    await api(`/api/inbox/${_activeInboxId}/reply`, { method: "POST", body: JSON.stringify({ text, author: "agent" }) });
+    conversations = await api("/api/inbox");
+    renderInbox();
+  } catch (e) {
+    showToast(e.message || "Falha ao enviar.", "error");
+  }
+  return false;
+}
+
+async function waEditName(id) {
+  const c = (conversations||[]).find(x=>x.id===id); if(!c) return;
+  const nome = prompt("Nome do contato (numero: "+(c.client||"")+")", c.name||"");
+  if (nome===null) return;
+  try { await api(`/api/inbox/${id}/name`, {method:"POST", body: JSON.stringify({name:nome})}); conversations = await api("/api/inbox"); renderInbox(); } catch(e){ showToast(e.message,"error"); }
+}
+
+async function waSetMode(id, mode) {
+  try {
+    await api(`/api/inbox/${id}/mode`, { method: "POST", body: JSON.stringify({ mode }) });
+    conversations = await api("/api/inbox");
+    renderInbox();
+    showToast(mode === "human" ? "IA desligada — você assume a conversa." : "IA religada.", "success");
+  } catch (e) {
+    showToast(e.message || "Falha ao mudar modo.", "error");
+  }
+}
+
+async function inboxRefresh() {
+  if (!byId("wa-conv-list")) return;
+  try {
+    conversations = await api("/api/inbox");
+    renderInbox();
+  } catch (e) {}
+}
+function inboxStartPolling() {
+  inboxStopPolling();
+  inboxRefresh();
+  _inboxPollTimer = setInterval(inboxRefresh, 5000);
+}
+function inboxStopPolling() {
+  if (_inboxPollTimer) {
+    clearInterval(_inboxPollTimer);
+    _inboxPollTimer = null;
+  }
 }
 
 let _deliveryMap = null;
@@ -1260,6 +1413,27 @@ function renderCustomerStore() {
       `).join("")
     : `<p class="form-hint">Nenhuma bebida disponível no momento.</p>`;
 
+  // Combos
+  const combos = menuItems.filter((item) => item.active && (item.category === "Combos" || item.category === "Combo"));
+  if (byId("store-combos")) byId("store-combos").innerHTML = combos.length
+    ? combos.map((item) => {
+        const hasGroups = parseOptionGroups(item.option_groups).length > 0;
+        const onAdd = hasGroups ? `openComboCustomizer(${item.id})` : `addBebidaToCartAnimated(${item.id})`;
+        return `
+        <article class="menu-card-ifood"${hasGroups ? ` onclick="openComboCustomizer(${item.id})" style="cursor:pointer"` : ""}>
+          <div class="ifood-info">
+            <strong>${escapeHtml(item.name)}</strong>
+            <p>${escapeHtml(item.description) || "Combo"}</p>
+            ${item.size ? `<small>Tamanho: ${escapeHtml(item.size)}</small> ` : ""}${item.gift ? `<small>🎁 ${escapeHtml(item.gift)}</small> ` : ""}${item.free_delivery ? `<small style="color:#16a34a">🚚 Frete grátis</small>` : ""}
+            ${Number(item.price) > 0 ? `<span class="ifood-price">${currency.format(item.price)}</span>` : ""}
+          </div>
+          <div class="ifood-right">
+            ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.name)}" class="ifood-photo" loading="lazy" />` : `<div class="ifood-photo-placeholder"></div>`}
+            <button class="add-btn-round" onclick="event.stopPropagation();${onAdd}">+</button>
+          </div>
+        </article>`; }).join("")
+    : `<p class="form-hint">Nenhum combo disponível.</p>`;
+
   // Promoções
   const activePromos = promotions.filter((p) => p.active);
   byId("store-promocoes").innerHTML = activePromos.length
@@ -1312,7 +1486,7 @@ function renderPizzaFlavorsDialog() {
   if (!container) return;
 
   if (!pizzaItems.length) {
-    container.innerHTML = `<p class="form-hint" style="text-align:center;padding:24px 0;">🍕 Nenhum sabor cadastrado no cardápio.<br><small>Entre no admin e sincronize o cardápio em Configurações.</small></p>`;
+    container.innerHTML = `<p class="form-hint" style="text-align:center;padding:24px 0;">🍕 Nenhum sabor cadastrado no cardápio.<br><small>Cadastre os sabores no admin, em Cardápio.</small></p>`;
     return;
   }
 
@@ -1404,6 +1578,151 @@ function addPizzaFromFlavorsDialog() {
   hidePixConfirmation();
   byId("pizza-flavors-dialog").close();
   showToast("Pizza adicionada ao carrinho!");
+}
+
+// ===== Personalizador de combo (cliente, estilo iFood) =====
+let comboState = { itemId: null, item: null, groups: [], selections: [], qty: 1, basePrice: 0 };
+
+function groupSubtitle(g) {
+  const min = Number(g.min || 0), max = Number(g.max || 1);
+  if (max === 1) return "Escolha 1 opção";
+  if (min > 0 && min === max) return `Escolha ${max} opções`;
+  if (min > 0) return `Escolha de ${min} a ${max}`;
+  return `Escolha até ${max} ${max === 1 ? "opção" : "opções"}`;
+}
+
+function openComboCustomizer(itemId) {
+  const item = menuItems.find((m) => m.id === itemId);
+  if (!item) return;
+  const groups = parseOptionGroups(item.option_groups);
+  comboState = { itemId, item, groups, selections: groups.map(() => []), qty: 1, basePrice: Number(item.price) || 0 };
+  byId("combo-dialog-title").textContent = item.name;
+  byId("combo-dialog-desc").textContent = item.description || "";
+  byId("combo-dialog-baseprice").textContent = comboState.basePrice > 0 ? currency.format(comboState.basePrice) : "";
+  const cover = byId("combo-dialog-cover");
+  cover.style.backgroundImage = item.image_url ? `url("${item.image_url}")` : "";
+  cover.classList.toggle("empty", !item.image_url);
+  byId("combo-dialog-notes").value = "";
+  byId("combo-obs-count").textContent = "0/140";
+  byId("combo-dialog-qty").textContent = "1";
+  byId("combo-dialog-error").textContent = "";
+  renderComboGroups();
+  updateComboTotal();
+  byId("combo-dialog").showModal();
+}
+
+function renderComboGroups() {
+  byId("combo-dialog-groups").innerHTML = comboState.groups.map((g, gi) => {
+    const sel = comboState.selections[gi] || [];
+    const required = g.required || Number(g.min || 0) > 0;
+    const options = (g.options || []).map((o, oi) => {
+      const isSel = sel.some((s) => s.oi === oi);
+      const single = Number(g.max || 1) === 1;
+      const control = single
+        ? `<span class="combo-radio ${isSel ? "on" : ""}"></span>`
+        : `<span class="combo-plus ${isSel ? "on" : ""}">${isSel ? "✓" : "+"}</span>`;
+      return `
+        <div class="combo-option ${isSel ? "selected" : ""}" onclick="toggleComboOption(${gi},${oi})">
+          <div class="combo-option-info">
+            <strong>${escapeHtml(o.name)}</strong>
+            ${o.desc ? `<p>${escapeHtml(o.desc)}</p>` : ""}
+            ${Number(o.price) > 0 ? `<span class="combo-option-price">+ ${currency.format(o.price)}</span>` : ""}
+          </div>
+          ${o.image_url ? `<img class="combo-option-img" src="${escapeHtml(o.image_url)}" alt="${escapeHtml(o.name)}" />` : ""}
+          ${control}
+        </div>`;
+    }).join("");
+    return `
+      <section class="combo-group">
+        <div class="combo-group-head">
+          <div>
+            <strong>${escapeHtml(g.label)}</strong>
+            <span>${groupSubtitle(g)}</span>
+          </div>
+          ${required ? `<span class="combo-required">OBRIGATÓRIO</span>` : ""}
+        </div>
+        ${options}
+      </section>`;
+  }).join("");
+}
+
+function toggleComboOption(gi, oi) {
+  const g = comboState.groups[gi];
+  if (!g) return;
+  const sel = comboState.selections[gi];
+  const max = Number(g.max || 1);
+  const idx = sel.findIndex((s) => s.oi === oi);
+  if (idx >= 0) {
+    sel.splice(idx, 1);
+  } else if (max === 1) {
+    comboState.selections[gi] = [{ oi }];
+  } else if (sel.length < max) {
+    sel.push({ oi });
+  } else {
+    showToast(`Máximo de ${max} neste grupo`);
+    return;
+  }
+  byId("combo-dialog-error").textContent = "";
+  renderComboGroups();
+  updateComboTotal();
+}
+
+function comboUnitPrice() {
+  let total = comboState.basePrice;
+  comboState.groups.forEach((g, gi) => {
+    (comboState.selections[gi] || []).forEach((s) => {
+      total += Number(g.options[s.oi]?.price || 0);
+    });
+  });
+  return total;
+}
+
+function updateComboTotal() {
+  byId("combo-dialog-total").textContent = currency.format(comboUnitPrice() * comboState.qty);
+}
+
+function changeComboQty(delta) {
+  comboState.qty = Math.min(99, Math.max(1, comboState.qty + delta));
+  byId("combo-dialog-qty").textContent = String(comboState.qty);
+  updateComboTotal();
+}
+
+function addComboFromDialog() {
+  for (let gi = 0; gi < comboState.groups.length; gi++) {
+    const g = comboState.groups[gi];
+    const sel = comboState.selections[gi] || [];
+    const min = g.required ? Math.max(1, Number(g.min || 0)) : Number(g.min || 0);
+    if (sel.length < min) {
+      byId("combo-dialog-error").textContent = `Escolha ${min > 1 ? min + " opções" : "1 opção"} em "${g.label}".`;
+      return;
+    }
+  }
+  const selections = comboState.groups.map((g, gi) => ({
+    group: g.label,
+    options: (comboState.selections[gi] || []).map((s) => ({ name: g.options[s.oi].name, price: Number(g.options[s.oi].price || 0) })),
+  })).filter((s) => s.options.length);
+  const notes = byId("combo-dialog-notes").value.trim();
+  cart.push({
+    type: "combo",
+    id: comboState.itemId,
+    name: comboState.item.name,
+    price: comboUnitPrice(),
+    qty: comboState.qty,
+    free_delivery: comboState.item.free_delivery ? 1 : 0,
+    selections,
+    notes,
+  });
+  saveCart();
+  renderCart();
+  hidePixConfirmation();
+  byId("combo-dialog").close();
+  showToast("Combo adicionado ao carrinho!");
+}
+
+function comboSelText(entry) {
+  return (entry.selections || [])
+    .map((s) => `${s.group}: ${s.options.map((o) => o.name).join(", ")}`)
+    .join(" · ");
 }
 
 let pizzaBuilderState = {
@@ -1514,10 +1833,13 @@ function renderCart() {
               </article>
             `;
           }
+          const comboInfo = entry.type === "combo" ? comboSelText(entry) : "";
+          const comboNotes = entry.type === "combo" && entry.notes ? ` <small>(${entry.notes})</small>` : "";
           return `
             <article class="cart-item">
               <div class="cart-item-info">
                 <strong>${entry.qty}x ${entry.name}</strong>
+                ${comboInfo ? `<p>${escapeHtml(comboInfo)}${comboNotes}</p>` : ""}
               </div>
               <div class="cart-item-actions">
                 <span>${currency.format(entry.price * entry.qty)}</span>
@@ -1561,16 +1883,21 @@ function openCartReview() {
                   ${premiumBadges ? `<div class="cart-extras">${premiumBadges}</div>` : ""}
                 </div>
                 <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+                <button type="button" class="ifood-remove" onclick="removeFromCart(${index})" title="Remover">×</button>
               </div>
             `;
           }
+          const comboInfo = entry.type === "combo" ? comboSelText(entry) : "";
+          const comboNotes = entry.type === "combo" && entry.notes ? ` · ${entry.notes}` : "";
           return `
             <div class="ifood-item-row">
               <span class="ifood-item-qty">${entry.qty}x</span>
               <div class="ifood-item-info">
                 <strong>${escapeHtml(entry.name)}</strong>
+                ${comboInfo ? `<p>${escapeHtml(comboInfo + comboNotes)}</p>` : ""}
               </div>
               <span class="ifood-item-price">${currency.format(entry.price * entry.qty)}</span>
+              <button type="button" class="ifood-remove" onclick="removeFromCart(${index})" title="Remover">×</button>
             </div>
           `;
         })
@@ -1581,7 +1908,7 @@ function openCartReview() {
   byId("review-subtotal").textContent = currency.format(subtotal);
   byId("review-delivery-fee").textContent = "A calcular";
   byId("review-total").textContent = currency.format(subtotal);
-  dialog.showModal();
+  openSheet("cart-review-dialog");
 }
 
 function removeFromCart(index) {
@@ -1589,6 +1916,8 @@ function removeFromCart(index) {
   cart.splice(index, 1);
   saveCart();
   renderCart();
+  const rev = byId("cart-review-dialog");
+  if (rev && rev.classList.contains("open")) { if (cart.length) { openCartReview(); } else { closeSheet("cart-review-dialog"); } }
 }
 
 function addBebidaToCart(itemId) {
@@ -1598,7 +1927,7 @@ function addBebidaToCart(itemId) {
   if (existing) {
     existing.qty += 1;
   } else {
-    cart.push({ type: "bebida", id: item.id, name: item.name, price: Number(item.price), qty: 1 });
+    cart.push({ type: "bebida", id: item.id, name: item.name, price: Number(item.price), qty: 1, free_delivery: item.free_delivery ? 1 : 0, gift: item.gift || "" });
   }
   saveCart();
   renderCart();
@@ -1615,10 +1944,7 @@ function addBebidaToCartAnimated(itemId) {
 }
 
 function getPremiumExtra(flavors) {
-  if (!flavors || flavors.length === 0) return 0;
-  const flavorNames = flavors.map((f) => f.name);
-  const premium = PIZZA_PREMIUM_TOPPINGS.find((pt) => flavorNames.some((fn) => fn.toLowerCase().includes(pt.name.toLowerCase())));
-  return premium ? premium.extra : 0;
+  return getPremiumExtrasList(flavors).reduce((sum, pt) => sum + (pt.extra || 0), 0);
 }
 
 function getPremiumExtrasList(flavors) {
@@ -2051,6 +2377,7 @@ function customerOrderUrl() {
 function renderInboxQrPanel() {
   const image = byId("inbox-qr-image");
   const hint = byId("inbox-qr-hint");
+  if (!image) return;
   if (!image || !hint) return;
   const phone = String(settings.whatsapp_number || settings.stock_whatsapp || "").replace(/\D/g, "");
   if (phone) {
@@ -2191,6 +2518,7 @@ function renderSettings() {
   byId("setting-fee").value = settings.delivery_fee || "";
   byId("setting-prep").value = settings.prep_time || "";
   byId("setting-areas").value = settings.delivery_areas || "";
+  if (byId("setting-ai-greeting")) byId("setting-ai-greeting").value = settings.ai_greeting || "";
   const baseUrl = `${window.location.origin}${window.location.pathname}`;
   byId("settings-menu-link").value = `${window.location.origin}/pedir`;
   byId("settings-driver-link").value = baseUrl + "entregador/";
@@ -2287,23 +2615,16 @@ function renderIntegrations() {
   byId("integration-whatsapp-token").value = settings.whatsapp_token || "";
   const pnid = byId("integration-phone-number-id"); if(pnid) pnid.value = settings.phone_number_id || "";
   byId("integration-gps-interval").value = settings.gps_interval || "30 segundos";
-  byId("integration-domain").value = settings.domain || "";
-  byId("deploy-db").checked = settings.deploy_db === "true";
-  byId("deploy-env").checked = settings.deploy_env === "true";
-  byId("deploy-https").checked = settings.deploy_https === "true";
-  byId("integration-evolution-url").value = settings.evolution_url || "";
-  byId("integration-evolution-instance").value = settings.evolution_instance || "";
-  byId("integration-evolution-apikey").value = settings.evolution_apikey || "";
-  const baseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
-  const webhookEl = byId("evolution-webhook-url");
-  if (webhookEl) webhookEl.textContent = `${baseUrl}/api/webhook/evolution`;
 }
 
 async function advanceOrder(id) {
   const order = orders.find((current) => current.id === id);
   if (!canAdvanceOrder(order)) return;
 
-  const nextStatus = statusFlow[order.status];
+  let nextStatus = statusFlow[order.status];
+  // Retirada nao vai para entregador: da cozinha vai para "Disponivel para retirada"
+  if (order.delivery_type === "Retirada" && order.status === "Cozinha") nextStatus = "Disponível para retirada";
+  if (order.status === "Disponível para retirada") nextStatus = "Finalizado";
 
   // Feedback visual de loading
   const btns = document.querySelectorAll(`[data-advance="${id}"]`);
@@ -2378,6 +2699,11 @@ async function createOrder() {
   const deliveryFee = deliveryType === "Retirada" ? 0 : Number(byId("order-delivery-fee").value || zoneForAddress(byId("order-address").value)?.fee || settings.delivery_fee || 0);
   const subtotal = items.reduce((sum, entry) => sum + entry.price * entry.qty, 0);
 
+  const createBtn = byId("create-order");
+  if (createBtn?.dataset.busy === "1") return;
+  if (createBtn) { createBtn.dataset.busy = "1"; createBtn.disabled = true; createBtn.textContent = "Criando..."; }
+  try {
+
   const payload = {
     customer,
     customer_phone: byId("customer-phone").value.trim(),
@@ -2443,6 +2769,9 @@ async function createOrder() {
   }
   renderAll();
   switchView("orders");
+  } finally {
+    if (createBtn) { createBtn.dataset.busy = ""; createBtn.disabled = false; createBtn.textContent = "Criar pedido"; }
+  }
 }
 
 async function createProduct() {
@@ -2453,10 +2782,13 @@ async function createProduct() {
     category: byId("product-category").value.trim(),
     description: byId("product-description").value.trim(),
     size: byId("product-size").value.trim(),
+    gift: [byId("product-gift") && byId("product-gift").value.trim(), byId("product-gift2") && byId("product-gift2").value.trim()].filter(Boolean).join(" + "),
+    free_delivery: byId("product-free-delivery") ? (byId("product-free-delivery").checked ? 1 : 0) : 0,
     prep_time: byId("product-prep").value.trim(),
     addons: byId("product-addons").value.trim(),
     price: Number(byId("product-price").value),
     image_url: productPhotoData,
+    option_groups: productOptionGroups.filter((g) => (g.label || "").trim() && (g.options || []).some((o) => (o.name || "").trim())),
   };
 
   byId("product-error").textContent = "";
@@ -2499,6 +2831,8 @@ async function createProduct() {
     byId("product-price").value = "";
     byId("product-photo").value = "";
     productPhotoData = "";
+    productOptionGroups = [];
+    renderOptionGroupsEditor();
     editingProductId = null;
     byId("create-product").textContent = "Criar produto";
     byId("product-dialog").close();
@@ -2916,11 +3250,33 @@ function getFeeFromNeighborhood() {
   return option ? Number(option.dataset.fee) : null;
 }
 
+function openSheet(id) {
+  const el = byId(id);
+  if (!el) return;
+  el.classList.add("open");
+  document.body.classList.add("sheet-open");
+}
+
+function closeSheet(id) {
+  const el = byId(id);
+  if (!el) return;
+  el.classList.remove("open");
+  if (!document.querySelector(".sheet-overlay.open")) {
+    document.body.classList.remove("sheet-open");
+  }
+}
+
+function switchDialog(closeId, openId) {
+  closeSheet(closeId);
+  openSheet(openId);
+}
+
 function openCheckoutDialog() {
   if (!cart.length) {
     showToast("Adicione pelo menos um item ao carrinho.");
     return;
   }
+  closeSheet("cart-review-dialog");
   populateCheckoutNeighborhoods();
   const subtotal = cartTotal();
   const deliveryType = byId("dialog-checkout-type")?.value || "Entrega";
@@ -2969,7 +3325,7 @@ function openCheckoutDialog() {
   byId("checkout-neighborhood-label")?.classList.remove("hidden");
   selectPaymentCard(byId("checkout-payment-cards")?.querySelector('[data-payment="PIX"]'));
   byId("dialog-checkout-notes").value = "";
-  byId("checkout-dialog").showModal();
+  openSheet("checkout-dialog");
 }
 
 async function checkoutCart() {
@@ -3013,6 +3369,10 @@ async function checkoutCart() {
       const flavors = entry.flavors.map((f) => f.name).join(" + ");
       return `${entry.qty}x ${entry.sizeLabel} (${flavors})`;
     }
+    if (entry.type === "combo") {
+      const sel = comboSelText(entry);
+      return `${entry.qty}x ${entry.name}${sel ? ` (${sel})` : ""}`;
+    }
     return `${entry.qty}x ${entry.name}`;
   });
 
@@ -3030,11 +3390,15 @@ async function checkoutCart() {
     if (entry.type === "pizza" && entry.notes) {
       allNotes.push(`${entry.sizeLabel}: ${entry.notes}`);
     }
+    if (entry.type === "combo" && entry.notes) {
+      allNotes.push(`${entry.name}: ${entry.notes}`);
+    }
   });
 
   const subtotal = cartTotal();
   const neighborhoodFee = getFeeFromNeighborhood();
-  const deliveryFee = deliveryType === "Entrega" ? (neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(address)) : 0;
+  const comboFree = cart.some((e) => e.free_delivery);
+  const deliveryFee = (deliveryType === "Retirada" || comboFree) ? 0 : (neighborhoodFee !== null ? neighborhoodFee : getDeliveryFee(address));
   const total = subtotal + deliveryFee;
 
   const payload = {
@@ -3050,7 +3414,7 @@ async function checkoutCart() {
       name: entry.type === "pizza" ? `${entry.sizeLabel} (${entry.flavors.map((f) => f.name).join(" + ")})` : entry.name,
       qty: entry.qty,
       price: entry.price,
-      extras: entry.type === "pizza" ? formatPremiumExtras(entry.flavors) : "",
+      extras: entry.type === "pizza" ? formatPremiumExtras(entry.flavors) : (entry.type === "combo" ? comboSelText(entry) : ""),
     })),
     total,
     payment: document.querySelector('input[name="checkout-payment"]:checked')?.value || "PIX",
@@ -3059,6 +3423,9 @@ async function checkoutCart() {
     delivery_fee: deliveryFee,
     discount: 0,
   };
+  const checkoutBtn = byId("dialog-checkout-btn");
+  if (checkoutBtn?.dataset.busy === "1") return;
+  if (checkoutBtn) { checkoutBtn.dataset.busy = "1"; checkoutBtn.disabled = true; }
   try {
     const created = state.apiOnline
       ? await api("/api/orders", { method: "POST", body: JSON.stringify(payload) })
@@ -3077,7 +3444,7 @@ async function checkoutCart() {
     pixReceiptData = "";
     renderAll();
 
-    byId("checkout-dialog").close();
+    closeSheet("checkout-dialog");
     const trackLink = `${window.location.origin}/pedir/${created.id}`;
     const floatingBtn = byId("floating-cart-btn");
     if (floatingBtn) floatingBtn.classList.add("hidden");
@@ -3095,20 +3462,76 @@ async function checkoutCart() {
       byId("pix-confirmation").classList.remove("hidden");
       byId("pix-order-summary").textContent = `${payload.item} · ${currency.format(payload.total)}`;
       window._pixOrderId = created.id;
+      setupPixPayment(payload.total, created.id);
     }
   } catch (error) {
     byId("dialog-checkout-error").textContent = error.message || "Não foi possível finalizar o pedido.";
+  } finally {
+    if (checkoutBtn) { checkoutBtn.dataset.busy = ""; checkoutBtn.disabled = false; }
   }
 }
 
+// ===== Pix copia e cola (BR Code EMV) com valor =====
+function _pixTLV(id, value) {
+  const v = String(value);
+  return id + String(v.length).padStart(2, "0") + v;
+}
+function _pixCrc16(str) {
+  let crc = 0xffff;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+function _sanitizePixText(s, max) {
+  return (s || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .toUpperCase().trim().slice(0, max) || "NA";
+}
+function pixBRCode({ key, name, city, amount, txid }) {
+  const mai = _pixTLV("26", _pixTLV("00", "br.gov.bcb.pix") + _pixTLV("01", key));
+  const amt = (amount != null && Number(amount) > 0) ? _pixTLV("54", Number(amount).toFixed(2)) : "";
+  const add = _pixTLV("62", _pixTLV("05", _sanitizePixText(txid, 25)));
+  const payload =
+    _pixTLV("00", "01") +
+    _pixTLV("01", "11") +
+    mai +
+    _pixTLV("52", "0000") +
+    _pixTLV("53", "986") +
+    amt +
+    _pixTLV("58", "BR") +
+    _pixTLV("59", _sanitizePixText(name, 25)) +
+    _pixTLV("60", _sanitizePixText(city, 15)) +
+    add +
+    "6304";
+  return payload + _pixCrc16(payload);
+}
+function setupPixPayment(amount, orderId) {
+  let key = (settings.pix_key || settings.pix_cnpj || "66.686.680/0001-57").trim();
+  if (/^[\d.\-/()\s+]+$/.test(key)) key = key.replace(/\D/g, "");
+  const code = pixBRCode({ key, name: settings.restaurant_name || "Bortolini", city: "CIDADE", amount, txid: "PED" + orderId });
+  window._pixCode = code;
+  const codeEl = byId("pix-code-display"); if (codeEl) codeEl.value = code;
+  const amtEl = byId("pix-amount-display"); if (amtEl) amtEl.textContent = currency.format(amount);
+  const qr = byId("pix-qr-img"); if (qr) qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(code)}`;
+  const cnpjEl = byId("pix-cnpj-display"); if (cnpjEl) cnpjEl.textContent = settings.pix_key || settings.pix_cnpj || key;
+}
+
 function copyPix() {
-  const cnpj = settings.pix_cnpj || "66.686.680/0001-57";
-  navigator.clipboard.writeText(cnpj).then(() => {
+  const text = window._pixCode || settings.pix_cnpj || "66.686.680/0001-57";
+  navigator.clipboard.writeText(text).then(() => {
     const btn = byId("pix-copy-btn");
     btn.textContent = "Copiado!";
     setTimeout(() => { btn.textContent = "Copiar"; }, 2000);
   }).catch(() => {
-    showToast(`Chave PIX: ${cnpj}`);
+    const codeEl = byId("pix-code-display");
+    if (codeEl) { codeEl.focus(); codeEl.select(); }
+    showToast("Pix copia e cola pronto — toque em copiar no campo.");
   });
 }
 
@@ -3190,13 +3613,177 @@ function openCustomerOrderTracking(orderId) {
   startTrackPolling(orderId);
 }
 
-function renderOrderTimeline(status) {
+function renderOrderTimeline(status, deliveryType) {
   if (status === "Entregue") status = "Finalizado";
-  const steps = status === "Cancelado" ? ["Novo", "Cancelado"] : ["Novo", "Cozinha", "Entrega", "Finalizado"];
+  const retirada = deliveryType === "Retirada" || status === "Disponível para retirada";
+  let steps;
+  if (status === "Cancelado") steps = ["Novo", "Cancelado"];
+  else if (retirada) steps = ["Novo", "Cozinha", "Disponível para retirada", "Finalizado"];
+  else steps = ["Novo", "Cozinha", "Entrega", "Finalizado"];
   const current = steps.indexOf(status);
   return steps
     .map((step, index) => `<span class="timeline-step ${index <= current ? "done" : ""}">${step}</span>`)
     .join("");
+}
+
+// ===== Editor de grupos de opções (admin) =====
+function parseOptionGroups(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+
+function menuImportCategories() {
+  const counts = {};
+  (menuItems || []).forEach((it) => {
+    if (!it.active) return;
+    const c = (it.category || "").trim();
+    if (!c) return;
+    counts[c] = (counts[c] || 0) + 1;
+  });
+  return Object.keys(counts).sort().map((c) => ({ category: c, count: counts[c] }));
+}
+
+function renderOptionGroupsEditor() {
+  const box = byId("product-option-groups");
+  if (!box) return;
+  const cats = menuImportCategories();
+  const catOptions = cats.map((c) => `<option value="${escapeHtml(c.category)}">${escapeHtml(c.category)} (${c.count})</option>`).join("");
+  box.innerHTML = productOptionGroups.map((g, gi) => `
+    <div class="opt-group">
+      <div class="opt-group-top">
+        <input class="opt-group-label" placeholder="Título do grupo (ex: Escolha seu sabor)" value="${escapeHtml(g.label || "")}" oninput="updateOptionGroup(${gi},'label',this.value)" />
+        <button type="button" class="opt-del" onclick="removeOptionGroup(${gi})" title="Remover grupo">×</button>
+      </div>
+      <div class="opt-group-rules">
+        <label>Mín<input type="number" min="0" value="${Number(g.min || 0)}" oninput="updateOptionGroup(${gi},'min',this.value)" /></label>
+        <label>Máx<input type="number" min="1" value="${Number(g.max || 1)}" oninput="updateOptionGroup(${gi},'max',this.value)" /></label>
+        <label class="inline-check"><input type="checkbox" ${g.required ? "checked" : ""} onchange="updateOptionGroup(${gi},'required',this.checked)" /> Obrigatório</label>
+      </div>
+      <div class="opt-import">
+        <select id="opt-import-${gi}" class="opt-import-cat">
+          <option value="">Importar do cardápio…</option>
+          ${catOptions}
+        </select>
+        <button type="button" class="ghost opt-import-btn" onclick="importMenuOptions(${gi})">Importar todos</button>
+      </div>
+      <div class="opt-options">
+        ${(g.options || []).map((o, oi) => `
+          <div class="opt-row">
+            ${o.image_url ? `<img class="opt-thumb" src="${escapeHtml(o.image_url)}" alt="" />` : ""}
+            <input class="opt-name" placeholder="Nome da opção" value="${escapeHtml(o.name || "")}" oninput="updateOption(${gi},${oi},'name',this.value)" />
+            <input class="opt-price" type="number" step="0.01" placeholder="+R$" value="${o.price ? Number(o.price) : ""}" oninput="updateOption(${gi},${oi},'price',this.value)" />
+            <button type="button" class="opt-del" onclick="removeOption(${gi},${oi})" title="Remover opção">×</button>
+          </div>`).join("")}
+      </div>
+      <button type="button" class="ghost add-opt-btn" onclick="addOption(${gi})">+ Adicionar opção</button>
+    </div>
+  `).join("");
+  renderComboPreview();
+}
+
+function importMenuOptions(gi) {
+  const g = productOptionGroups[gi];
+  if (!g) return;
+  const cat = byId(`opt-import-${gi}`)?.value || "";
+  if (!cat) { showToast("Escolha uma categoria para importar."); return; }
+  g.options = (g.options || []).filter((o) => (o.name || "").trim());
+  const existing = new Set(g.options.map((o) => (o.name || "").trim().toLowerCase()));
+  let added = 0;
+  (menuItems || [])
+    .filter((it) => it.active && (it.category || "").trim() === cat)
+    .forEach((it) => {
+      const name = (it.name || "").trim();
+      if (!name || existing.has(name.toLowerCase())) return;
+      g.options.push({ name, price: 0, desc: it.description || "", image_url: it.image_url || "" });
+      existing.add(name.toLowerCase());
+      added++;
+    });
+  renderOptionGroupsEditor();
+  showToast(added ? `${added} ${added === 1 ? "sabor importado" : "sabores importados"} de ${cat}.` : `Nenhum item novo em ${cat}.`);
+}
+
+// Pré-visualização do combo dentro do editor (igual à tela do cliente)
+function renderComboPreview() {
+  const box = byId("product-combo-preview");
+  const wrap = byId("combo-preview-wrap");
+  if (!box || !wrap) return;
+  const groups = (productOptionGroups || []).filter(
+    (g) => (g.label || "").trim() && (g.options || []).some((o) => (o.name || "").trim())
+  );
+  if (!groups.length) {
+    wrap.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  const name = (byId("product-name")?.value || "").trim() || "Combo";
+  const desc = (byId("product-description")?.value || "").trim();
+  const price = Number(byId("product-price")?.value) || 0;
+  const img = productPhotoData;
+  const groupsHtml = groups.map((g) => {
+    const required = g.required || Number(g.min || 0) > 0;
+    const single = Number(g.max || 1) === 1;
+    const opts = (g.options || []).filter((o) => (o.name || "").trim()).map((o) => `
+      <div class="combo-option">
+        <div class="combo-option-info">
+          <strong>${escapeHtml(o.name)}</strong>
+          ${o.desc ? `<p>${escapeHtml(o.desc)}</p>` : ""}
+          ${Number(o.price) > 0 ? `<span class="combo-option-price">+ ${currency.format(o.price)}</span>` : ""}
+        </div>
+        ${single ? `<span class="combo-radio"></span>` : `<span class="combo-plus">+</span>`}
+      </div>`).join("");
+    return `
+      <section class="combo-group">
+        <div class="combo-group-head">
+          <div><strong>${escapeHtml(g.label)}</strong><span>${groupSubtitle(g)}</span></div>
+          ${required ? `<span class="combo-required">OBRIGATÓRIO</span>` : ""}
+        </div>
+        ${opts}
+      </section>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="combo-preview-cover ${img ? "" : "empty"}" style="${img ? `background-image:url('${img}')` : ""}"></div>
+    <div class="combo-preview-body">
+      <h3>${escapeHtml(name)}</h3>
+      ${desc ? `<p class="combo-dialog-desc">${escapeHtml(desc)}</p>` : ""}
+      ${price > 0 ? `<strong class="combo-dialog-baseprice">${currency.format(price)}</strong>` : ""}
+      ${groupsHtml}
+    </div>
+    <div class="combo-preview-footer">
+      <div class="combo-qty"><button type="button">−</button><span>1</span><button type="button">+</button></div>
+      <div class="combo-add-btn">Adicionar <strong>${currency.format(price)}</strong></div>
+    </div>`;
+}
+
+function addOptionGroup() {
+  productOptionGroups.push({ label: "", min: 1, max: 1, required: true, options: [{ name: "", price: 0 }] });
+  renderOptionGroupsEditor();
+}
+function removeOptionGroup(gi) { productOptionGroups.splice(gi, 1); renderOptionGroupsEditor(); }
+function updateOptionGroup(gi, field, value) {
+  if (!productOptionGroups[gi]) return;
+  if (field === "min" || field === "max") value = Math.max(0, parseInt(value, 10) || 0);
+  productOptionGroups[gi][field] = value;
+  renderComboPreview();
+}
+function addOption(gi) {
+  if (!productOptionGroups[gi]) return;
+  productOptionGroups[gi].options = productOptionGroups[gi].options || [];
+  productOptionGroups[gi].options.push({ name: "", price: 0 });
+  renderOptionGroupsEditor();
+}
+function removeOption(gi, oi) {
+  if (!productOptionGroups[gi]) return;
+  productOptionGroups[gi].options.splice(oi, 1);
+  renderOptionGroupsEditor();
+}
+function updateOption(gi, oi, field, value) {
+  const opt = productOptionGroups[gi] && productOptionGroups[gi].options[oi];
+  if (!opt) return;
+  opt[field] = field === "price" ? (parseFloat(value) || 0) : value;
+  renderComboPreview();
 }
 
 function openProductEditor(itemId) {
@@ -3207,12 +3794,18 @@ function openProductEditor(itemId) {
   byId("product-category").value = item.category;
   byId("product-description").value = item.description || "";
   byId("product-size").value = item.size || "";
+  if (byId("product-gift")) byId("product-gift").value = item.gift || "";
+  if (byId("product-gift2")) byId("product-gift2").value = "";
+  if (byId("product-free-delivery")) byId("product-free-delivery").checked = !!item.free_delivery;
+  productOptionGroups = parseOptionGroups(item.option_groups);
+  renderOptionGroupsEditor();
   byId("product-prep").value = item.prep_time || "";
   byId("product-addons").value = item.addons || "";
   byId("product-price").value = item.price;
   productPhotoData = item.image_url || "";
   byId("product-photo-preview").classList.toggle("hidden", !productPhotoData);
   byId("product-photo-preview").style.backgroundImage = productPhotoData ? `url("${productPhotoData}")` : "";
+  renderComboPreview();
   byId("create-product").textContent = "Salvar produto";
   byId("product-dialog").showModal();
 }
@@ -3516,60 +4109,67 @@ function copyWhatsAppMessage(orderId) {
   }
 }
 
+function printHtml(innerHtml, title) {
+  const old = document.getElementById("print-frame");
+  if (old) old.remove();
+  const frame = document.createElement("iframe");
+  frame.id = "print-frame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  document.body.appendChild(frame);
+  const doc = frame.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body style="font-family:Arial;padding:24px">${innerHtml}</body></html>`);
+  doc.close();
+  let printed = false;
+  const fire = () => { if (printed) return; printed = true; try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {} };
+  frame.onload = () => setTimeout(fire, 350);
+  setTimeout(fire, 900);
+}
+
 function printOrder(orderId) {
   const order = orders.find((current) => current.id === orderId);
   if (!order) return;
-  const win = window.open("", "_blank");
-  win.document.write(`
-    <title>Pedido #${order.id}</title>
-    <body style="font-family:Arial;padding:24px">
-      <h1>Bortolini Pizzaria e delivery</h1>
-      <h2>Pedido #${order.id}</h2>
-      <p><strong>Cliente:</strong> ${order.customer}</p>
-      <p><strong>Itens:</strong></p>
-      <ul>
-        ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x - ${currency.format(it.total)}</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
-      </ul>
-      <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
-      <p><strong>Endereço:</strong> ${order.address || "Retirada/balcão"}</p>
-      <p><strong>Taxa:</strong> ${currency.format(order.delivery_fee || 0)}</p>
-      <p><strong>Desconto:</strong> ${currency.format(order.discount || 0)}</p>
-      <p><strong>Pagamento:</strong> ${order.payment || "Não informado"}</p>
-      <p><strong>Status pagamento:</strong> ${order.payment_status || "Aguardando pagamento"}</p>
-      ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong> <a href="${order.payment_receipt_url}" target="_blank">Ver comprovante</a></p><img src="${order.payment_receipt_url}" style="max-width:300px;margin-top:8px;border:1px solid #ddd;border-radius:8px;" />` : ""}
-      <p><strong>Total:</strong> ${currency.format(order.total)}</p>
-    </body>
-  `);
-  win.document.close();
-  win.print();
+  printHtml(`
+    <h1>Bortolini Pizzaria e delivery</h1>
+    <h2>Pedido #${order.id}</h2>
+    <p><strong>Cliente:</strong> ${escapeHtml(order.customer || "")}</p>
+    <p><strong>Tipo:</strong> ${escapeHtml(order.delivery_type || "Entrega")}</p>
+    <p><strong>Itens:</strong></p>
+    <ul>
+      ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x - ${currency.format(it.total)}</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+    </ul>
+    <p><strong>Observações:</strong> ${escapeHtml(order.notes || "Sem observações")}</p>
+    <p><strong>Endereço:</strong> ${escapeHtml(order.address || "Retirada/balcão")}</p>
+    <p><strong>Taxa:</strong> ${currency.format(order.delivery_fee || 0)}</p>
+    <p><strong>Desconto:</strong> ${currency.format(order.discount || 0)}</p>
+    <p><strong>Pagamento:</strong> ${escapeHtml(order.payment || "Não informado")}</p>
+    <p><strong>Status pagamento:</strong> ${escapeHtml(order.payment_status || "Aguardando pagamento")}</p>
+    ${order.payment_receipt_url ? `<p><strong>Comprovante:</strong></p><img src="${order.payment_receipt_url}" style="max-width:300px;margin-top:8px;border:1px solid #ddd;border-radius:8px;" />` : ""}
+    <p><strong>Total:</strong> ${currency.format(order.total)}</p>
+  `, `Pedido #${order.id}`);
 }
 
 function printKitchenTickets() {
   const active = orders.filter((order) => ["Novo", "Cozinha"].includes(order.status));
-  const win = window.open("", "_blank");
-  win.document.write(`
-    <title>Mapa da cozinha</title>
-    <body style="font-family:Arial;padding:24px">
-      <h1>Bortolini - cozinha</h1>
-      ${active
-        .map(
-          (order) => `
-            <section style="border-bottom:1px solid #ddd;padding:12px 0">
-              <h2>Pedido #${order.id}</h2>
-              <p><strong>Itens:</strong></p>
-              <ul>
-                ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
-              </ul>
-              <p><strong>Observações:</strong> ${order.notes || "Sem observações"}</p>
-              <p><strong>Status:</strong> ${order.status} · ${orderAge(order)} min</p>
-            </section>
-          `,
-        )
-        .join("")}
-    </body>
-  `);
-  win.document.close();
-  win.print();
+  printHtml(`
+    <h1>Bortolini - cozinha</h1>
+    ${active
+      .map(
+        (order) => `
+          <section style="border-bottom:1px solid #ddd;padding:12px 0">
+            <h2>Pedido #${order.id} <small>(${escapeHtml(order.delivery_type || "Entrega")})</small></h2>
+            <p><strong>Itens:</strong></p>
+            <ul>
+              ${order.items && order.items.length ? order.items.map((it) => `<li>${escapeHtml(it.name)}${it.extras ? ` <small>(+ ${escapeHtml(it.extras)})</small>` : ""} - ${it.qty}x</li>`).join("") : `<li>${escapeHtml(order.item || "")}</li>`}
+            </ul>
+            <p><strong>Observações:</strong> ${escapeHtml(order.notes || "Sem observações")}</p>
+            <p><strong>Status:</strong> ${escapeHtml(order.status)} · ${orderAge(order)} min</p>
+          </section>
+        `,
+      )
+      .join("")}
+  `, "Mapa da cozinha");
 }
 
 async function saveSettings() {
@@ -3579,6 +4179,7 @@ async function saveSettings() {
     delivery_fee: byId("setting-fee").value,
     prep_time: byId("setting-prep").value,
     delivery_areas: byId("setting-areas").value,
+    ai_greeting: byId("setting-ai-greeting") ? byId("setting-ai-greeting").value : (settings.ai_greeting || ""),
   };
   try {
     settings = state.apiOnline
@@ -3655,13 +4256,6 @@ async function saveIntegrations() {
     whatsapp_token: byId("integration-whatsapp-token").value,
     phone_number_id: byId("integration-phone-number-id") ? byId("integration-phone-number-id").value : "",
     gps_interval: byId("integration-gps-interval").value,
-    domain: byId("integration-domain").value,
-    deploy_db: String(byId("deploy-db").checked),
-    deploy_env: String(byId("deploy-env").checked),
-    deploy_https: String(byId("deploy-https").checked),
-    evolution_url: byId("integration-evolution-url").value.trim(),
-    evolution_instance: byId("integration-evolution-instance").value.trim(),
-    evolution_apikey: byId("integration-evolution-apikey").value.trim(),
   };
   try {
     settings = state.apiOnline
@@ -3821,6 +4415,7 @@ function switchView(viewId) {
   document.querySelector(`[data-view="${viewId}"]`)?.classList.add("active");
   byId("view-title").textContent = document.querySelector(`[data-view="${viewId}"]`)?.textContent.trim() || "Bortolini";
   // Renderizar entregas quando aba Entregas for ativada
+  if (viewId === "inbox") { inboxStartPolling(); } else { inboxStopPolling(); }
   if (viewId === "delivery") {
     setTimeout(() => renderDelivery(), 150);
   }
@@ -4208,8 +4803,23 @@ byId("new-product-btn")?.addEventListener("click", () => {
   byId("product-price").value = "";
   byId("product-photo").value = "";
   byId("product-photo-preview").classList.add("hidden");
+  productOptionGroups = [];
+  renderOptionGroupsEditor();
   byId("create-product").textContent = "Criar produto";
   byId("product-dialog").showModal();
+});
+
+byId("new-combo-btn")?.addEventListener("click", () => {
+  editingProductId = null; productPhotoData = "";
+  ["product-name","product-description","product-size","product-prep","product-addons","product-price","product-photo","product-gift","product-gift2"].forEach((id) => { if (byId(id)) byId(id).value = ""; });
+  if (byId("product-free-delivery")) byId("product-free-delivery").checked = false;
+  productOptionGroups = [];
+  renderOptionGroupsEditor();
+  byId("product-category").value = "Combos";
+  byId("product-photo-preview").classList.add("hidden");
+  byId("create-product").textContent = "Criar combo";
+  byId("product-dialog").showModal();
+  byId("product-name").focus();
 });
 byId("new-promotion-btn")?.addEventListener("click", () => {
   editingPromotionId = null;
@@ -4235,11 +4845,11 @@ byId("order-delivery-type")?.addEventListener("change", updateOrderDeliveryMode)
 byId("create-product")?.addEventListener("click", createProduct);
 byId("create-promotion")?.addEventListener("click", createPromotion);
 byId("floating-cart-btn")?.addEventListener("click", openCartReview);
-byId("cart-review-continue")?.addEventListener("click", () => {
-  byId("cart-review-dialog").close();
-  openCheckoutDialog();
+byId("cart-review-continue")?.addEventListener("click", () => openCheckoutDialog());
+["cart-review-dialog", "checkout-dialog"].forEach((id) => {
+  const overlay = byId(id);
+  if (overlay) overlay.addEventListener("click", (e) => { if (e.target === overlay) closeSheet(id); });
 });
-byId("dialog-checkout-btn")?.addEventListener("click", checkoutCart);
 byId("dialog-checkout-type")?.addEventListener("change", (event) => {
   const isDelivery = event.target.value === "Entrega";
   byId("checkout-neighborhood-label")?.classList.toggle("hidden", !isDelivery);
@@ -4279,6 +4889,43 @@ byId("logout-btn")?.addEventListener("click", logout);
 byId("save-settings-btn")?.addEventListener("click", saveSettings);
 byId("save-pizza-prices-btn")?.addEventListener("click", savePizzaSizePrices);
 byId("save-integrations-btn")?.addEventListener("click", saveIntegrations);
+
+// ----- WhatsApp (Baileys) - painel de Integracoes -----
+let _waPollTimer = null;
+async function waRefreshStatus() {
+  const pill = byId("wa-status-pill"), txt = byId("wa-status-text"), num = byId("wa-number"), qrBox = byId("wa-qr-box");
+  try {
+    const s = await api("/api/whatsapp/status");
+    const labels = { connected: "Conectado", qr: "Aguardando leitura do QR", connecting: "Conectando…", disconnected: "Desconectado" };
+    if (pill) pill.textContent = labels[s.status] || s.status || "—";
+    if (txt) txt.textContent = s.connected ? "WhatsApp conectado e pronto para enviar/receber." : "WhatsApp não conectado.";
+    if (num) { num.textContent = s.number ? `Número conectado: ${s.number}` : ""; num.style.display = s.number ? "" : "none"; }
+    if (s.status === "qr") { await waLoadQr(); if (qrBox) qrBox.style.display = ""; }
+    else if (qrBox) { qrBox.style.display = "none"; }
+  } catch (e) {
+    if (pill) pill.textContent = "Indisponível";
+    if (txt) txt.textContent = "Serviço WhatsApp indisponível (verifique WHATSAPP_SERVICE_URL).";
+    if (qrBox) qrBox.style.display = "none";
+  }
+}
+async function waLoadQr() {
+  try { const r = await api("/api/whatsapp/qrcode"); const img = byId("wa-qr-img"); if (r && r.qr && img) img.src = r.qr; } catch (e) {}
+}
+function waStartPolling() { waStopPolling(); waRefreshStatus(); _waPollTimer = setInterval(waRefreshStatus, 4000); }
+function waStopPolling() { if (_waPollTimer) { clearInterval(_waPollTimer); _waPollTimer = null; } }
+byId("wa-connect-btn")?.addEventListener("click", async () => {
+  try { await api("/api/whatsapp/connect", { method: "POST", body: "{}" }); showToast("Iniciando conexão do WhatsApp…", "success"); waStartPolling(); }
+  catch (e) { showToast(e.message || "Falha ao conectar.", "error"); }
+});
+byId("wa-reconnect-btn")?.addEventListener("click", async () => {
+  try { await api("/api/whatsapp/connect", { method: "POST", body: "{}" }); showToast("Reconectando…", "success"); waStartPolling(); }
+  catch (e) { showToast(e.message || "Falha ao reconectar.", "error"); }
+});
+byId("wa-disconnect-btn")?.addEventListener("click", async () => {
+  if (!confirm("Desconectar o WhatsApp? Será necessário escanear o QR novamente.")) return;
+  try { await api("/api/whatsapp/disconnect", { method: "POST", body: "{}" }); showToast("WhatsApp desconectado.", "success"); waRefreshStatus(); }
+  catch (e) { showToast(e.message || "Falha ao desconectar.", "error"); }
+});
 byId("save-pin-btn")?.addEventListener("click", saveNewPin);
 byId("copy-driver-created-link")?.addEventListener("click", () => {
   const link = byId("driver-created-link").value;
@@ -4295,7 +4942,7 @@ byId("close-promotion-dialog")?.addEventListener("click", () => byId("promotion-
 byId("close-cancel-dialog")?.addEventListener("click", () => byId("cancel-dialog")?.close());
 byId("create-zone-btn")?.addEventListener("click", saveDeliveryZone);
 byId("cancel-zone-btn")?.addEventListener("click", cancelZoneEdit);
-byId("pizza-flavors-dialog-add")?.addEventListener("click", addPizzaFromFlavorsDialog);
+// (removido: botao usa onclick inline para evitar adicionar 2x)
 // bordas removidas - event listener de borda removido
 
 // Event delegation para tabs da loja pública (evita listeners duplicados)
@@ -4390,6 +5037,7 @@ byId("product-photo")?.addEventListener("change", (event) => {
     productPhotoData = reader.result;
     byId("product-photo-preview").style.backgroundImage = `url("${productPhotoData}")`;
     byId("product-photo-preview").classList.remove("hidden");
+    renderComboPreview();
   });
   reader.readAsDataURL(file);
 });
@@ -4666,11 +5314,12 @@ async function driverMarkDelivered(orderId) {
   const btn = byId(`driver-deliver-${orderId}`);
   if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
   try {
-    await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
+    const r = await fetch(`/api/public/driver/orders/${orderId}/deliver`, {
       method: "PATCH",
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "application/json", ...(_driverToken ? {"Authorization": `Bearer ${_driverToken}`} : {})},
       body: JSON.stringify({ status: "Entregue" })
     });
+    if (!r.ok) throw new Error("falha");
     showToast("✅ Pedido entregue!");
     loadDriverPublicOrders();
   } catch(e) {
@@ -4804,7 +5453,7 @@ async function loadOrderTrack(orderId, silent = false) {
         <h1 class="track-title">Pedido #${order.id}</h1>
         <p class="track-customer">${escapeHtml(order.customer)}</p>
         <div class="track-meta">
-          ${(() => { const d = order.created_at ? new Date(order.created_at) : null; return d && !isNaN(d.getTime()) ? `<span class="track-meta-item">📅 ${d.toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"})}</span>` : ""; })()}
+          ${(() => { const d = parseOrderDate(order.created_at); return d ? `<span class="track-meta-item">📅 ${d.toLocaleString("pt-BR", {day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo"})}</span>` : ""; })()}
           ${order.address ? `<span class="track-meta-item">📍 ${escapeHtml(order.address)}</span>` : ""}
         </div>
       </div>
@@ -4821,7 +5470,7 @@ async function loadOrderTrack(orderId, silent = false) {
           <span>Previsão: ${order.eta || "a combinar"}</span>
         </div>
       </div>
-      <div class="status-timeline">${renderOrderTimeline(order.status)}</div>
+      <div class="status-timeline">${renderOrderTimeline(order.status, order.delivery_type)}</div>
       ${order.notes ? `<div class="track-notes"><strong>Observações:</strong> ${escapeHtml(order.notes)}</div>` : ""}
     `;
     if (order.payment === "PIX" && order.payment_receipt_status !== "Enviado") {

@@ -10,11 +10,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css?v=20260610o" />
+    <link rel="stylesheet" href="/styles.css?v=20260615c" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   </head>
   <body>
-    <section class="login-screen" id="login-screen">
+    <script>if((location.hash||'').indexOf('#pedir')===0||(location.pathname||'').indexOf('/entregador')===0){document.write('<style>#login-screen{display:none!important}</style>')}</script>
+    <section class="login-screen hidden" id="login-screen">
       <div class="login-card">
         <div class="brand login-brand">
           <img class="brand-logo" src="assets/logo.png" alt="Logo Bortolini Pizzaria e delivery" />
@@ -70,7 +71,6 @@
           <button class="nav-item" data-view="customer" data-permission="customer" role="tab" aria-selected="false" aria-controls="customer">Cliente QR</button>
           <button class="nav-item" data-view="menu" data-permission="menu" role="tab" aria-selected="false" aria-controls="menu">Cardápio</button>
           <button class="nav-item" data-view="inventory" data-permission="inventory" role="tab" aria-selected="false" aria-controls="inventory">Estoque</button>
-          <button class="nav-item" data-view="inbox" data-permission="inbox" role="tab" aria-selected="false" aria-controls="inbox">Atendimento IA</button>
           <button class="nav-item" data-view="delivery" data-permission="delivery" role="tab" aria-selected="false" aria-controls="delivery">Entregas</button>
           <button class="nav-item" data-view="payments" data-permission="payments" role="tab" aria-selected="false" aria-controls="payments">Pagamentos</button>
           <button class="nav-item" data-view="customers" data-permission="customers" role="tab" aria-selected="false" aria-controls="customers">Clientes</button>
@@ -189,7 +189,7 @@
             <!-- Botão flutuante de carrinho (estilo iFood) -->
             <button class="floating-cart-btn" id="floating-cart-btn" type="button">
               <span id="floating-cart-qty">0</span>
-              <span>Ver sacola</span>
+              <span>Ver carrinho</span>
               <span style="opacity:0.7;">·</span>
               <strong id="floating-cart-total">R$ 0,00</strong>
             </button>
@@ -199,6 +199,7 @@
                 <div class="store-tabs">
                   <button class="store-tab active" data-tab="pizzas">🍕 Pizzas</button>
                   <button class="store-tab" data-tab="bebidas">🥤 Bebidas</button>
+                  <button class="store-tab" data-tab="combos">🍕 Combos</button>
                   <button class="store-tab" data-tab="promocoes">🏷️ Promoções</button>
                 </div>
                 <div id="store-tab-pizzas" class="store-tab-content active">
@@ -210,6 +211,7 @@
                 <div id="store-tab-bebidas" class="store-tab-content hidden">
                   <div id="store-bebidas" class="menu-grid"></div>
                 </div>
+                <div id="store-tab-combos" class="store-tab-content hidden"><div id="store-combos" class="menu-grid"></div></div>
                 <div id="store-tab-promocoes" class="store-tab-content hidden">
                   <div id="store-promocoes" class="menu-grid"></div>
                 </div>
@@ -224,12 +226,14 @@
                     <p id="pix-order-summary"></p>
                     <div class="pix-info-box">
                       <p><strong>Pague via PIX para confirmar seu pedido:</strong></p>
+                      <p class="pix-amount">Valor: <strong id="pix-amount-display">R$ 0,00</strong></p>
+                      <img id="pix-qr-img" class="pix-qr" alt="QR Code PIX com valor" />
+                      <p class="pix-tip">Escaneie o QR no app do banco — o valor já vem preenchido. Ou use o Pix copia e cola:</p>
                       <div class="pix-cnpj-row">
-                        <span class="pix-label">CNPJ</span>
-                        <span class="pix-value" id="pix-cnpj-display">66.686.680/0001-57</span>
+                        <input class="pix-code-input" id="pix-code-display" readonly aria-label="Pix copia e cola" />
                         <button class="ghost pix-copy-btn" id="pix-copy-btn" onclick="copyPix()">Copiar</button>
                       </div>
-                      <p class="pix-tip">Abra o app do seu banco → PIX → CNPJ → cole a chave acima</p>
+                      <p class="pix-tip">Chave (CNPJ): <span id="pix-cnpj-display">66.686.680/0001-57</span></p>
                     </div>
                     <div class="pix-upload-section">
                       <p><strong>Após pagar, envie o comprovante:</strong></p>
@@ -308,6 +312,7 @@
                     <option value="Todos">Todas categorias</option>
                   </select>
                   <button class="secondary" id="new-product-btn">+ Produto</button>
+                  <button class="secondary" id="new-combo-btn">+ Combo</button>
                   <button class="primary" id="new-promotion-btn">+ Promoção</button>
                 </div>
               </div>
@@ -411,20 +416,6 @@
             </div>
             <div id="stock-movements-list" class="ingredient-list"></div>
           </section>
-        </section>
-
-        <section id="inbox" class="view">
-          <div class="inbox-layout" style="grid-template-columns: 1fr; place-items: center; min-height: 70vh;">
-            <aside class="panel qr-panel" id="inbox-qr-panel" style="max-width: 360px; width: 100%;">
-              <div class="panel-head">
-                <h2>Conectar WhatsApp</h2>
-                <span class="status-pill">QR Code</span>
-              </div>
-              <img id="inbox-qr-image" class="qr-code-image" alt="QR Code WhatsApp" />
-              <p class="form-hint" id="inbox-qr-hint">Escaneie para iniciar uma conversa no WhatsApp.</p>
-              <button class="secondary" id="copy-whatsapp-link" type="button">Copiar link</button>
-            </aside>
-          </div>
         </section>
 
         <section id="delivery" class="view">
@@ -580,6 +571,7 @@
               <label>Tempo médio<input id="setting-prep" /></label>
             </div>
             <label>Bairros atendidos<input id="setting-areas" /></label>
+            <label>Mensagem automatica da IA <small>(use {cliente} e {preparo})</small><textarea id="setting-ai-greeting" rows="2" placeholder="Ola {cliente}! Como posso ajudar?"></textarea></label>
             <div class="panel-head">
               <h2>Taxas por bairro</h2>
               <span class="status-pill">Entrega</span>
@@ -615,7 +607,6 @@
             <p class="form-hint">O entregador acessa o link acima com o ID dele no final (ex: /entregador/123).</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button class="primary" id="save-settings-btn">Salvar configurações</button>
-              <button class="secondary" id="sync-menu-btn" type="button" onclick="syncMenuItems()">🔄 Sincronizar cardápio</button>
               <button class="secondary" id="sync-ingredients-btn" type="button" onclick="syncIngredients()">🔄 Sincronizar estoque</button>
             </div>
             <p class="form-error" id="settings-message"></p>
@@ -662,19 +653,6 @@
 
             <section class="panel settings-panel">
               <div class="panel-head">
-                <h2>Evolution API</h2>
-                <span class="status-pill">WhatsApp</span>
-              </div>
-              <label>URL do servidor Evolution<input id="integration-evolution-url" placeholder="https://evolution.seuservidor.com" /></label>
-              <label>Nome da instância<input id="integration-evolution-instance" placeholder="bortolini" /></label>
-              <label>API Key<input id="integration-evolution-apikey" type="password" autocomplete="off" placeholder="apikey da Evolution" /></label>
-              <p class="form-hint">Configure o webhook na Evolution apontando para:</p>
-              <code id="evolution-webhook-url" style="display:block;background:#f3f4f6;padding:8px;border-radius:6px;font-size:12px;word-break:break-all;"></code>
-              <p class="form-hint">Com a Evolution ativa, o inbox recebe mensagens reais e envia respostas automaticamente.</p>
-            </section>
-
-            <section class="panel settings-panel">
-              <div class="panel-head">
                 <h2>GPS do entregador</h2>
                 <span class="status-pill success">Pronto para celular</span>
               </div>
@@ -682,18 +660,6 @@
               <label>Intervalo de atualização<input id="integration-gps-interval" placeholder="30 segundos" /></label>
             </section>
 
-            <section class="panel settings-panel">
-              <div class="panel-head">
-                <h2>Deploy online</h2>
-                <span class="status-pill">Publicação</span>
-              </div>
-              <label>Domínio desejado<input id="integration-domain" placeholder="pedido.bortolini.com.br" /></label>
-              <div class="deploy-checklist">
-                <label><input type="checkbox" id="deploy-db" /> Banco persistente configurado</label>
-                <label><input type="checkbox" id="deploy-env" /> Variáveis de ambiente separadas</label>
-                <label><input type="checkbox" id="deploy-https" /> HTTPS/domínio pronto</label>
-              </div>
-            </section>
           </div>
           <button class="primary" id="save-integrations-btn">Salvar integrações</button>
           <p class="form-error" id="integrations-message"></p>
@@ -812,7 +778,7 @@
         </div>
         <label>
           Nome
-          <input id="product-name" placeholder="Ex: Coxinha de frango" />
+          <input id="product-name" placeholder="Ex: Coxinha de frango" oninput="renderComboPreview()" />
         </label>
         <label>
           Categoria
@@ -828,7 +794,7 @@
         </label>
         <label>
           Descrição curta
-          <textarea id="product-description" placeholder="Ex: massa artesanal, molho da casa, serve 2 pessoas"></textarea>
+          <textarea id="product-description" placeholder="Ex: massa artesanal, molho da casa, serve 2 pessoas" oninput="renderComboPreview()"></textarea>
         </label>
         <div class="form-grid">
           <label>
@@ -855,9 +821,26 @@
           Adicionais sugeridos
           <input id="product-addons" placeholder="Ex: Borda recheada, extra queijo" />
         </label>
+        <label>Brinde 1 do combo (opcional)<input id="product-gift" placeholder="Ex: 1 refri 2L gratis" /></label>
+        <label>Brinde 2 do combo (opcional)<input id="product-gift2" placeholder="Ex: 1 sobremesa gratis" /></label>
+        <label class="inline-check"><input type="checkbox" id="product-free-delivery" /> Frete grátis (combo)</label>
+
+        <div class="option-groups-editor">
+          <div class="option-groups-editor-head">
+            <strong>Personalização (grupos de opções)</strong>
+            <small>Crie grupos como "Escolha seu sabor" e marque obrigatório, mínimo e máximo. O cliente escolhe na hora do pedido.</small>
+          </div>
+          <div id="product-option-groups"></div>
+          <button type="button" class="ghost add-group-btn" onclick="addOptionGroup()">+ Adicionar grupo de opções</button>
+        </div>
+
+        <div class="combo-preview-wrap hidden" id="combo-preview-wrap">
+          <div class="combo-preview-label">👁️ Pré-visualização — como o cliente vê</div>
+          <div id="product-combo-preview" class="combo-preview"></div>
+        </div>
         <label>
           Preço
-          <input id="product-price" type="number" step="0.01" placeholder="0,00" />
+          <input id="product-price" type="number" step="0.01" placeholder="0,00" oninput="renderComboPreview()" />
         </label>
         <label>
           Foto
@@ -976,7 +959,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script defer src="/app-v3.js?v=20260610o"></script>
+    <script defer src="/app-v3.js?v=20260615c"></script>
   <!-- Página pública do entregador -->
   <div id="driver-public-page" class="hidden driver-public-page">
     <!-- Tela de login -->
@@ -1102,33 +1085,36 @@
     </div>
   </dialog>
   <!-- Modal de revisão do carrinho (estilo iFood) -->
-  <dialog id="cart-review-dialog" class="cart-review-dialog">
-    <div class="dialog-card ifood-cart-card">
-      <div class="ifood-checkout-header">
-        <button class="icon-button" onclick="byId('cart-review-dialog').close()" aria-label="Voltar">←</button>
-        <h2>Seu pedido</h2>
-        <span></span>
-      </div>
-      <div id="cart-review-items" class="ifood-items-list"></div>
-      <button class="ifood-add-more" onclick="byId('cart-review-dialog').close()" type="button">
-        <span>+</span> Adicionar mais itens
-      </button>
-      <div class="ifood-summary-box">
-        <div class="ifood-summary-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
-        <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
-        <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
-      </div>
-      <div class="ifood-footer-fixed">
-        <button class="primary" id="cart-review-continue" type="button" onclick="byId('cart-review-dialog').close(); openCheckoutDialog();">Continuar para o pagamento</button>
+  <div id="cart-review-dialog" class="sheet-overlay">
+    <div class="cart-review-dialog">
+      <div class="dialog-card ifood-cart-card">
+        <div class="ifood-checkout-header">
+          <button class="icon-button" onclick="closeSheet('cart-review-dialog')" aria-label="Voltar">←</button>
+          <h2>Seu pedido</h2>
+          <span></span>
+        </div>
+        <div id="cart-review-items" class="ifood-items-list"></div>
+        <button class="ifood-add-more" onclick="closeSheet('cart-review-dialog')" type="button">
+          <span>+</span> Adicionar mais itens
+        </button>
+        <div class="ifood-summary-box">
+          <div class="ifood-summary-line"><span>Subtotal</span><span id="review-subtotal">R$ 0,00</span></div>
+          <div class="ifood-summary-line"><span>Taxa de entrega</span><span id="review-delivery-fee">R$ 0,00</span></div>
+          <div class="ifood-summary-line total"><span>Total</span><strong id="review-total">R$ 0,00</strong></div>
+        </div>
+        <div class="ifood-footer-fixed">
+          <button class="primary" id="cart-review-continue" type="button">Continuar para o pagamento</button>
+        </div>
       </div>
     </div>
-  </dialog>
+  </div>
 
   <!-- Modal de checkout (estilo iFood) -->
-  <dialog id="checkout-dialog" class="checkout-dialog">
+  <div id="checkout-dialog" class="sheet-overlay">
+    <div class="checkout-dialog">
     <div class="dialog-card ifood-checkout-card">
       <div class="ifood-checkout-header">
-        <button class="icon-button" onclick="byId('checkout-dialog').close(); byId('cart-review-dialog').showModal();" aria-label="Voltar">←</button>
+        <button class="icon-button" onclick="switchDialog('checkout-dialog','cart-review-dialog')" aria-label="Voltar">←</button>
         <h2>Finalizar pedido</h2>
         <span></span>
       </div>
@@ -1228,7 +1214,8 @@
         </button>
       </div>
     </div>
-  </dialog>
+    </div>
+  </div>
   <!-- Modal de escolha de sabores (após selecionar tamanho) -->
   <dialog id="pizza-flavors-dialog" class="pizza-flavors-dialog">
     <div class="dialog-card">
@@ -1247,6 +1234,36 @@
       <p id="pizza-flavors-dialog-premium" style="color:#dc2626;font-size:0.85rem;text-align:center;margin:4px 0;display:none;"></p>
       <p class="form-error" id="pizza-flavors-dialog-error"></p>
       <button class="primary" id="pizza-flavors-dialog-add" type="button" onclick="addPizzaFromFlavorsDialog()">Adicionar ao carrinho</button>
+    </div>
+  </dialog>
+
+  <dialog id="combo-dialog" class="combo-dialog">
+    <div class="dialog-card combo-dialog-card">
+      <div class="combo-dialog-head">
+        <button class="icon-button combo-close" onclick="byId('combo-dialog').close()" aria-label="Fechar">⌄</button>
+        <div class="combo-dialog-cover" id="combo-dialog-cover"></div>
+      </div>
+      <div class="combo-dialog-body">
+        <h2 id="combo-dialog-title">Combo</h2>
+        <p id="combo-dialog-desc" class="combo-dialog-desc"></p>
+        <strong id="combo-dialog-baseprice" class="combo-dialog-baseprice"></strong>
+        <div id="combo-dialog-groups"></div>
+        <label class="combo-obs">
+          <span class="combo-obs-head">💬 Alguma observação? <small id="combo-obs-count">0/140</small></span>
+          <textarea id="combo-dialog-notes" maxlength="140" placeholder="Ex: tirar a cebola, maionese à parte etc." oninput="byId('combo-obs-count').textContent=this.value.length+'/140'"></textarea>
+        </label>
+        <p class="form-error" id="combo-dialog-error"></p>
+      </div>
+      <div class="combo-dialog-footer">
+        <div class="combo-qty">
+          <button type="button" onclick="changeComboQty(-1)">−</button>
+          <span id="combo-dialog-qty">1</span>
+          <button type="button" onclick="changeComboQty(1)">+</button>
+        </div>
+        <button class="primary combo-add-btn" type="button" onclick="addComboFromDialog()">
+          <span>Adicionar</span><strong id="combo-dialog-total">R$ 0,00</strong>
+        </button>
+      </div>
     </div>
   </dialog>
 

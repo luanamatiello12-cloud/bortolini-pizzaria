@@ -15,7 +15,6 @@ import threading
 import time
 import unicodedata
 from urllib.parse import urlparse
-import urllib.request
 
 try:
     import psycopg
@@ -96,9 +95,39 @@ def _resolve_db_path():
 
 DB_PATH = _resolve_db_path()
 UPLOADS_DIR = Path(os.environ.get("UPLOADS_PATH", ROOT / "uploads"))
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "uploads").strip()
 APP_SECRET = os.environ.get("APP_SECRET", "local-dev-change-before-production")
 ADMIN_MASTER_KEY = os.environ.get("ADMIN_MASTER_KEY", "BORTOLINI-2026")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "bortolini-webhook-local")
+WHATSAPP_SERVICE_URL = os.environ.get("WHATSAPP_SERVICE_URL", "").strip().rstrip("/")
+WHATSAPP_API_KEY = os.environ.get("WHATSAPP_API_KEY", "").strip()
+
+
+def call_whatsapp_service(method, endpoint, body=None):
+    """Chama o servico Node do WhatsApp (Baileys). Retorna (status_int, dict)."""
+    if not WHATSAPP_SERVICE_URL:
+        return 503, {"error": "Servico WhatsApp nao configurado (defina WHATSAPP_SERVICE_URL)."}
+    import urllib.request, urllib.error
+    url = f"{WHATSAPP_SERVICE_URL}{endpoint}"
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"}
+    if WHATSAPP_API_KEY:
+        headers["X-API-Key"] = WHATSAPP_API_KEY
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read()
+            return resp.status, (json.loads(raw) if raw else {})
+    except urllib.error.HTTPError as e:
+        raw = e.read()
+        try:
+            return e.code, json.loads(raw)
+        except Exception:
+            return e.code, {"error": raw.decode(errors="replace")}
+    except Exception as e:
+        return 502, {"error": str(e)}
 PIX_CNPJ = os.environ.get("PIX_CNPJ", "66.686.680/0001-57")
 USE_POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 DB_INTEGRITY_ERROR = (sqlite3.IntegrityError,)
@@ -526,6 +555,62 @@ def random_pin():
     return str(secrets.randbelow(10000)).zfill(4)
 
 
+def normalize_option_groups(value):
+    """Recebe lista ou string JSON de grupos de opcoes e devolve JSON limpo (ou '')."""
+    if not value:
+        return ""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (ValueError, TypeError):
+            return ""
+    if not isinstance(value, list):
+        return ""
+    groups = []
+    for group in value:
+        if not isinstance(group, dict):
+            continue
+        label = str(group.get("label", "")).strip()
+        options = []
+        for opt in group.get("options", []) or []:
+            if not isinstance(opt, dict):
+                continue
+            name = str(opt.get("name", "")).strip()
+            if not name:
+                continue
+            try:
+                price = float(opt.get("price", 0) or 0)
+            except (ValueError, TypeError):
+                price = 0.0
+            options.append({
+                "name": name,
+                "price": price,
+                "desc": str(opt.get("desc", "")).strip(),
+                "image_url": str(opt.get("image_url", "")).strip(),
+            })
+        if not label or not options:
+            continue
+        try:
+            min_sel = int(group.get("min", 0) or 0)
+            max_sel = int(group.get("max", 1) or 1)
+        except (ValueError, TypeError):
+            min_sel, max_sel = 0, 1
+        if max_sel < 1:
+            max_sel = 1
+        if min_sel < 0:
+            min_sel = 0
+        if min_sel > max_sel:
+            min_sel = max_sel
+        groups.append({
+            "label": label,
+            "min": min_sel,
+            "max": max_sel,
+            "required": bool(group.get("required")) or min_sel > 0,
+            "options": options,
+        })
+    return json.dumps(groups, ensure_ascii=False) if groups else ""
+
+
 class HybridRow(dict):
     def __init__(self, columns, values):
         super().__init__(zip(columns, values))
@@ -888,16 +973,11 @@ def init_db():
                 (key, value),
             )
 
-        # Sincroniza cardápio do seed automaticamente (sabores das pizzas)
-        for item in SEED_MENU_ITEMS:
-            row = conn.execute("SELECT id FROM menu_items WHERE name = ?", (item["name"],)).fetchone()
-            if row:
-                # Não sobrescreve o preço definido pelo usuário
-                conn.execute(
-                    "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
-                    (item["category"], item.get("description", ""), item["name"]),
-                )
-            else:
+        # Popula o cardapio do seed APENAS na primeira vez (banco vazio).
+        # Assim itens que o usuario excluiu ou editou NAO voltam a cada reinicio.
+        menu_count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+        if menu_count == 0:
+            for item in SEED_MENU_ITEMS:
                 conn.execute(
                     "INSERT INTO menu_items (name, category, price, description, active) VALUES (?, ?, 0, ?, 1)",
                     (item["name"], item["category"], item.get("description", "")),
@@ -999,6 +1079,9 @@ def ensure_menu_item_columns(conn):
         "prep_time": "ALTER TABLE menu_items ADD COLUMN prep_time TEXT",
         "addons": "ALTER TABLE menu_items ADD COLUMN addons TEXT",
         "sort_order": "ALTER TABLE menu_items ADD COLUMN sort_order INTEGER DEFAULT 0",
+        "gift": "ALTER TABLE menu_items ADD COLUMN gift TEXT",
+        "free_delivery": "ALTER TABLE menu_items ADD COLUMN free_delivery INTEGER DEFAULT 0",
+        "option_groups": "ALTER TABLE menu_items ADD COLUMN option_groups TEXT",
     }
     for column, sql in migrations.items():
         if column not in columns:
@@ -1039,6 +1122,8 @@ def ensure_ai_conversation_columns(conn):
         conn.execute("ALTER TABLE ai_conversations ADD COLUMN mode TEXT NOT NULL DEFAULT 'ai'")
     if "assigned_to" not in columns:
         conn.execute("ALTER TABLE ai_conversations ADD COLUMN assigned_to TEXT")
+    if "name" not in columns:
+        conn.execute("ALTER TABLE ai_conversations ADD COLUMN name TEXT")
 
 
 def ensure_ai_message_system_author(conn):
@@ -1132,29 +1217,6 @@ def rows_to_dicts(rows):
     return [dict(row) for row in rows]
 
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
-
-
-def upload_to_supabase_storage(data_bytes, filename, content_type):
-    """Faz upload de arquivo para o Supabase Storage bucket 'products'."""
-    url = f"{SUPABASE_URL}/storage/v1/object/products/{filename}"
-    req = urllib.request.Request(
-        url,
-        data=data_bytes,
-        headers={
-            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
-            "Content-Type": content_type,
-            "x-upsert": "true",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        if resp.status not in (200, 201):
-            raise RuntimeError(f"Supabase upload failed: {resp.status}")
-    return f"{SUPABASE_URL}/storage/v1/object/public/products/{filename}"
-
-
 def data_url_to_upload(value, prefix):
     if not isinstance(value, str) or not value.startswith(("data:image/", "data:application/pdf")):
         return value
@@ -1163,22 +1225,32 @@ def data_url_to_upload(value, prefix):
         return value
     raw_ext = (match.group(1) or match.group(2)).lower()
     ext = "jpg" if raw_ext in {"jpeg", "jpg"} else "svg" if raw_ext == "svg+xml" else raw_ext
+    content_type = "application/pdf" if ext == "pdf" else ("image/svg+xml" if ext == "svg" else f"image/{'jpeg' if ext == 'jpg' else ext}")
     safe_prefix = re.sub(r"[^a-zA-Z0-9_-]+", "-", prefix).strip("-") or "image"
     filename = f"{safe_prefix}-{int(datetime.now().timestamp())}.{ext}"
-    data_bytes = base64.b64decode(match.group(3))
-    content_type = {
-        "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
-        "webp": "image/webp", "gif": "image/gif", "svg": "image/svg+xml",
-        "pdf": "application/pdf",
-    }.get(ext, "application/octet-stream")
-    # Se Supabase estiver configurado, envia para la; senao, fallback local
+    binary = base64.b64decode(match.group(3))
+    # 1) Supabase Storage (persiste entre deploys) quando configurado
     if SUPABASE_URL and SUPABASE_SERVICE_KEY:
         try:
-            return upload_to_supabase_storage(data_bytes, filename, content_type)
+            import urllib.request
+            up = urllib.request.Request(
+                f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{filename}",
+                data=binary,
+                headers={
+                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                    "apikey": SUPABASE_SERVICE_KEY,
+                    "Content-Type": content_type,
+                    "x-upsert": "true",
+                },
+                method="POST",
+            )
+            urllib.request.urlopen(up, timeout=20)
+            return f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{filename}"
         except Exception as e:
-            print(f"[upload] Supabase falhou ({e}), usando fallback local")
+            print(f"[SUPABASE STORAGE ERROR] {e} - salvando local")
+    # 2) Fallback local (efemero no Render - some no deploy)
     path = UPLOADS_DIR / filename
-    path.write_bytes(data_bytes)
+    path.write_bytes(binary)
     return f"uploads/{filename}"
 
 
@@ -1209,6 +1281,20 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
         if path.startswith("/uploads/"):
             self.serve_upload(path)
+            return
+
+        # --- Proxy WhatsApp (Baileys) ---
+        if path == "/api/whatsapp/status":
+            if not self.require_permission("settings"):
+                return
+            st, data = call_whatsapp_service("GET", "/api/whatsapp/status")
+            self.send_json(data, st)
+            return
+        if path == "/api/whatsapp/qrcode":
+            if not self.require_permission("settings"):
+                return
+            st, data = call_whatsapp_service("GET", "/api/whatsapp/qrcode")
+            self.send_json(data, st)
             return
 
         # Public endpoints (no auth required)
@@ -1389,6 +1475,26 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         try:
             path = urlparse(self.path).path
+            # --- Proxy WhatsApp (Baileys) ---
+            if path == "/api/whatsapp/connect":
+                if not self.require_permission("settings"):
+                    return
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/connect", {})
+                self.send_json(data, st)
+                return
+            if path == "/api/whatsapp/send":
+                if not self.require_permission("settings"):
+                    return
+                payload = self.read_json()
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/send", payload)
+                self.send_json(data, st)
+                return
+            if path == "/api/whatsapp/disconnect":
+                if not self.require_permission("settings"):
+                    return
+                st, data = call_whatsapp_service("POST", "/api/whatsapp/disconnect", {})
+                self.send_json(data, st)
+                return
             if path == "/api/orders":
                 payload = self.read_json()
                 data = self.create_order(payload)
@@ -1484,6 +1590,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 data = self.reply_inbox(conversation_id, payload)
                 if data is not None:
                     self.send_json(data, HTTPStatus.CREATED)
+                return
+            if path.startswith("/api/inbox/") and path.endswith("/name"):
+                if not self.require_permission("orders"):
+                    return
+                cid = int(path.split("/")[-2])
+                data = self.update_inbox_name(cid, self.read_json())
+                if data is not None:
+                    self.send_json(data)
                 return
             if path.startswith("/api/inbox/") and path.endswith("/mode"):
                 if not self.require_permission("orders"):
@@ -2034,6 +2148,10 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         evo_instance = settings.get("evolution_instance", "").strip()
         evo_key = settings.get("evolution_apikey", "").strip()
         if not evo_url or not evo_instance or not evo_key:
+            # Sem Evolution configurado: tenta enviar pelo servico Baileys
+            if WHATSAPP_SERVICE_URL:
+                st, _ = call_whatsapp_service("POST", "/api/whatsapp/send", {"number": re.sub(r"\D", "", phone_number), "message": text})
+                return st < 400
             return False
         try:
             import urllib.request
@@ -2084,7 +2202,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     mode = row["mode"]
                 else:
                     cursor = conn.execute(
-                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'ai', '') RETURNING *",
+                        "INSERT INTO ai_conversations (client, channel, mode, assigned_to) VALUES (?, ?, 'human', '') RETURNING *",
                         (phone, "WhatsApp"),
                     )
                     conversation_id = cursor.fetchone()["id"]
@@ -2386,23 +2504,13 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         }
 
     def sync_menu_items(self):
-        """Sincroniza o cardápio do SEED sem apagar dados existentes (upsert)."""
+        """Popula o cardápio do SEED apenas se estiver vazio. NUNCA sobrescreve
+        nem re-adiciona itens que o usuário excluiu/editou."""
         inserted = 0
-        updated = 0
         with connect() as conn:
-            for item in SEED_MENU_ITEMS:
-                row = conn.execute(
-                    "SELECT id FROM menu_items WHERE name = ?",
-                    (item["name"],),
-                ).fetchone()
-                if row:
-                    # Não sobrescreve o preço definido pelo usuário
-                    conn.execute(
-                        "UPDATE menu_items SET category = ?, description = ?, active = 1 WHERE name = ?",
-                        (item["category"], item.get("description", ""), item["name"]),
-                    )
-                    updated += 1
-                else:
+            count = conn.execute("SELECT COUNT(*) FROM menu_items").fetchone()[0]
+            if count == 0:
+                for item in SEED_MENU_ITEMS:
                     next_sort = conn.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM menu_items").fetchone()[0] or 1
                     conn.execute(
                         "INSERT INTO menu_items (name, category, price, description, active, sort_order) VALUES (?, ?, 0, ?, 1, ?)",
@@ -2412,8 +2520,9 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return {
             "ok": True,
             "inserted": inserted,
-            "updated": updated,
-            "message": f"Cardápio sincronizado: {inserted} novos, {updated} atualizados.",
+            "updated": 0,
+            "message": (f"Cardápio populado: {inserted} itens." if inserted
+                        else "Cardápio já existe — nada alterado (itens excluídos/editados preservados)."),
         }
 
     def sync_ingredients(self):
@@ -2488,7 +2597,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         all_settings = {row["key"]: row["value"] for row in rows}
         public_keys = {
             "restaurant_name", "opening_hours", "delivery_fee", "delivery_areas",
-            "prep_time", "pizza_sizes", "pix_key"
+            "prep_time", "pizza_sizes", "pix_key", "whatsapp_number"
         }
         settings = {k: all_settings.get(k, "") for k in public_keys}
         settings["pix_cnpj"] = PIX_CNPJ
@@ -2524,6 +2633,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 {
                     "id": row["id"],
                     "client": row["client"],
+                    "name": (row["name"] if "name" in row.keys() else "") or "",
                     "channel": row["channel"],
                     "status": row["status"],
                     "mode": row["mode"],
@@ -2602,6 +2712,12 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             client_phone = conversation["client"]
             self.send_evolution_message(client_phone, text)
         return next((item for item in self.get_inbox() if item["id"] == conversation_id), None)
+
+    def update_inbox_name(self, conversation_id, payload):
+        name = payload.get("name", "").strip()
+        with connect() as conn:
+            conn.execute("UPDATE ai_conversations SET name = ? WHERE id = ?", (name, conversation_id))
+        return next((i for i in self.get_inbox() if i["id"] == conversation_id), None)
 
     def update_inbox_mode(self, conversation_id, payload):
         mode = payload.get("mode", "ai")
@@ -2707,10 +2823,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
             return prefix + "Aceitamos PIX e as formas cadastradas no atendimento. Se for PIX, envie o comprovante apos o pagamento."
 
         prep_time = settings.get("prep_time", "35 a 45 minutos")
-        return prefix + (
-            f"Entendi, {client_name}. Vou te ajudar por aqui. "
-            f"O tempo medio de preparo esta em {prep_time}. Se quiser, envie bairro, pedido ou produto desejado."
-        )
+        tpl = settings.get("ai_greeting", "Ola {cliente}! Como posso ajudar? Tempo medio de preparo: {preparo}.")
+        return prefix + tpl.replace("{cliente}", str(client_name)).replace("{preparo}", str(prep_time))
 
     def format_money(self, value):
         try:
@@ -3093,6 +3207,8 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                     "UPDATE menu_items SET image_url = ? WHERE id = ?",
                     (image_url, row["id"]),
                 )
+            conn.execute("UPDATE menu_items SET gift = ?, free_delivery = ?, option_groups = ? WHERE id = ?", (str(payload.get("gift","")).strip(), 1 if payload.get("free_delivery") else 0, normalize_option_groups(payload.get("option_groups")), row["id"]))
+            row = conn.execute("SELECT * FROM menu_items WHERE id = ?", (row["id"],)).fetchone()
         return dict(row)
 
 
@@ -3152,12 +3268,14 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         fields = []
         values = []
         image_url_value = None
-        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons"]:
+        for field in ["name", "category", "price", "active", "image_url", "description", "size", "prep_time", "addons", "gift", "free_delivery", "option_groups"]:
             if field in payload:
                 fields.append(f"{field} = ?")
                 if field == "image_url":
                     image_url_value = payload[field]
                     values.append(image_url_value)  # placeholder; será substituído após validação
+                elif field == "option_groups":
+                    values.append(normalize_option_groups(payload[field]))
                 else:
                     values.append(payload[field])
         if not fields:
@@ -3576,7 +3694,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
         return self.headers.get("X-User-Role", "")
 
     def update_order(self, order_id, payload):
-        allowed_statuses = {"Novo", "Cozinha", "Entrega", "Finalizado", "Cancelado"}
+        allowed_statuses = {"Novo", "Cozinha", "Entrega", "Disponível para retirada", "Finalizado", "Cancelado"}
         status = payload.get("status")
         if status not in allowed_statuses:
             self.send_error(HTTPStatus.BAD_REQUEST, "Status inválido")
@@ -3853,6 +3971,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
 
 def main():
     init_db()
+    print(f"[DB] Backend ativo: {'PostgreSQL (Supabase)' if USE_POSTGRES else 'SQLite local'}")
     if not USE_POSTGRES:
     # Iniciar backup automático em 24h (primeira vez)
         t = threading.Timer(86400, auto_backup)
