@@ -2336,7 +2336,7 @@ class BortoliniHandler(SimpleHTTPRequestHandler):
                 ) recipe ON recipe.menu_item_id = m.id
                 WHERE o.status != 'Cancelado'
                 GROUP BY oi.item_name
-                ORDER BY revenue - cost DESC
+                ORDER BY SUM(oi.total) - COALESCE(SUM(oi.quantity * recipe.cost), 0) DESC
                 """
             ).fetchall()
         data = rows_to_dicts(rows)
